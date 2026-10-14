@@ -51,7 +51,8 @@ Ningún endpoint de negocio vive aquí.
 ## 3. Requisitos funcionales
 
 - **RF-00.1** — Arranque y configuración. `cmd/main.go` llama a `server.InitServer().Run()`.
-  - `InitConfig()` carga `.env` y después `.env.<ENV>` (`ENV` por defecto `development`), y valida las variables requeridas de §5. Si falta una requerida, el proceso termina con código 1 y un mensaje que nombra la variable, sin mostrar valores.
+  - `InitConfig()` carga `.env`, lee de ahí `ENV` (requerida: `development`, `testing` o `production`) y después carga `.env.<ENV>`, cuyos valores pisan a los de `.env`. `ENV` no tiene default ni puede redefinirse en `.env.<ENV>`.
+  - Valida las variables requeridas de §5. Si falta una requerida o tiene un valor inválido, el proceso termina con código 1 y un mensaje que nombra la variable, sin mostrar valores.
   - Se conecta a Mongo con `mongocc.Connect`.
   - Construye `nexus.Server` con `PathPrefix: "/api/v1"`.
   - Inicializa los dominios en orden: `bondHistory` → `bondUserSetting` → `bondType` → `bondObject` → `bondBound`. Después registra los handlers y arranca el cron (spec 10).
@@ -194,7 +195,7 @@ Esta spec no define endpoints de negocio. Expone:
 
 | Variable | Requerida | Default | Uso |
 |---|---|---|---|
-| `ENV` | no | `development` | Selecciona `.env.<ENV>` |
+| `ENV` | sí | — | Entorno: `development`, `testing` o `production`. Se declara en `.env` y selecciona `.env.<ENV>` |
 | `API_NAME` | sí | — | Nombre en logs y en `/_health` |
 | `API_PORT` | sí | — | Puerto HTTP (también lo usa el binario de healthcheck) |
 | `API_SECRET` | sí | — | Valor esperado de `x-secret` |
@@ -308,7 +309,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 
 ## 10. Criterios de aceptación
 
-- **CA-00.1** (RF-00.1) — Dado que falta `API_SECRET`, cuando arranca el proceso, entonces termina con código 1 y un log que nombra `API_SECRET` sin mostrar ningún valor.
+- **CA-00.1** (RF-00.1) — Dado que falta `API_SECRET`, cuando arranca el proceso, entonces termina con código 1 y un log que nombra `API_SECRET` sin mostrar ningún valor. Lo mismo si `.env` no declara `ENV` o si su valor no es `development`, `testing` ni `production`: termina con código 1, el log nombra `ENV` y no se carga ningún `.env.<ENV>`.
 - **CA-00.2** (RF-00.2) — Dado un request sin `x-secret` o con un valor distinto, cuando llega a cualquier endpoint de negocio, entonces responde `401 UNAUTHORIZED_INVALID_SECRET`. `/_health` responde 200 sin `x-secret`.
 - **CA-00.3** (RF-00.3) — Dado un request con `x-secret` válido y sin `x-token`, entonces responde `401 TOKEN_IS_REQUIRED` y no llama a ms-oauth.
 - **CA-00.4** (RF-00.3) — Dado un `x-token` que ms-oauth responde con 403, o un ms-oauth que no responde en 3 s, entonces el ms responde `401 TOKEN_INVALID`.

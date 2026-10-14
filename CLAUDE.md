@@ -37,7 +37,8 @@ go test -tags=integration ./...   # integration tests against local Mongo (repli
 go test ./internal/core/<domain>/... -run TestName
 ```
 
-Environment is loaded from `.env` **and then** `.env.$ENV` (default `development`); **both files must
+Environment is loaded from `.env` **and then** `.env.$ENV`, where `ENV` is required in `.env` (`development`,
+`testing` or `production`, no default); **both files must
 exist** or the process `log.Fatal`s. `.env.example` is the template; the full variable list is in spec 00 §5.
 
 Local Mongo is the `atlas` container (`mongodb/atlas`, port 27017, single-node replica set — required for

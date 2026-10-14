@@ -41,7 +41,7 @@ Antes de abrir un PR, `go vet ./...` y `go test ./...` tienen que pasar.
 
 ## Variables de entorno
 
-Se cargan de `.env` y después de `.env.<ENV>` (`ENV=development` por defecto). **Tienen que existir los dos archivos**: si falta alguno, el proceso termina al arrancar. La plantilla es [`.env.example`](.env.example) y la lista completa, con requeridas y defaults, está en la [spec 00 §5](docs/migracion-blooming/specs/00-plataforma-base.spec.md#5-configuración-envexample). Los valores se piden al equipo.
+Se cargan de `.env` y después de `.env.<ENV>`. `ENV` es obligatoria, se declara en `.env` y vale `development`, `testing` o `production` (no tiene default). **Tienen que existir los dos archivos**: si falta alguno, el proceso termina al arrancar. La plantilla es [`.env.example`](.env.example) y la lista completa, con requeridas y defaults, está en la [spec 00 §5](docs/migracion-blooming/specs/00-plataforma-base.spec.md#5-configuración-envexample). Los valores se piden al equipo.
 
 ## Desarrollo local
 
