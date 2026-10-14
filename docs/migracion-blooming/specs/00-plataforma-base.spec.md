@@ -301,10 +301,10 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| P1 | `effectiveDate` en diciembre (día ≥ 26) genera `año-1-15` sin incrementar el año. | Corregir | Fecha efectiva en el pasado. | T-00.12 |
-| P2 | `getSession` deja `session = false` si el token no existe, y los métodos fallan con TypeError. | Corregir | `VerifySession` responde 401 antes de llegar al caso de uso. | T-00.5 |
-| P3 | `withdraw` lee el saldo y después escribe; dos compras simultáneas pueden dejar el saldo negativo. | Corregir | Dinero. Se usa `$inc` condicional. | T-00.11 |
-| P4 | `balanceDetail.insert` hace `future.return` antes de `setAmounts`; el saldo se actualiza después de responder. | Corregir | Todo ocurre dentro de la transacción. | T-00.11 |
+| P1 | `effectiveDate` en diciembre (día ≥ 26) genera `año-1-15` sin incrementar el año. | Corregir | Fecha efectiva en el pasado. | BLM-0011 |
+| P2 | `getSession` deja `session = false` si el token no existe, y los métodos fallan con TypeError. | Corregir | `VerifySession` responde 401 antes de llegar al caso de uso. | BLM-0005 |
+| P3 | `withdraw` lee el saldo y después escribe; dos compras simultáneas pueden dejar el saldo negativo. | Corregir | Dinero. Se usa `$inc` condicional. | BLM-0012 |
+| P4 | `balanceDetail.insert` hace `future.return` antes de `setAmounts`; el saldo se actualiza después de responder. | Corregir | Todo ocurre dentro de la transacción. | BLM-0012 |
 
 ## 10. Criterios de aceptación
 
@@ -343,35 +343,35 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 
 ## 11. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-00.1 | Config: `ApiEnv` completo, carga de `.env` y `.env.<ENV>`, validación de requeridas, `.env.example` depurado | impl | RF-00.1 | T-PREP.3 | `cmd/api/config/config.go`, `cmd/api/config/environments.go`, `.env.example` |
-| T-00.2 | Composition root: `serverDeps`, `InitServer`, conexión mongocc, `nexus.Server` con `/api/v1`, `cmd/main.go` | impl | RF-00.1, RF-00.7 | T-00.1 | `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go` |
-| T-00.3 | Middleware `RequestLog` sin headers ni body | impl | RF-00.13 | T-00.2 | `internal/core/shared/middlewares/requestLog.middleware.go` |
-| T-00.4 | Middleware `ValidateApiSecret` con comparación en tiempo constante | impl | RF-00.2 | T-00.2 | `internal/core/shared/middlewares/validateApiSecret.middleware.go` |
-| T-00.5 | `session_domain` (`UserSession`, claves de contexto), cliente ms-oauth y middleware `VerifySession` | impl | RF-00.3 | T-00.2 | `internal/core/session/domain/`, `internal/core/shared/adapters/oauth/session.client.go`, `shared/middlewares/verifySession.middleware.go` |
-| T-00.6 | Resolución de `utcDiff` (sesión → país → `DEFAULT_UTC_DIFF`) | impl | RF-00.4 | T-00.5 | `internal/core/session/domain/session.utcDiff.go` |
-| T-00.7 | `RequireBloomingAdmin`, `IsOwnerOrAdmin` y `AgencyScope` | impl | RF-00.5 | T-00.5 | `internal/core/shared/middlewares/requireBloomingAdmin.middleware.go`, `internal/core/shared/application/shared.authorization.go` |
-| T-00.8 | CORS configurable con soporte de wildcard | impl | RF-00.6 | T-00.2 | `cmd/api/server/server.config.go`, `internal/core/shared/middlewares/cors.go` |
-| T-00.9 | Helpers compartidos: `NewID`, `Now`, `Round2`, `StartOfDay`, `DaysBetween`, `MaskAccountNumber`, `RandomAlnum`, `Pagination` | impl | RF-00.8, RF-00.18 | T-PREP.3 | `internal/core/shared/domain/`, `internal/core/shared/adapters/utils/` |
-| T-00.10 | `TransactionRunnerPort` y su adapter mongocc | impl | RF-00.9 | T-00.2 | `internal/core/shared/ports/shared.ports.go`, `shared/infrastructure/mongocc/shared.transaction.adapter.go` |
-| T-00.11 | `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional | impl | RF-00.10 | T-00.9, T-00.10, T-00.12 | `internal/core/shared/infrastructure/mongocc/balance.withdraw.adapter.go`, `balance.deposit.adapter.go` |
-| T-00.12 | Función pura `EffectiveDate(now, utcDiff)` con el cambio de año corregido | impl | RF-00.10 | T-00.9 | `internal/core/shared/domain/balance.effectiveDate.go` |
-| T-00.13 | `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`) | impl | RF-00.11 | T-00.9 | `internal/core/shared/infrastructure/mongocc/notice.add.adapter.go`, `activity.add.adapter.go` |
-| T-00.14 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | RF-00.11 | T-00.5 | `internal/core/shared/infrastructure/notification/notification.client.go` |
-| T-00.15 | **(repo ms-notification)** Handlers `blooming-*` de §7.3 | impl | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js` |
-| T-00.16 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | RF-00.14 | T-00.5 | `internal/core/shared/infrastructure/exporter/exporter.client.go` |
-| T-00.17 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | RF-00.15 | T-00.2 | `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go` |
-| T-00.18 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
-| T-00.19 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | RF-00.16 | T-00.2 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
-| T-00.20 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
-| T-00.21 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 | T-00.3, T-00.4, T-00.5, T-00.6, T-00.7 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go` |
-| T-00.22 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29 | T-00.10, T-00.11, T-00.13, T-00.17 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
-| T-00.23 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 | T-00.9, T-00.12, T-00.18 | `internal/core/shared/domain/*_test.go` |
-| T-00.24 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | CA-00.19, CA-00.23 | T-00.14, T-00.16 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
-| T-00.25 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | T-00.1, T-00.2, T-00.8, T-00.19, T-00.20 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go` |
-| T-00.26 | `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`) | impl | RF-00.19, RF-00.8 | T-00.9, T-00.2 | `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go` |
-| T-00.27 | Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos | test | CA-00.30, CA-00.31, CA-00.32 | T-00.26, T-00.10 | `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0001 | Config: `ApiEnv` completo, carga de `.env` y `.env.<ENV>`, validación de requeridas, `.env.example` depurado | impl | F1 | RF-00.1 | T-PREP.3 | `cmd/api/config/config.go`, `cmd/api/config/environments.go`, `.env.example` |
+| BLM-0002 | Composition root: `serverDeps`, `InitServer`, conexión mongocc, `nexus.Server` con `/api/v1`, `cmd/main.go` | impl | F1 | RF-00.1, RF-00.7 | BLM-0001 | `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go` |
+| BLM-0003 | Middleware `RequestLog` sin headers ni body | impl | F1 | RF-00.13 | BLM-0002 | `internal/core/shared/middlewares/requestLog.middleware.go` |
+| BLM-0004 | Middleware `ValidateApiSecret` con comparación en tiempo constante | impl | F1 | RF-00.2 | BLM-0002 | `internal/core/shared/middlewares/validateApiSecret.middleware.go` |
+| BLM-0005 | `session_domain` (`UserSession`, claves de contexto), cliente ms-oauth y middleware `VerifySession` | impl | F1 | RF-00.3 | BLM-0002 | `internal/core/session/domain/`, `internal/core/shared/adapters/oauth/session.client.go`, `shared/middlewares/verifySession.middleware.go` |
+| BLM-0006 | Resolución de `utcDiff` (sesión → país → `DEFAULT_UTC_DIFF`) | impl | F1 | RF-00.4 | BLM-0005 | `internal/core/session/domain/session.utcDiff.go` |
+| BLM-0007 | `RequireBloomingAdmin`, `IsOwnerOrAdmin` y `AgencyScope` | impl | F1 | RF-00.5 | BLM-0005 | `internal/core/shared/middlewares/requireBloomingAdmin.middleware.go`, `internal/core/shared/application/shared.authorization.go` |
+| BLM-0008 | CORS configurable con soporte de wildcard | impl | F1 | RF-00.6 | BLM-0002 | `cmd/api/server/server.config.go`, `internal/core/shared/middlewares/cors.go` |
+| BLM-0009 | Helpers compartidos: `NewID`, `Now`, `Round2`, `StartOfDay`, `DaysBetween`, `MaskAccountNumber`, `RandomAlnum`, `Pagination` | impl | F1 | RF-00.8, RF-00.18 | T-PREP.3 | `internal/core/shared/domain/`, `internal/core/shared/adapters/utils/` |
+| BLM-0010 | `TransactionRunnerPort` y su adapter mongocc | impl | F1 | RF-00.9 | BLM-0002 | `internal/core/shared/ports/shared.ports.go`, `shared/infrastructure/mongocc/shared.transaction.adapter.go` |
+| BLM-0011 | Función pura `EffectiveDate(now, utcDiff)` con el cambio de año corregido | impl | F1 | RF-00.10 | BLM-0009 | `internal/core/shared/domain/balance.effectiveDate.go` |
+| BLM-0012 | `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional | impl | F1 | RF-00.10 | BLM-0009, BLM-0010, BLM-0011 | `internal/core/shared/infrastructure/mongocc/balance.withdraw.adapter.go`, `balance.deposit.adapter.go` |
+| BLM-0013 | `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`) | impl | F1 | RF-00.11 | BLM-0009 | `internal/core/shared/infrastructure/mongocc/notice.add.adapter.go`, `activity.add.adapter.go` |
+| BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/infrastructure/notification/notification.client.go` |
+| BLM-0015 | **(repo ms-notification)** Handlers `blooming-*` de §7.3 | impl | F1 | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js` |
+| BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/infrastructure/exporter/exporter.client.go` |
+| BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go` |
+| BLM-0018 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | F1 | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
+| BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
+| BLM-0020 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | F1 | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
+| BLM-0021 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | F1 | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 | BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go` |
+| BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0023 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | F1 | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 | BLM-0009, BLM-0011, BLM-0018 | `internal/core/shared/domain/*_test.go` |
+| BLM-0024 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | F1 | CA-00.19, CA-00.23 | BLM-0014, BLM-0016 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
+| BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go` |
+| BLM-0026 | `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`) | impl | F1 | RF-00.19, RF-00.8 | BLM-0009, BLM-0002 | `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go` |
+| BLM-0027 | Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos | test | F1 | CA-00.30, CA-00.31, CA-00.32 | BLM-0026, BLM-0010 | `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go` |
 
 ## 12. Fuera de alcance y preguntas abiertas
 

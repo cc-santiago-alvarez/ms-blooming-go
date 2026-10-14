@@ -144,13 +144,13 @@ Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineI
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B10 | `listByUserlogged` con `skip` salta siempre 5, y `limitBondResults` reordena después de saltar. | Corregir | Paginación real. | T-06.5 |
-| B15 | `listByBondObjectId` y `getInvestorsById` devuelven el `profile` completo, con el hash del password. Tampoco filtran `isRemove` ni agencia. | Corregir | Seguridad. | T-06.4 |
-| B23 | `aMonth` y `aYear` usan `$month`/`$year` en UTC: una compra del 31-oct a las 22:00 (UTC-5) cae en noviembre. | Corregir | Consistencia con la zona de la sesión. | T-06.2 |
-| B24 | La búsqueda usa el texto del usuario como `$regex` sin escapar (regex inválida que hace fallar la agregación, o ReDoS). | Corregir | Seguridad y robustez. | T-06.3 |
-| B25 | `getBondPurchasedForChart` formatea con `%G` (año ISO por semana): las fechas de fines de diciembre salen con el año siguiente. También usa UTC. | Corregir | Dato incorrecto. | T-06.3 |
-| B26 | `get`, `getDetails`, `getInvestorsById` y `getBondPurchasedForChart` no validan dueño ni permisos: cualquier sesión lee bonos ajenos. | Corregir | Seguridad. | T-06.5 |
-| B27 | `getDetails` devuelve el `bondObject` completo, incluido `authorizedUserIds`. | Corregir | Exposición de ids de usuarios. | T-06.5 |
+| B10 | `listByUserlogged` con `skip` salta siempre 5, y `limitBondResults` reordena después de saltar. | Corregir | Paginación real. | BLM-0105 |
+| B15 | `listByBondObjectId` y `getInvestorsById` devuelven el `profile` completo, con el hash del password. Tampoco filtran `isRemove` ni agencia. | Corregir | Seguridad. | BLM-0104 |
+| B23 | `aMonth` y `aYear` usan `$month`/`$year` en UTC: una compra del 31-oct a las 22:00 (UTC-5) cae en noviembre. | Corregir | Consistencia con la zona de la sesión. | BLM-0102 |
+| B24 | La búsqueda usa el texto del usuario como `$regex` sin escapar (regex inválida que hace fallar la agregación, o ReDoS). | Corregir | Seguridad y robustez. | BLM-0103 |
+| B25 | `getBondPurchasedForChart` formatea con `%G` (año ISO por semana): las fechas de fines de diciembre salen con el año siguiente. También usa UTC. | Corregir | Dato incorrecto. | BLM-0103 |
+| B26 | `get`, `getDetails`, `getInvestorsById` y `getBondPurchasedForChart` no validan dueño ni permisos: cualquier sesión lee bonos ajenos. | Corregir | Seguridad. | BLM-0105 |
+| B27 | `getDetails` devuelve el `bondObject` completo, incluido `authorizedUserIds`. | Corregir | Exposición de ids de usuarios. | BLM-0105 |
 
 ## 9. Criterios de aceptación
 
@@ -173,17 +173,17 @@ Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineI
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-06.1 | Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` | impl | RF-06.1, RF-06.11, RF-06.12 | T-04.1, T-00.9 | `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go` |
-| T-06.2 | Constructor de rangos de fecha `DateRangeStage(filter, field, u)`, reutilizable por la spec 07 | impl | RF-06.12 | T-06.1 | `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go` |
-| T-06.3 | Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete` | impl | RF-06.1, RF-06.3, RF-06.4, RF-06.5, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | T-06.2, T-04.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go` |
-| T-06.4 | Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove` | impl | RF-06.1, RF-06.3, RF-06.8, RF-06.10 | T-06.3, T-00.17 | `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go` |
-| T-06.5 | Casos de uso del inversionista: `Statuses`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails` y `Timeline`, con control de dueño | impl | RF-06.2, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.9, RF-06.11 | T-06.3, T-00.7 | `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go` |
-| T-06.6 | Handlers y rutas, incluidas `/users/{userId}/bond-bounds` y `/bond-objects/{id}/bond-bounds` | impl | RF-06.1, RF-06.2, RF-06.3, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | T-06.4, T-06.5, T-04.9, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go` |
-| T-06.7 | Tests de tabla de los derivados y de los rangos de fecha | test | CA-06.3, CA-06.4, CA-06.5 | T-06.1, T-06.2 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |
-| T-06.8 | Tests unitarios de casos de uso y handlers (permisos, dueño, 404) | test | CA-06.6, CA-06.7, CA-06.10, CA-06.12 | T-06.6 | `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go` |
-| T-06.9 | Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones) | test | CA-06.1, CA-06.2, CA-06.8, CA-06.9, CA-06.11, CA-06.13, CA-06.14 | T-06.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0101 | Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` | impl | F6 | RF-06.1, RF-06.11, RF-06.12 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go` |
+| BLM-0102 | Constructor de rangos de fecha `DateRangeStage(filter, field, u)`, reutilizable por la spec 07 | impl | F6 | RF-06.12 | BLM-0101 | `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go` |
+| BLM-0103 | Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete` | impl | F6 | RF-06.1, RF-06.3, RF-06.4, RF-06.5, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0102, BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go` |
+| BLM-0104 | Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove` | impl | F6 | RF-06.1, RF-06.3, RF-06.8, RF-06.10 | BLM-0103, BLM-0017 | `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go` |
+| BLM-0105 | Casos de uso del inversionista: `Statuses`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails` y `Timeline`, con control de dueño | impl | F6 | RF-06.2, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.9, RF-06.11 | BLM-0103, BLM-0007 | `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go` |
+| BLM-0106 | Handlers y rutas, incluidas `/users/{userId}/bond-bounds` y `/bond-objects/{id}/bond-bounds` | impl | F6 | RF-06.1, RF-06.2, RF-06.3, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0104, BLM-0105, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go` |
+| BLM-0107 | Tests de tabla de los derivados y de los rangos de fecha | test | F6 | CA-06.3, CA-06.4, CA-06.5 | BLM-0101, BLM-0102 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |
+| BLM-0108 | Tests unitarios de casos de uso y handlers (permisos, dueño, 404) | test | F6 | CA-06.6, CA-06.7, CA-06.10, CA-06.12 | BLM-0106 | `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go` |
+| BLM-0109 | Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones) | test | F6 | CA-06.1, CA-06.2, CA-06.8, CA-06.9, CA-06.11, CA-06.13, CA-06.14 | BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -170,17 +170,17 @@ Esta spec no persiste nada.
 ## 7. Ports y dependencias
 
 - `BondObjectApplicationPorts.ChartPreview` y `ChartByID` (spec 02). Para la visibilidad, `ChartByID` reutiliza el filtro de RF-02.9.
-- `BondBoundApplicationPorts.ChartGuides` (spec 04/06). Usa `FindOneByID` del repositorio de `bondBound` (T-04.3).
+- `BondBoundApplicationPorts.ChartGuides` (spec 04/06). Usa `FindOneByID` del repositorio de `bondBound` (BLM-0077).
 - `shared.StartOfDay` y `shared.Round2` (spec 00).
 
 ## 8. Bugs legacy
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| O10 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. | Corregir | Cálculos de dinero. | T-03.2 |
-| O7 | `getDataChart` con `simulation` pero sin `preview` devuelve `data: []`. | Corregir | La proyección por id es útil para el inversionista; se calcula siempre que `simulation=true`. | T-03.4 |
-| O8 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. | Corregir | Las fechas se ven igual en las dos gráficas. | T-03.3 |
-| B17 | `getChartGuides` no valida que el bono exista (crashea) ni que sea del usuario. | Corregir | Llamada que no responde, y exposición de datos ajenos. | T-03.5 |
+| O10 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. | Corregir | Cálculos de dinero. | BLM-0029 |
+| O7 | `getDataChart` con `simulation` pero sin `preview` devuelve `data: []`. | Corregir | La proyección por id es útil para el inversionista; se calcula siempre que `simulation=true`. | BLM-0060 |
+| O8 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. | Corregir | Las fechas se ven igual en las dos gráficas. | BLM-0030 |
+| B17 | `getChartGuides` no valida que el bono exista (crashea) ni que sea del usuario. | Corregir | Llamada que no responde, y exposición de datos ajenos. | BLM-0078 |
 
 ## 9. Criterios de aceptación
 
@@ -196,20 +196,20 @@ Esta spec no persiste nada.
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-03.1 | `shared_domain`: `EarlyCashTerm` (decodifica numéricos legacy con `FlexNumber`), `FlexNumber`, `ChartPoint` y `ChartGuide` | impl | RF-03.1, RF-03.2, RF-03.5 | T-00.9 | `internal/core/shared/domain/shared.earlyCashTerm.go`, `shared.flexNumber.go`, `shared.chart.go` |
-| T-03.2 | Función pura `SimulateProjection` | impl | RF-03.1 | T-03.1 | `internal/core/shared/domain/shared.projection.go` |
-| T-03.3 | Funciones puras `BuildObjectGuides` y `BuildBoundGuides` | impl | RF-03.2, RF-03.5 | T-03.1 | `internal/core/shared/domain/shared.chartGuides.go` |
-| T-03.4 | Casos de uso `ChartPreview` y `ChartByID` en bondObject, con visibilidad de RF-02.9 | impl | RF-03.3, RF-03.4 | T-03.2, T-03.3, T-02.8 | `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go` |
-| T-03.5 | Caso de uso `ChartGuides` en bondBound, con control de dueño o admin | impl | RF-03.5 | T-03.3, T-04.3, T-00.7 | `internal/core/bondBound/application/bondBound.chartGuides.go` |
-| T-03.6 | Handlers y rutas de bondObject: `POST /bond-objects/chart/preview` y `GET /bond-objects/{id}/chart` | impl | RF-03.3, RF-03.4 | T-03.4, T-02.9, T-00.26 | `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go` |
-| T-03.7 | Tests de tabla de `SimulateProjection` y de las guías, con casos calculados con el código legacy | test | CA-03.1, CA-03.2, CA-03.3, CA-03.4, CA-03.5 | T-03.2, T-03.3 | `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go` |
-| T-03.8 | Tests de casos de uso y handlers de la proyección de bondObject (permisos, visibilidad, validación) | test | CA-03.6, CA-03.7, CA-03.9 | T-03.6 | `internal/core/bondObject/application/bondObject.chart*_test.go`, `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go` |
-| T-03.9 | Handler y ruta `GET /bond-bounds/{id}/chart-guides` | impl | RF-03.5 | T-03.5, T-04.9, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get.go` |
-| T-03.10 | Tests del caso de uso y del handler de guías de bondBound (dueño, admin, 404) | test | CA-03.8 | T-03.9 | `internal/core/bondBound/application/bondBound.chartGuides_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0028 | `shared_domain`: `EarlyCashTerm` (decodifica numéricos legacy con `FlexNumber`), `FlexNumber`, `ChartPoint` y `ChartGuide` | impl | F2 | RF-03.1, RF-03.2, RF-03.5 | BLM-0009 | `internal/core/shared/domain/shared.earlyCashTerm.go`, `shared.flexNumber.go`, `shared.chart.go` |
+| BLM-0029 | Función pura `SimulateProjection` | impl | F2 | RF-03.1 | BLM-0028 | `internal/core/shared/domain/shared.projection.go` |
+| BLM-0030 | Funciones puras `BuildObjectGuides` y `BuildBoundGuides` | impl | F2 | RF-03.2, RF-03.5 | BLM-0028 | `internal/core/shared/domain/shared.chartGuides.go` |
+| BLM-0031 | Tests de tabla de `SimulateProjection` y de las guías, con casos calculados con el código legacy | test | F2 | CA-03.1, CA-03.2, CA-03.3, CA-03.4, CA-03.5 | BLM-0029, BLM-0030 | `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go` |
+| BLM-0060 | Casos de uso `ChartPreview` y `ChartByID` en bondObject, con visibilidad de RF-02.9 | impl | F3 | RF-03.3, RF-03.4 | BLM-0029, BLM-0030, BLM-0055 | `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go` |
+| BLM-0061 | Handlers y rutas de bondObject: `POST /bond-objects/chart/preview` y `GET /bond-objects/{id}/chart` | impl | F3 | RF-03.3, RF-03.4 | BLM-0060, BLM-0056, BLM-0026 | `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go` |
+| BLM-0062 | Tests de casos de uso y handlers de la proyección de bondObject (permisos, visibilidad, validación) | test | F3 | CA-03.6, CA-03.7, CA-03.9 | BLM-0061 | `internal/core/bondObject/application/bondObject.chart*_test.go`, `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go` |
+| BLM-0078 | Caso de uso `ChartGuides` en bondBound, con control de dueño o admin | impl | F5 | RF-03.5 | BLM-0030, BLM-0077, BLM-0007 | `internal/core/bondBound/application/bondBound.chartGuides.go` |
+| BLM-0085 | Handler y ruta `GET /bond-bounds/{id}/chart-guides` | impl | F5 | RF-03.5 | BLM-0078, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get.go` |
+| BLM-0086 | Tests del caso de uso y del handler de guías de bondBound (dueño, admin, 404) | test | F5 | CA-03.8 | BLM-0085 | `internal/core/bondBound/application/bondBound.chartGuides_test.go` |
 
-T-03.1, T-03.2, T-03.3 y T-03.7 van en la fase F2. T-03.4, T-03.6 y T-03.8 van en la F3 (catálogo). T-03.5, T-03.9 y T-03.10 van en la F5, cuando ya existe el repositorio de `bondBound` (T-04.3). Ver `tasks.md`.
+BLM-0028, BLM-0029, BLM-0030 y BLM-0031 van en la fase F2. BLM-0060, BLM-0061 y BLM-0062 van en la F3 (catálogo). BLM-0078, BLM-0085 y BLM-0086 van en la F5, cuando ya existe el repositorio de `bondBound` (BLM-0077). Ver `tasks.md`.
 
 ## 11. Fuera de alcance y preguntas abiertas
 

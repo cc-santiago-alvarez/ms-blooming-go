@@ -196,7 +196,7 @@ type SaleProjection struct {
 ## 7. Ports y dependencias
 
 - `BondBoundApplicationPorts`: `PreSale` y `Sale`.
-- `BondBoundMongoccRepositoryPorts`: `FindOneByID` y `UpdateStatusIf` (T-04.3).
+- `BondBoundMongoccRepositoryPorts`: `FindOneByID` y `UpdateStatusIf` (BLM-0077).
 - `BondUserSettingApplicationPorts.GetByUser` (spec 09).
 - `BondObjectApplicationPorts.GetByIDIncludingRemoved` (spec 02), solo para el nombre en el mensaje.
 - `BalancePort.GetAccount` y `Deposit`, `TransactionRunnerPort`, `NoticePort`, `NotificationPort`, `ProfileReader` (spec 00).
@@ -206,16 +206,16 @@ type SaleProjection struct {
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B1 | `preSale` compara `totalDaysPassed` (días) con `maturityDate` (ms): la rama penalizada siempre corre y en el vencimiento `profit` sale penalizado. | Corregir | El monto acreditado no cambia; se corrige el `profit` informado. | T-05.1 |
-| B2 | `setStatus` usa `bondBound.initalDate` (typo): la fecha de compra del email es "ahora". | Corregir | Dato incorrecto al cliente. | T-05.5 |
-| B3 | `sale` no verifica el error de `preSale`: con la fecha de retiro inválida acredita `NaN` y cambia el estado igual. | Corregir | Dinero. | T-05.4 |
-| B4 | `sale` traga las excepciones en `catch {}` y nunca responde. | Corregir | Llamada que no responde. | T-05.4 |
-| B4b | "Disponible actual" del email suma el monto dos veces. | Corregir | Dato incorrecto al cliente. | T-05.5 |
-| B5 | `sale` sobre un estado `'3'` o `'4'` envía `status: ''` y lanza `TypeError`. | Corregir | Llamada que no responde. | T-05.2 |
-| B6 | Se acredita en `selectedAccountId` y no en la cuenta de compra; crashea si no hay setting. | Mantener la cuenta destino y corregir el crash | Paridad funcional, con error explícito. | T-05.4 |
-| B14 | `parseInt` en `maturityTimeInDays`, `inflectionPoint` y `maturityRewardsPercentage`. | Corregir | Tasas con decimales. | T-05.1 |
-| B16 | `preSale` y `sale` no validan que el bono sea del usuario. `sale` acredita el valor de un bono ajeno en la cuenta de quien llama. | Corregir | Seguridad y dinero (crítico). | T-05.4 |
-| B21 | El email usa el rendimiento y el plazo actuales del producto, no los del bono comprado. | Corregir | Se usa el snapshot del bono. | T-05.5 |
+| B1 | `preSale` compara `totalDaysPassed` (días) con `maturityDate` (ms): la rama penalizada siempre corre y en el vencimiento `profit` sale penalizado. | Corregir | El monto acreditado no cambia; se corrige el `profit` informado. | BLM-0090 |
+| B2 | `setStatus` usa `bondBound.initalDate` (typo): la fecha de compra del email es "ahora". | Corregir | Dato incorrecto al cliente. | BLM-0094 |
+| B3 | `sale` no verifica el error de `preSale`: con la fecha de retiro inválida acredita `NaN` y cambia el estado igual. | Corregir | Dinero. | BLM-0093 |
+| B4 | `sale` traga las excepciones en `catch {}` y nunca responde. | Corregir | Llamada que no responde. | BLM-0093 |
+| B4b | "Disponible actual" del email suma el monto dos veces. | Corregir | Dato incorrecto al cliente. | BLM-0094 |
+| B5 | `sale` sobre un estado `'3'` o `'4'` envía `status: ''` y lanza `TypeError`. | Corregir | Llamada que no responde. | BLM-0091 |
+| B6 | Se acredita en `selectedAccountId` y no en la cuenta de compra; crashea si no hay setting. | Mantener la cuenta destino y corregir el crash | Paridad funcional, con error explícito. | BLM-0093 |
+| B14 | `parseInt` en `maturityTimeInDays`, `inflectionPoint` y `maturityRewardsPercentage`. | Corregir | Tasas con decimales. | BLM-0090 |
+| B16 | `preSale` y `sale` no validan que el bono sea del usuario. `sale` acredita el valor de un bono ajeno en la cuenta de quien llama. | Corregir | Seguridad y dinero (crítico). | BLM-0093 |
+| B21 | El email usa el rendimiento y el plazo actuales del producto, no los del bono comprado. | Corregir | Se usa el snapshot del bono. | BLM-0094 |
 
 ## 9. Criterios de aceptación
 
@@ -238,17 +238,17 @@ type SaleProjection struct {
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-05.1 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | RF-05.2 | T-04.1, T-00.9 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
-| T-05.2 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | RF-05.3 | T-04.1 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` |
-| T-05.3 | Caso de uso `PreSale`, con control de dueño o admin | impl | RF-05.1 | T-05.1, T-05.2, T-04.3, T-00.6, T-00.7 | `internal/core/bondBound/application/bondBound.preSale.go` |
-| T-05.4 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | T-05.3, T-09.4, T-00.10, T-00.11, T-08.4 | `internal/core/bondBound/application/bondBound.sale.go` |
-| T-05.5 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | RF-05.7 | T-05.4, T-00.13, T-00.14, T-00.15, T-00.18 | `internal/core/bondBound/application/bondBound.sale.notify.go` |
-| T-05.6 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | RF-05.1, RF-05.3 | T-05.3, T-05.4, T-04.9, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go` |
-| T-05.7 | Tests de tabla de `QuoteSale` contra casos calculados con el código legacy | test | CA-05.1, CA-05.2, CA-05.3, CA-05.4 | T-05.1 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
-| T-05.8 | Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) | test | CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 | T-05.6 | `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go` |
-| T-05.9 | Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones | test | CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 | T-05.6, T-05.5 | `internal/core/bondBound/application/bondBound.sale_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0090 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | F5 | RF-05.2 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
+| BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` |
+| BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go` |
+| BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go` |
+| BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go` |
+| BLM-0095 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | F5 | RF-05.1, RF-05.3 | BLM-0092, BLM-0093, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go` |
+| BLM-0096 | Tests de tabla de `QuoteSale` contra casos calculados con el código legacy | test | F5 | CA-05.1, CA-05.2, CA-05.3, CA-05.4 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
+| BLM-0097 | Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) | test | F5 | CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 | BLM-0095 | `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go` |
+| BLM-0098 | Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones | test | F5 | CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 | BLM-0095, BLM-0094 | `internal/core/bondBound/application/bondBound.sale_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -49,4 +49,4 @@ Levantar con `air`.
 
 ## Ramas
 
-Formato de commit: `[BLM-xxx] [MS-BLOOMING][ÁREA] descripción en español`.
+Formato de commit: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español`.

@@ -180,15 +180,16 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 
 - Flujo `cc-* ↔ integrations → main`. La infra (`.deploy*/`, `.github/workflows/docker-build.yml`, `.dockerignore`, `.env*` salvo `.env.example`) vive **solo en `main`**.
 - `.claude/` **NO DEBE** versionarse en ninguna rama.
-- Formato de commit: `[FA-xxx] [MS-BLOOMING][ÁREA] descripción en español`. Ejemplo: `[FA-412] [MS-BLOOMING][BOND-BOUND] compra con transacción`.
+- Formato de commit: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español`, donde `BLM-xxxx` es el ID de la tarea en `tasks.md`. Ejemplo: `[BLM-0081] [MS-BLOOMING][BOND-BOUND] compra con transacción`.
 
 ## 14. Proceso SDD
 
 | Regla | Justificación |
 |---|---|
 | **NO DEBE** escribirse código sin una spec aprobada en `docs/migracion-blooming/specs/`. | La spec es el contrato. |
-| **DEBEN** las specs nombrarse `NN-<nombre>.spec.md` (por ejemplo `04-bond-bound-compra.spec.md`). `NN` es el número de la spec y el prefijo de sus IDs (`RF-04.x`, `CA-04.x`, `T-04.x`). | El generador de `tasks.md` solo lee `*.spec.md`. |
+| **DEBEN** las specs nombrarse `NN-<nombre>.spec.md` (por ejemplo `04-bond-bound-compra.spec.md`). `NN` es el número de la spec y el prefijo de sus requisitos y criterios (`RF-04.x`, `CA-04.x`). | El generador de `tasks.md` solo lee `*.spec.md`. |
+| **DEBEN** las tareas identificarse como `BLM-xxxx` (numeración global de 4 dígitos, sin prefijo de spec; las de F0 conservan su formato `T-PREP.x`) y declarar su fase en la columna *Fase* de la tabla *Tareas*. Una tarea nueva toma el siguiente ID libre que informa `tasks.md`; los IDs existentes no se renumeran ni se reutilizan. | El ID es también el ticket del commit y tiene que ser estable. |
 | **DEBE** cada tarea implementar o verificar uno o más `RF-NN.x` / `CA-NN.x` de una spec, y citarlos. | Trazabilidad requisito → tarea → código → test. |
 | **DEBE**, si cambia un comportamiento, actualizarse primero la spec, luego sus tareas (en la spec y en `tasks.md`) y después el código. | La documentación no queda atrás del código. |
-| **DEBE** cada PR citar en la descripción las tareas (`T-NN.x`), los requisitos (`RF-NN.x`) y la spec que cubre. | Revisión contra el contrato. |
+| **DEBE** cada PR citar en la descripción las tareas (`BLM-xxxx`), los requisitos (`RF-NN.x`) y la spec que cubre. | Revisión contra el contrato. |
 | **DEBE** la tabla *Tareas* de cada spec coincidir con `tasks.md` (mismos IDs, títulos y dependencias). | Una sola fuente de verdad, vista desde dos lados. |

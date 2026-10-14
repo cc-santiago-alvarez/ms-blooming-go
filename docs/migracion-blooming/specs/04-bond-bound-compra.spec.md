@@ -198,7 +198,7 @@ type BondKeyCounter struct { // colección bondKeyCounter
 - `{statusId: 1, maturityDate: 1}` (spec 10)
 - único parcial `{bondTypeId: 1, keySeq: 1}` con `partialFilterExpression: {keySeq: {$exists: true}}`
 
-`key` **no** lleva índice único global: el legado ya pudo generar duplicados por B8. Ver la tarea de auditoría T-04.4.
+`key` **no** lleva índice único global: el legado ya pudo generar duplicados por B8. Ver la tarea de auditoría BLM-0079.
 
 ## 7. Ports y dependencias
 
@@ -213,13 +213,13 @@ type BondKeyCounter struct { // colección bondKeyCounter
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B7 | `insert` no verifica el resultado del retiro: se puede crear un bono sin cobro. Sin transacción ni idempotencia. | Corregir | Dinero. | T-04.6 |
-| B8 | La clave se arma con `count(bondTypeId) + 1`: hay carrera bajo compras concurrentes, sin índice único, y cuenta los borrados. | Corregir (contador atómico); se mantiene contar los borrados en la siembra | Claves duplicadas. | T-04.4 |
-| B9 | No se valida `isPrivateBond`/`authorizedUserIds` ni `saleEndDate`, ni se hace null-check de la cuenta y el producto (crash). | Corregir | Venta de bonos privados o vencidos, y llamadas que no responden. | T-04.6 |
-| B13 | `maturityDate` usa `format('YYYY-MM-DD hh:mm:ss')` (12 h, sin am/pm): las compras de la tarde vencen 12 h antes. | Corregir | Fecha de vencimiento incorrecta. | T-04.5 |
-| B18 | `bulkPurchase` busca la cuenta solo por `agencyId` y retira con `userId: account.userId`: se puede comprar debitando la cuenta de otro usuario de la misma agencia. | Corregir | Seguridad y dinero. | T-04.7 |
-| B19 | La compra masiva crea los bonos y retiros uno por uno, y si uno falla quedan compras parciales; además crashea si un retiro devuelve error (`withdrawResponse.data` es undefined). | Corregir | Dinero; transacción única. | T-04.7 |
-| B20 | El retiro de la compra individual no tiene `comment`. | Corregir | Trazabilidad en el estado de cuenta: se usa el mismo `comment` que en la masiva. | T-04.6 |
+| B7 | `insert` no verifica el resultado del retiro: se puede crear un bono sin cobro. Sin transacción ni idempotencia. | Corregir | Dinero. | BLM-0081 |
+| B8 | La clave se arma con `count(bondTypeId) + 1`: hay carrera bajo compras concurrentes, sin índice único, y cuenta los borrados. | Corregir (contador atómico); se mantiene contar los borrados en la siembra | Claves duplicadas. | BLM-0079 |
+| B9 | No se valida `isPrivateBond`/`authorizedUserIds` ni `saleEndDate`, ni se hace null-check de la cuenta y el producto (crash). | Corregir | Venta de bonos privados o vencidos, y llamadas que no responden. | BLM-0081 |
+| B13 | `maturityDate` usa `format('YYYY-MM-DD hh:mm:ss')` (12 h, sin am/pm): las compras de la tarde vencen 12 h antes. | Corregir | Fecha de vencimiento incorrecta. | BLM-0080 |
+| B18 | `bulkPurchase` busca la cuenta solo por `agencyId` y retira con `userId: account.userId`: se puede comprar debitando la cuenta de otro usuario de la misma agencia. | Corregir | Seguridad y dinero. | BLM-0082 |
+| B19 | La compra masiva crea los bonos y retiros uno por uno, y si uno falla quedan compras parciales; además crashea si un retiro devuelve error (`withdrawResponse.data` es undefined). | Corregir | Dinero; transacción única. | BLM-0082 |
+| B20 | El retiro de la compra individual no tiene `comment`. | Corregir | Trazabilidad en el estado de cuenta: se usa el mismo `comment` que en la masiva. | BLM-0081 |
 
 ## 9. Criterios de aceptación
 
@@ -249,24 +249,24 @@ type BondKeyCounter struct { // colección bondKeyCounter
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-04.1 | Dominio: `BondBound`, `BondBoundStatus` (con nombres e `IsValid`), `BondKeyCounter`, DTOs `PurchaseParams`/`BulkPurchaseParams`, errores y `httpStatus` | impl | RF-04.1, RF-04.2, RF-04.8 | T-03.1, T-00.9 | `internal/core/bondBound/domain/*.go` |
-| T-04.2 | Ports: `BondBoundApplicationPorts`, `BondBoundMongoccRepositoryPorts`, `KeyCounterPort` | impl | RF-04.1, RF-04.2, RF-04.3, RF-04.8 | T-04.1 | `internal/core/bondBound/ports/bondBound.ports.go` |
-| T-04.3 | Repositorio base: `InsertMany`, `FindOneByID`, `UpdateStatusIf` y `EnsureIndexes` (§6) | impl | RF-04.8 | T-04.2 | `internal/core/bondBound/infrastructure/mongocc/bondBound.mongocc.repository.go`, `bondBound.insertMany.adapter.go`, `bondBound.findOneById.adapter.go`, `bondBound.updateStatusIf.adapter.go`, `bondBound.ensureIndexes.adapter.go` |
-| T-04.4 | `KeyCounterPort.Reserve`, script de siembra de contadores y auditoría de claves duplicadas existentes | impl | RF-04.3 | T-04.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.keyCounter.adapter.go`, `cmd/tools/seedkeycounters/main.go` |
-| T-04.5 | Función pura `NewBoundFromObject` (snapshot, `maturityDate` exacta, `token`) | impl | RF-04.4 | T-04.1 | `internal/core/bondBound/domain/bondBound.new.go` |
-| T-04.6 | Caso de uso `Purchase`: validaciones de §5.1 y transacción de §5.2 | impl | RF-04.1, RF-04.5 | T-04.3, T-04.4, T-04.5, T-00.10, T-00.11, T-02.8, T-08.4 | `internal/core/bondBound/application/bondBound.purchase.go`, `bondBound.validatePurchase.go` |
-| T-04.7 | Caso de uso `BulkPurchase`: cantidad, validaciones compartidas y transacción única | impl | RF-04.2, RF-04.5 | T-04.6 | `internal/core/bondBound/application/bondBound.bulkPurchase.go` |
-| T-04.8 | Notificaciones post-commit de la compra individual y la masiva (armado de textos y tabla) | impl | RF-04.6, RF-04.7 | T-04.6, T-04.7, T-00.13, T-00.14, T-00.18, T-00.15 | `internal/core/bondBound/application/bondBound.purchase.notify.go` |
-| T-04.9 | Handlers `purchase` y `bulk-purchase`, y `server.bondBound.go` (inicialización del dominio y registro) | impl | RF-04.1, RF-04.2 | T-04.6, T-04.7, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.handler.go`, `bondBounds.purchase.post.go`, `bondBounds.bulkPurchase.post.go`, `cmd/api/server/server.bondBound.go` |
-| T-04.10 | Tests unitarios de validaciones (tabla y orden), de `NewBoundFromObject` y de los handlers | test | CA-04.2, CA-04.3, CA-04.4, CA-04.6, CA-04.8 | T-04.9 | `internal/core/bondBound/application/bondBound.purchase_test.go`, `internal/core/bondBound/domain/bondBound.new_test.go` |
-| T-04.11 | Tests de integración: compra completa, rollback, concurrencia, contador e índices | test | CA-04.1, CA-04.5, CA-04.7, CA-04.9, CA-04.10, CA-04.13, CA-04.14 | T-04.9 | `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go` |
-| T-04.12 | Tests de las notificaciones (textos, tabla y tolerancia a fallos) | test | CA-04.11, CA-04.12 | T-04.8 | `internal/core/bondBound/application/bondBound.purchase.notify_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0075 | Dominio: `BondBound`, `BondBoundStatus` (con nombres e `IsValid`), `BondKeyCounter`, DTOs `PurchaseParams`/`BulkPurchaseParams`, errores y `httpStatus` | impl | F5 | RF-04.1, RF-04.2, RF-04.8 | BLM-0028, BLM-0009 | `internal/core/bondBound/domain/*.go` |
+| BLM-0076 | Ports: `BondBoundApplicationPorts`, `BondBoundMongoccRepositoryPorts`, `KeyCounterPort` | impl | F5 | RF-04.1, RF-04.2, RF-04.3, RF-04.8 | BLM-0075 | `internal/core/bondBound/ports/bondBound.ports.go` |
+| BLM-0077 | Repositorio base: `InsertMany`, `FindOneByID`, `UpdateStatusIf` y `EnsureIndexes` (§6) | impl | F5 | RF-04.8 | BLM-0076 | `internal/core/bondBound/infrastructure/mongocc/bondBound.mongocc.repository.go`, `bondBound.insertMany.adapter.go`, `bondBound.findOneById.adapter.go`, `bondBound.updateStatusIf.adapter.go`, `bondBound.ensureIndexes.adapter.go` |
+| BLM-0079 | `KeyCounterPort.Reserve`, script de siembra de contadores y auditoría de claves duplicadas existentes | impl | F5 | RF-04.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.keyCounter.adapter.go`, `cmd/tools/seedkeycounters/main.go` |
+| BLM-0080 | Función pura `NewBoundFromObject` (snapshot, `maturityDate` exacta, `token`) | impl | F5 | RF-04.4 | BLM-0075 | `internal/core/bondBound/domain/bondBound.new.go` |
+| BLM-0081 | Caso de uso `Purchase`: validaciones de §5.1 y transacción de §5.2 | impl | F5 | RF-04.1, RF-04.5 | BLM-0077, BLM-0079, BLM-0080, BLM-0010, BLM-0012, BLM-0055, BLM-0035 | `internal/core/bondBound/application/bondBound.purchase.go`, `bondBound.validatePurchase.go` |
+| BLM-0082 | Caso de uso `BulkPurchase`: cantidad, validaciones compartidas y transacción única | impl | F5 | RF-04.2, RF-04.5 | BLM-0081 | `internal/core/bondBound/application/bondBound.bulkPurchase.go` |
+| BLM-0083 | Notificaciones post-commit de la compra individual y la masiva (armado de textos y tabla) | impl | F5 | RF-04.6, RF-04.7 | BLM-0081, BLM-0082, BLM-0013, BLM-0014, BLM-0018, BLM-0015 | `internal/core/bondBound/application/bondBound.purchase.notify.go` |
+| BLM-0084 | Handlers `purchase` y `bulk-purchase`, y `server.bondBound.go` (inicialización del dominio y registro) | impl | F5 | RF-04.1, RF-04.2 | BLM-0081, BLM-0082, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.handler.go`, `bondBounds.purchase.post.go`, `bondBounds.bulkPurchase.post.go`, `cmd/api/server/server.bondBound.go` |
+| BLM-0087 | Tests unitarios de validaciones (tabla y orden), de `NewBoundFromObject` y de los handlers | test | F5 | CA-04.2, CA-04.3, CA-04.4, CA-04.6, CA-04.8 | BLM-0084 | `internal/core/bondBound/application/bondBound.purchase_test.go`, `internal/core/bondBound/domain/bondBound.new_test.go` |
+| BLM-0088 | Tests de integración: compra completa, rollback, concurrencia, contador e índices | test | F5 | CA-04.1, CA-04.5, CA-04.7, CA-04.9, CA-04.10, CA-04.13, CA-04.14 | BLM-0084 | `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0089 | Tests de las notificaciones (textos, tabla y tolerancia a fallos) | test | F5 | CA-04.11, CA-04.12 | BLM-0083 | `internal/core/bondBound/application/bondBound.purchase.notify_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
-- **Convivencia:** mientras Meteor siga vendiendo, generará claves con `count + 1` y puede chocar con el contador de Go. La compra se habilita en Go y se deshabilita en Meteor **en el mismo corte** (ver `tasks.md`, T-CORTE.3).
+- **Convivencia:** mientras Meteor siga vendiendo, generará claves con `count + 1` y puede chocar con el contador de Go. La compra se habilita en Go y se deshabilita en Meteor **en el mismo corte** (ver `tasks.md`, BLM-0135).
 - **Pregunta:** ¿se quiere un header `Idempotency-Key` para evitar compras dobles por doble clic? El legado no lo tiene.
 - **Pregunta:** ¿el tope por defecto de la compra masiva (100) es razonable?
 - **Pregunta:** ¿se mantiene la compra de bonos de otra agencia, como dice el comentario del legado?

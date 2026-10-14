@@ -71,7 +71,7 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
   - `PUT /internal/bond-user-settings/{userId}/selected-account` con `{selectedAccountId}`. Solo requiere `x-secret` (`NoRequiresAuthentication`).
   - Actualiza `selectedAccountId` **solo si el setting de ese `userId` existe**. Es paridad con `balanceAccount.insert`, que solo llama si encuentra el setting.
   - Responde `200 {updated: true|false}`.
-  - Reemplaza la llamada `Caller.call('bondUserSetting.setSelectedAccount', …, {userId})` de `balanceAccount.insert`. Meteor la cambia por un HTTP a este endpoint (T-09.9).
+  - Reemplaza la llamada `Caller.call('bondUserSetting.setSelectedAccount', …, {userId})` de `balanceAccount.insert`. Meteor la cambia por un HTTP a este endpoint (BLM-0072).
 - **RF-09.10** — Lectura interna `GetByUser(ctx, userID) (*BondUserSetting, error)` para la spec 05. **No** autocrea: devuelve `nil` si el setting no existe.
 
 ## 4. Contrato API
@@ -115,7 +115,7 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
 ## 5. Reglas de negocio
 
 - **Unicidad:** un setting vivo por `userId`. Se garantiza con un índice único parcial `{userId: 1}` y `partialFilterExpression: {isRemove: false}`, más upserts con `{userId, isRemove: false}`.
-- **Duplicados legacy:** pueden existir, porque el legado no era atómico. Antes de crear el índice, el script de auditoría (T-09.2) informa los duplicados y conserva el más reciente.
+- **Duplicados legacy:** pueden existir, porque el legado no era atómico. Antes de crear el índice, el script de auditoría (BLM-0065) informa los duplicados y conserva el más reciente.
 
 ## 6. Modelo de datos
 
@@ -149,12 +149,12 @@ El modelo en `@futurapps/models` (`blooming.BondUserSetting`) declara `_id: Stri
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| U1 | `setSelectedAccount`, `setSelectedBondBound` y `setLanguage` lanzan `TypeError` si no existe el setting. | Corregir (upsert) | Llamadas que no responden. | T-09.5 |
-| U2 | `bondUserSetting.list` no filtra por agencia ni por permisos. | Corregir | Seguridad. | T-09.6 |
-| U3 | La autocreación de `getByUserLogged` no es atómica (duplicados) y no filtra `isRemove`. | Corregir | Integridad. | T-09.2, T-09.4 |
-| U4 | `user` devuelve el perfil completo (sin `password`, pero con el resto de los campos), y `account` el documento entero. | Corregir | Exposición de datos. | T-09.4 |
-| U6 | `setSelectedAccount` acepta `data.userId`: cualquier sesión puede cambiar la cuenta destino de **otro** usuario y desviar a su propia cuenta el dinero de las ventas y canjes de la víctima. | Corregir | Seguridad y dinero (crítico). | T-09.5 |
-| U7 | `setSelectedAccount` no valida que la cuenta sea del usuario. | Corregir | Integridad: crédito en una cuenta ajena. | T-09.5 |
+| U1 | `setSelectedAccount`, `setSelectedBondBound` y `setLanguage` lanzan `TypeError` si no existe el setting. | Corregir (upsert) | Llamadas que no responden. | BLM-0068 |
+| U2 | `bondUserSetting.list` no filtra por agencia ni por permisos. | Corregir | Seguridad. | BLM-0069 |
+| U3 | La autocreación de `getByUserLogged` no es atómica (duplicados) y no filtra `isRemove`. | Corregir | Integridad. | BLM-0065, BLM-0067 |
+| U4 | `user` devuelve el perfil completo (sin `password`, pero con el resto de los campos), y `account` el documento entero. | Corregir | Exposición de datos. | BLM-0067 |
+| U6 | `setSelectedAccount` acepta `data.userId`: cualquier sesión puede cambiar la cuenta destino de **otro** usuario y desviar a su propia cuenta el dinero de las ventas y canjes de la víctima. | Corregir | Seguridad y dinero (crítico). | BLM-0068 |
+| U7 | `setSelectedAccount` no valida que la cuenta sea del usuario. | Corregir | Integridad: crédito en una cuenta ajena. | BLM-0068 |
 
 ## 9. Criterios de aceptación
 
@@ -173,19 +173,19 @@ El modelo en `@futurapps/models` (`blooming.BondUserSetting`) declara `_id: Stri
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-09.1 | Dominio: `BondUserSetting`, DTOs (`SetSelectedAccountParams`, `SetLanguageParams`, …) con `Validation` y errores | impl | RF-09.1, RF-09.3, RF-09.4, RF-09.5 | T-00.9 | `internal/core/bondUserSetting/domain/*.go` |
-| T-09.2 | Ports y repositorio: `FindByUser`, `UpsertDefault`, `UpsertField`, `FindPage`, `FindOneByID`, `SoftDelete`, `EnsureIndexes` (índice único parcial) y script de auditoría de duplicados | impl | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | T-09.1 | `internal/core/bondUserSetting/ports/*.go`, `internal/core/bondUserSetting/infrastructure/mongocc/*.adapter.go`, `cmd/tools/dedupusersettings/main.go` |
-| T-09.3 | Adapters de solo lectura `BoundSummary` y `FirstAccountID` | impl | RF-09.1, RF-09.2 | T-09.2 | `internal/core/bondUserSetting/infrastructure/mongocc/bondUserSetting.boundSummary.adapter.go`, `bondUserSetting.firstAccount.adapter.go` |
-| T-09.4 | Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser` | impl | RF-09.1, RF-09.2, RF-09.10 | T-09.3, T-00.11, T-00.17 | `internal/core/bondUserSetting/application/bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go` |
-| T-09.5 | Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert | impl | RF-09.3, RF-09.4, RF-09.5 | T-09.2, T-00.11 | `internal/core/bondUserSetting/application/bondUserSetting.set*.go` |
-| T-09.6 | Casos de uso admin `List`, `GetByID` y `Remove` | impl | RF-09.6, RF-09.7, RF-09.8 | T-09.2, T-00.7 | `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go` |
-| T-09.7 | Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication` | impl | RF-09.9 | T-09.2, T-00.4, T-00.26 | `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.internalSelectedAccount.put.go` |
-| T-09.8 | Handlers y `server.bondUserSetting.go` | impl | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | T-09.4, T-09.5, T-09.6, T-00.26 | `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/server/server.bondUserSetting.go` |
-| T-09.9 | **(repo backend, Meteor)** `balanceAccount.insert` llama por HTTP al endpoint interno en lugar de `Caller.call('bondUserSetting.setSelectedAccount')` | impl | RF-09.9 | T-09.7 | `backend/server/model/balance.account.js` |
-| T-09.10 | Tests unitarios de casos de uso y handlers (validaciones, dueño de la cuenta, U6, permisos) | test | CA-09.2, CA-09.5, CA-09.6, CA-09.7, CA-09.8, CA-09.9, CA-09.11 | T-09.8 | `internal/core/bondUserSetting/application/*_test.go`, `cmd/api/handlers/bondUserSettings/*_test.go` |
-| T-09.11 | Tests de integración: autocreación concurrente, `boundSummary` y endpoint interno | test | CA-09.1, CA-09.3, CA-09.4, CA-09.10, CA-09.12 | T-09.8, T-09.7 | `internal/core/bondUserSetting/infrastructure/mongocc/*_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0064 | Dominio: `BondUserSetting`, DTOs (`SetSelectedAccountParams`, `SetLanguageParams`, …) con `Validation` y errores | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5 | BLM-0009 | `internal/core/bondUserSetting/domain/*.go` |
+| BLM-0065 | Ports y repositorio: `FindByUser`, `UpsertDefault`, `UpsertField`, `FindPage`, `FindOneByID`, `SoftDelete`, `EnsureIndexes` (índice único parcial) y script de auditoría de duplicados | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | BLM-0064 | `internal/core/bondUserSetting/ports/*.go`, `internal/core/bondUserSetting/infrastructure/mongocc/*.adapter.go`, `cmd/tools/dedupusersettings/main.go` |
+| BLM-0066 | Adapters de solo lectura `BoundSummary` y `FirstAccountID` | impl | F4 | RF-09.1, RF-09.2 | BLM-0065 | `internal/core/bondUserSetting/infrastructure/mongocc/bondUserSetting.boundSummary.adapter.go`, `bondUserSetting.firstAccount.adapter.go` |
+| BLM-0067 | Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser` | impl | F4 | RF-09.1, RF-09.2, RF-09.10 | BLM-0066, BLM-0012, BLM-0017 | `internal/core/bondUserSetting/application/bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go` |
+| BLM-0068 | Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert | impl | F4 | RF-09.3, RF-09.4, RF-09.5 | BLM-0065, BLM-0012 | `internal/core/bondUserSetting/application/bondUserSetting.set*.go` |
+| BLM-0069 | Casos de uso admin `List`, `GetByID` y `Remove` | impl | F4 | RF-09.6, RF-09.7, RF-09.8 | BLM-0065, BLM-0007 | `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go` |
+| BLM-0070 | Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication` | impl | F4 | RF-09.9 | BLM-0065, BLM-0004, BLM-0026 | `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.internalSelectedAccount.put.go` |
+| BLM-0071 | Handlers y `server.bondUserSetting.go` | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | BLM-0067, BLM-0068, BLM-0069, BLM-0026 | `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/server/server.bondUserSetting.go` |
+| BLM-0072 | **(repo backend, Meteor)** `balanceAccount.insert` llama por HTTP al endpoint interno en lugar de `Caller.call('bondUserSetting.setSelectedAccount')` | impl | F4 | RF-09.9 | BLM-0070 | `backend/server/model/balance.account.js` |
+| BLM-0073 | Tests unitarios de casos de uso y handlers (validaciones, dueño de la cuenta, U6, permisos) | test | F4 | CA-09.2, CA-09.5, CA-09.6, CA-09.7, CA-09.8, CA-09.9, CA-09.11 | BLM-0071 | `internal/core/bondUserSetting/application/*_test.go`, `cmd/api/handlers/bondUserSettings/*_test.go` |
+| BLM-0074 | Tests de integración: autocreación concurrente, `boundSummary` y endpoint interno | test | F4 | CA-09.1, CA-09.3, CA-09.4, CA-09.10, CA-09.12 | BLM-0071, BLM-0070 | `internal/core/bondUserSetting/infrastructure/mongocc/*_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

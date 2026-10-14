@@ -18,8 +18,11 @@ do not restate or contradict it. If a rule gets in the way, the constitution is 
 
 - No code without an approved spec in `docs/migracion-blooming/specs/NN-<name>.spec.md`.
 - Every task cites the `RF-NN.x` / `CA-NN.x` it implements or verifies; tests cite their `CA-NN.x`.
+- Tasks are identified as `BLM-xxxx` (global 4-digit number, also the commit ticket); F0 tasks keep their original `T-PREP.x` IDs. Each spec's *Tareas*
+  table declares the task's *Fase*; a new task takes the next free ID reported at the bottom of `tasks.md`.
+  Existing IDs are never renumbered or reused.
 - `docs/migracion-blooming/tasks.md` is **generated** — never edit it by hand. Task tables live in each
-  spec; `T-PREP`/`T-QA`/`T-INFRA`/`T-CORTE` live in the script. Regenerate and validate with:
+  spec; prep/QA/infra/cutover tasks live in `EXTRA` in the script. Regenerate and validate with:
   `python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming`
 - When behavior changes: spec first, then its task table (and regenerate `tasks.md`), then code.
 
@@ -45,7 +48,7 @@ transactions). Start it with `docker start atlas`; the connection comes from `FA
 Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bondHistory`,
 `bondUserSetting`, plus `session` and `shared`). Layout and dependency rules: constitution §2.
 
-- `cmd/main.go` — API entrypoint (`server.InitServer().Run()`, pending T-00.2).
+- `cmd/main.go` — API entrypoint (`server.InitServer().Run()`, pending BLM-0002).
 - `cmd/healthcheck/main.go` — standalone TCP probe of `GET /_health` (`package main`).
 - `cmd/api/config/` — env loading into `ApiEnv`.
 - `cmd/api/server/` — composition root: `server.go`, `server.config.go`, `server.deps.go`
@@ -72,4 +75,4 @@ Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bon
 - The Go module path is already the final one: `github.com/futurapps/ms-blooming-go`.
 - **`.claude/` is never versioned** (it is in `.gitignore`); never `git add -f` anything under it.
   `CLAUDE.md` itself is versioned.
-- Commit format: `[FA-xxx] [MS-BLOOMING][ÁREA] descripción en español`. The user makes the commits.
+- Commit format: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español` (the task ID). The user makes the commits.

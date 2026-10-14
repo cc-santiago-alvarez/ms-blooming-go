@@ -57,7 +57,7 @@ Todas las specs usan la misma plantilla:
 7. Ports.
 8. Bugs legacy.
 9. Criterios de aceptación `CA-NN.x`.
-10. Tareas `T-NN.x`.
+10. Tareas `BLM-xxxx` (numeración global; ver [`tasks.md`](tasks.md) §1).
 11. Fuera de alcance y preguntas abiertas.
 
 ## 3. Inventario: operación legacy → destino
@@ -182,13 +182,13 @@ Cada spec tiene la tabla completa (63 bugs). `tasks.md` §5 los mapea a sus tare
 
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
-3. **Compra, venta y canje en un solo corte (T-CORTE.3).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
-4. **Maduración en un solo corte (T-CORTE.2).** Se apagan el `SyncedCron` y el servicio `:8090` y se enciende `BOND_MATURITY_CRON`.
-5. **Front por funcionalidad (T-CORTE.4).** DDP → REST, siguiendo los "cambios de contrato" de cada spec.
-6. **Retiro (T-CORTE.5).** Se borran `bond.*.js` de Meteor.
-7. **Monitoreo (T-CORTE.6).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
+3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
+4. **Maduración en un solo corte (BLM-0134).** Se apagan el `SyncedCron` y el servicio `:8090` y se enciende `BOND_MATURITY_CRON`.
+5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec.
+6. **Retiro (BLM-0137).** Se borran `bond.*.js` de Meteor.
+7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
 
-Antes del corte se ejecuta la auditoría de datos **T-CORTE.1**: claves y settings duplicados, numéricos guardados como string y bonos vendidos que maduraron (B22).
+Antes del corte se ejecuta la auditoría de datos **BLM-0133**: claves y settings duplicados, numéricos guardados como string y bonos vendidos que maduraron (B22).
 
 ## 7. Fuera de alcance
 
@@ -203,7 +203,7 @@ Antes del corte se ejecuta la auditoría de datos **T-CORTE.1**: claves y settin
 |---|---|---|
 | 1 | ¿Qué puerto usará el servicio? El esqueleto copió `25072` de petty-cash. | Spec 00 |
 | 2 | ¿ms-oauth puede agregar `gmt`/`utcDiff` a la sesión? Hoy se usa un mapa por país. | Spec 00 |
-| 3 | ¿Qué hace exactamente el servicio `:8090`? ¿Maduró bonos vendidos? | Spec 10, T-CORTE.1 |
+| 3 | ¿Qué hace exactamente el servicio `:8090`? ¿Maduró bonos vendidos? | Spec 10, BLM-0133 |
 | 4 | Los avisos de retiro al admin van a direcciones que quizá no son usuarios: ¿ms-notification necesita un grupo de emails crudos? | Spec 00 |
 | 5 | ¿Se mantiene la compra de bonos de otra agencia? | Spec 04 |
 | 6 | ¿Un bono `'1'` vencido que aún no maduró se vende o se canjea? | Spec 05 |

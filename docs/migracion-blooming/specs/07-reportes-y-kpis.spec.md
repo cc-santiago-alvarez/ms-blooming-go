@@ -89,7 +89,7 @@ Del lado de ms-exporter: `ms-exporter/src/modules/bond/bond.routes.js` y `bond.p
 
 - **Normalización de `statusId` (reportes):** vacío → `'1'`; `'0'` → sin filtro de estado; otro valor → debe estar en el enum, si no `ERR_INVALID_STATUS`.
 - **Normalización de `statusId` (KPI):** vacío o fuera del enum → sin filtro de estado y `status: ""` (paridad).
-- Los rangos de fecha usan `DateRangeStage` (T-06.2), siempre en la zona de la sesión.
+- Los rangos de fecha usan `DateRangeStage` (BLM-0102), siempre en la zona de la sesión.
 
 ## 6. Modelo de datos
 
@@ -108,12 +108,12 @@ Esta spec no persiste nada.
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B11 | `reportSummaryPurchasedBonds` lee `data.data.statusId` (crashea sin `data.data`) y `countByStatusId` exige `data.query`. | Corregir | Llamadas que no responden. | T-07.1 |
-| B12 | El `betweenDates` del KPI compara año, mes y día por separado: del 25-ene al 5-feb no incluye el 30-ene. Además deriva `utcDiff` de la zona del servidor o del cliente. | Corregir | Indicadores incorrectos. | T-07.2 |
-| B34 | Búsqueda con `$regex` sin escapar en los reportes y el KPI (mismo problema que B24 del listado). | Corregir | Seguridad y robustez. | T-07.2 |
-| B29 | Los filtros `aDate` y `betweenDates` del reporte ignoran `utcDiff` (zona del servidor), y `month`/`year` salen de `initialDate` en UTC. | Corregir | Mismo criterio de fechas que el listado. | T-07.2 |
-| B30 | Si falla ms-exporter, se responde `code -1000` con HTTP 200 e incluye el objeto de error interno (`err`). | Corregir | Contrato HTTP y exposición de detalles internos. | T-07.3 |
-| B31 | El KPI sin permisos permite que cualquier sesión consulte totales de la agencia o de otro usuario. | Corregir | Seguridad. | T-07.4 |
+| B11 | `reportSummaryPurchasedBonds` lee `data.data.statusId` (crashea sin `data.data`) y `countByStatusId` exige `data.query`. | Corregir | Llamadas que no responden. | BLM-0110 |
+| B12 | El `betweenDates` del KPI compara año, mes y día por separado: del 25-ene al 5-feb no incluye el 30-ene. Además deriva `utcDiff` de la zona del servidor o del cliente. | Corregir | Indicadores incorrectos. | BLM-0111 |
+| B34 | Búsqueda con `$regex` sin escapar en los reportes y el KPI (mismo problema que B24 del listado). | Corregir | Seguridad y robustez. | BLM-0111 |
+| B29 | Los filtros `aDate` y `betweenDates` del reporte ignoran `utcDiff` (zona del servidor), y `month`/`year` salen de `initialDate` en UTC. | Corregir | Mismo criterio de fechas que el listado. | BLM-0111 |
+| B30 | Si falla ms-exporter, se responde `code -1000` con HTTP 200 e incluye el objeto de error interno (`err`). | Corregir | Contrato HTTP y exposición de detalles internos. | BLM-0112 |
+| B31 | El KPI sin permisos permite que cualquier sesión consulte totales de la agencia o de otro usuario. | Corregir | Seguridad. | BLM-0113 |
 
 ## 9. Criterios de aceptación
 
@@ -128,15 +128,15 @@ Esta spec no persiste nada.
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-07.1 | DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores | impl | RF-07.1, RF-07.2, RF-07.3 | T-06.1 | `internal/core/bondBound/domain/bondBound.reports.domain.go` |
-| T-07.2 | Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada) | impl | RF-07.1, RF-07.2, RF-07.3 | T-07.1, T-06.2, T-06.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go` |
-| T-07.3 | Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo) | impl | RF-07.1, RF-07.2, RF-07.4 | T-07.2, T-00.16, T-00.17 | `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go` |
-| T-07.4 | Caso de uso `CountByStatus`, con el alcance por rol | impl | RF-07.3 | T-07.2, T-00.7 | `internal/core/bondBound/application/bondBound.countByStatus.go` |
-| T-07.5 | Handlers de reportes (respuesta binaria y headers) y del KPI | impl | RF-07.1, RF-07.2, RF-07.3, RF-07.4 | T-07.3, T-07.4, T-04.9, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go` |
-| T-07.6 | Tests unitarios: normalización, permisos, fallo de ms-exporter y headers | test | CA-07.1, CA-07.4, CA-07.6, CA-07.7 | T-07.5 | `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go` |
-| T-07.7 | Tests de integración de las agregaciones (rangos, búsqueda, agrupado) | test | CA-07.2, CA-07.3, CA-07.5, CA-07.8 | T-07.2 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0110 | DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0101 | `internal/core/bondBound/domain/bondBound.reports.domain.go` |
+| BLM-0111 | Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada) | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0110, BLM-0102, BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go` |
+| BLM-0112 | Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo) | impl | F6 | RF-07.1, RF-07.2, RF-07.4 | BLM-0111, BLM-0016, BLM-0017 | `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go` |
+| BLM-0113 | Caso de uso `CountByStatus`, con el alcance por rol | impl | F6 | RF-07.3 | BLM-0111, BLM-0007 | `internal/core/bondBound/application/bondBound.countByStatus.go` |
+| BLM-0114 | Handlers de reportes (respuesta binaria y headers) y del KPI | impl | F6 | RF-07.1, RF-07.2, RF-07.3, RF-07.4 | BLM-0112, BLM-0113, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go` |
+| BLM-0115 | Tests unitarios: normalización, permisos, fallo de ms-exporter y headers | test | F6 | CA-07.1, CA-07.4, CA-07.6, CA-07.7 | BLM-0114 | `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go` |
+| BLM-0116 | Tests de integración de las agregaciones (rangos, búsqueda, agrupado) | test | F6 | CA-07.2, CA-07.3, CA-07.5, CA-07.8 | BLM-0111 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

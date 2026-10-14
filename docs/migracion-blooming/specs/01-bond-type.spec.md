@@ -138,11 +138,11 @@ type BondType struct {
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| T1 | `remove` cuenta los bondObjects borrados como bloqueantes. | Corregir | Un tipo sin bonos vivos no se podía borrar nunca. | T-01.6 |
+| T1 | `remove` cuenta los bondObjects borrados como bloqueantes. | Corregir | Un tipo sin bonos vivos no se podía borrar nunca. | BLM-0049 |
 | T2 | `numOfBonds` cuenta bondObjects de todas las agencias, pero el listado del inversionista filtra por agencia. | Mantener | Paridad visual; queda como pregunta abierta. | — |
-| T3 | `get` no filtra `isRemove` y devuelve `undefined` si no existe. | Corregir | Respuesta 404 explícita. | T-01.4 |
-| T4 | `update` escribe `undefined` (`null`) en los campos que no llegan. | Corregir | La validación exige el body completo. | T-01.5 |
-| O1 | `agencyId` se filtra con `$all` en tipos y con `$in: [agencyId]` en objetos (arreglo dentro de arreglo). | Corregir | Filtro único `$in` con `AgencyIDs` (RF-01.7). | T-01.1 |
+| T3 | `get` no filtra `isRemove` y devuelve `undefined` si no existe. | Corregir | Respuesta 404 explícita. | BLM-0042 |
+| T4 | `update` escribe `undefined` (`null`) en los campos que no llegan. | Corregir | La validación exige el body completo. | BLM-0043 |
+| O1 | `agencyId` se filtra con `$all` en tipos y con `$in: [agencyId]` en objetos (arreglo dentro de arreglo). | Corregir | Filtro único `$in` con `AgencyIDs` (RF-01.7). | BLM-0039 |
 
 ## 9. Criterios de aceptación
 
@@ -158,17 +158,17 @@ type BondType struct {
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-01.1 | Dominio: entidad `BondType`, tipo `AgencyIDs` (string o arreglo), DTOs con `Normalize`/`Validation`, errores y `httpStatus` | impl | RF-01.4, RF-01.5, RF-01.7 | T-00.9 | `internal/core/bondType/domain/*.go`, `internal/core/shared/domain/shared.agencyIds.go` |
-| T-01.2 | Ports: `BondTypeApplicationPorts`, `BondTypeMongoccRepositoryPorts`, `BondObjectCounterPort` | impl | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | T-01.1 | `internal/core/bondType/ports/bondType.ports.go` |
-| T-01.3 | Repositorio mongocc (un archivo por método) y `EnsureIndexes` | impl | RF-01.1, RF-01.2, RF-01.3, RF-01.5, RF-01.6 | T-01.2 | `internal/core/bondType/infrastructure/mongocc/*.adapter.go` |
-| T-01.4 | Casos de uso `List`, `ListActive` (con `numOfBonds`) y `GetByID` | impl | RF-01.1, RF-01.2, RF-01.3 | T-01.3 | `internal/core/bondType/application/bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go` |
-| T-01.5 | Casos de uso `Create` y `Update` | impl | RF-01.4, RF-01.5 | T-01.3 | `internal/core/bondType/application/bondType.create.go`, `bondType.update.go` |
-| T-01.6 | Caso de uso `Remove` con guarda de bondObjects vivos y conexión `linkBondObjectToBondType` | impl | RF-01.6 | T-01.3, T-02.4 | `internal/core/bondType/application/bondType.remove.go`, `cmd/api/server/server.bondType.go` |
-| T-01.7 | Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde) | impl | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | T-01.4, T-01.5, T-01.6, T-00.7, T-00.26 | `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go` |
-| T-01.8 | Tests unitarios de casos de uso y handlers con fakes | test | CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 | T-01.7 | `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go` |
-| T-01.9 | Tests de integración del repositorio (filtros por agencia, `AgencyIDs` legacy, agregación de `numOfBonds`) | test | CA-01.1, CA-01.3, CA-01.8, CA-01.9 | T-01.3 | `internal/core/bondType/infrastructure/mongocc/*_integration_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0039 | Dominio: entidad `BondType`, tipo `AgencyIDs` (string o arreglo), DTOs con `Normalize`/`Validation`, errores y `httpStatus` | impl | F3 | RF-01.4, RF-01.5, RF-01.7 | BLM-0009 | `internal/core/bondType/domain/*.go`, `internal/core/shared/domain/shared.agencyIds.go` |
+| BLM-0040 | Ports: `BondTypeApplicationPorts`, `BondTypeMongoccRepositoryPorts`, `BondObjectCounterPort` | impl | F3 | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | BLM-0039 | `internal/core/bondType/ports/bondType.ports.go` |
+| BLM-0041 | Repositorio mongocc (un archivo por método) y `EnsureIndexes` | impl | F3 | RF-01.1, RF-01.2, RF-01.3, RF-01.5, RF-01.6 | BLM-0040 | `internal/core/bondType/infrastructure/mongocc/*.adapter.go` |
+| BLM-0042 | Casos de uso `List`, `ListActive` (con `numOfBonds`) y `GetByID` | impl | F3 | RF-01.1, RF-01.2, RF-01.3 | BLM-0041 | `internal/core/bondType/application/bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go` |
+| BLM-0043 | Casos de uso `Create` y `Update` | impl | F3 | RF-01.4, RF-01.5 | BLM-0041 | `internal/core/bondType/application/bondType.create.go`, `bondType.update.go` |
+| BLM-0044 | Tests de integración del repositorio (filtros por agencia, `AgencyIDs` legacy, agregación de `numOfBonds`) | test | F3 | CA-01.1, CA-01.3, CA-01.8, CA-01.9 | BLM-0041 | `internal/core/bondType/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0049 | Caso de uso `Remove` con guarda de bondObjects vivos y conexión `linkBondObjectToBondType` | impl | F3 | RF-01.6 | BLM-0041, BLM-0048 | `internal/core/bondType/application/bondType.remove.go`, `cmd/api/server/server.bondType.go` |
+| BLM-0050 | Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde) | impl | F3 | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026 | `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go` |
+| BLM-0051 | Tests unitarios de casos de uso y handlers con fakes | test | F3 | CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 | BLM-0050 | `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -135,11 +135,11 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| H1 | La publicación `bondHistories` filtra por `bondId`, que no existe, y nunca devuelve datos. | Corregir (se descarta la publicación y se usan los endpoints nuevos) | Funcionalidad rota. | T-08.7 |
-| H2 | `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED` no existen en `Text` y se muestran vacíos. | Corregir | Historial ilegible. | T-08.6 |
-| H3 | Una consulta de `profile` por registro (N+1). | Corregir | Rendimiento. | T-08.5 |
-| H4 | `listByType` con un `type` desconocido lanza `TypeError`. | Corregir | Llamada que no responde; ahora el tipo lo define la ruta. | T-08.7 |
-| H5 | `listByType` no valida permisos: cualquier sesión lee el historial de cualquier producto o bono de su agencia. | Corregir | Seguridad. | T-08.7, T-08.8 |
+| H1 | La publicación `bondHistories` filtra por `bondId`, que no existe, y nunca devuelve datos. | Corregir (se descarta la publicación y se usan los endpoints nuevos) | Funcionalidad rota. | BLM-0063 |
+| H2 | `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED` no existen en `Text` y se muestran vacíos. | Corregir | Historial ilegible. | BLM-0036 |
+| H3 | Una consulta de `profile` por registro (N+1). | Corregir | Rendimiento. | BLM-0037 |
+| H4 | `listByType` con un `type` desconocido lanza `TypeError`. | Corregir | Llamada que no responde; ahora el tipo lo define la ruta. | BLM-0063 |
+| H5 | `listByType` no valida permisos: cualquier sesión lee el historial de cualquier producto o bono de su agencia. | Corregir | Seguridad. | BLM-0063, BLM-0099 |
 
 ## 9. Criterios de aceptación
 
@@ -155,20 +155,20 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-08.1 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | RF-08.1, RF-08.6 | T-00.9 | `internal/core/bondHistory/domain/*.go` |
-| T-08.2 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | RF-08.1, RF-08.2, RF-08.3 | T-08.1 | `internal/core/bondHistory/ports/bondHistory.ports.go` |
-| T-08.3 | Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes` | impl | RF-08.1, RF-08.2, RF-08.3 | T-08.2 | `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go` |
-| T-08.4 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | RF-08.1, RF-08.6 | T-08.3, T-00.5 | `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go` |
-| T-08.5 | Caso de uso `ListByRelated` con presentación (perfiles en lote, `Format`, nombres de estado y `FromNow`) | impl | RF-08.2, RF-08.3, RF-08.4 | T-08.3, T-00.17, T-08.6 | `internal/core/bondHistory/application/bondHistory.listByRelated.go`, `bondHistory.present.go` |
-| T-08.6 | Textos faltantes en el catálogo y helper `FromNow` con los umbrales de moment | impl | RF-08.4, RF-08.5 | T-00.18 | `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go` |
-| T-08.7 | Handler `GET /bond-objects/{id}/history` (admin) | impl | RF-08.2 | T-08.5, T-02.9, T-00.26 | `cmd/api/handlers/bondObjects/bondObjects.history.get.go` |
-| T-08.8 | Caso de uso `HistoryOf` en bondBound (control de dueño y delegación) y handler `GET /bond-bounds/{id}/history` | impl | RF-08.3 | T-08.5, T-04.3, T-04.9, T-00.26 | `internal/core/bondBound/application/bondBound.history.go`, `cmd/api/handlers/bondBounds/bondBounds.history.get.go` |
-| T-08.9 | Tests unitarios de la presentación, los textos y `FromNow` | test | CA-08.5, CA-08.6, CA-08.7 | T-08.5, T-08.6 | `internal/core/bondHistory/application/bondHistory.present_test.go`, `internal/core/shared/domain/shared.fromNow_test.go` |
-| T-08.10 | Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote | test | CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 | T-08.7, T-08.8 | `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/*/*.history_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0032 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | F2 | RF-08.1, RF-08.6 | BLM-0009 | `internal/core/bondHistory/domain/*.go` |
+| BLM-0033 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0032 | `internal/core/bondHistory/ports/bondHistory.ports.go` |
+| BLM-0034 | Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0033 | `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go` |
+| BLM-0035 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | F2 | RF-08.1, RF-08.6 | BLM-0034, BLM-0005 | `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go` |
+| BLM-0036 | Textos faltantes en el catálogo y helper `FromNow` con los umbrales de moment | impl | F2 | RF-08.4, RF-08.5 | BLM-0018 | `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go` |
+| BLM-0037 | Caso de uso `ListByRelated` con presentación (perfiles en lote, `Format`, nombres de estado y `FromNow`) | impl | F2 | RF-08.2, RF-08.3, RF-08.4 | BLM-0034, BLM-0017, BLM-0036 | `internal/core/bondHistory/application/bondHistory.listByRelated.go`, `bondHistory.present.go` |
+| BLM-0038 | Tests unitarios de la presentación, los textos y `FromNow` | test | F2 | CA-08.5, CA-08.6, CA-08.7 | BLM-0037, BLM-0036 | `internal/core/bondHistory/application/bondHistory.present_test.go`, `internal/core/shared/domain/shared.fromNow_test.go` |
+| BLM-0063 | Handler `GET /bond-objects/{id}/history` (admin) | impl | F3 | RF-08.2 | BLM-0037, BLM-0056, BLM-0026 | `cmd/api/handlers/bondObjects/bondObjects.history.get.go` |
+| BLM-0099 | Caso de uso `HistoryOf` en bondBound (control de dueño y delegación) y handler `GET /bond-bounds/{id}/history` | impl | F5 | RF-08.3 | BLM-0037, BLM-0077, BLM-0084, BLM-0026 | `internal/core/bondBound/application/bondBound.history.go`, `cmd/api/handlers/bondBounds/bondBounds.history.get.go` |
+| BLM-0100 | Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote | test | F5 | CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 | BLM-0063, BLM-0099 | `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/*/*.history_test.go` |
 
-T-08.1 a T-08.6 y T-08.9 van en la fase F2, porque el catálogo (F3) ya escribe historial. T-08.7 va en la F3, junto con los handlers de bondObject. T-08.8 y T-08.10 van en la F5, porque necesitan el repositorio de `bondBound`. Ver `tasks.md`.
+BLM-0032 a BLM-0036 y BLM-0038 van en la fase F2, porque el catálogo (F3) ya escribe historial. BLM-0063 va en la F3, junto con los handlers de bondObject. BLM-0099 y BLM-0100 van en la F5, porque necesitan el repositorio de `bondBound`. Ver `tasks.md`.
 
 ## 11. Fuera de alcance y preguntas abiertas
 

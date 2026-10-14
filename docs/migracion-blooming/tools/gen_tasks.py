@@ -11,7 +11,7 @@ OUT = DOCS / 'tasks.md'
 RF_DEF = re.compile(r'^- \*\*(RF-\d\d\.\d+)\*\*')
 CA_DEF = re.compile(r'^- \*\*(CA-\d\d\.\d+)\*\* \(([^)]*)\)')
 ID_RE = re.compile(r'(RF-\d\d\.\d+|CA-\d\d\.\d+)')
-TASK_RE = re.compile(r'T-(?:\d\d|PREP|QA|INFRA|CORTE)\.\d+')
+TASK_RE = re.compile(r'BLM-\d{4}|T-PREP\.\d+')  # F0 conserva T-PREP.x; el resto usa BLM-xxxx
 
 
 def cells(line):
@@ -20,6 +20,8 @@ def cells(line):
 
 specs = {}
 tasks = {}
+PHASE_OF = {}
+dup_ids = []
 rfs = {}
 cas = {}
 bugs = []
@@ -39,39 +41,42 @@ for path in SPECS:
         m = CA_DEF.match(line)
         if m:
             cas[m.group(1)] = ID_RE.findall(m.group(2))
-        if line.startswith('| T-') and section and 'Tareas' in section:
+        if line.startswith('| BLM-') and section and 'Tareas' in section:
             c = cells(line)
+            if c[0] in tasks:
+                dup_ids.append(c[0])
             tasks[c[0]] = {
-                'id': c[0], 'title': c[1], 'type': c[2], 'covers': ID_RE.findall(c[3]),
-                'deps': TASK_RE.findall(c[4]), 'files': c[5], 'spec': num,
+                'id': c[0], 'title': c[1], 'type': c[2], 'covers': ID_RE.findall(c[4]),
+                'deps': TASK_RE.findall(c[5]), 'files': c[6], 'spec': num,
             }
+            PHASE_OF[c[0]] = c[3]
         if section and 'Bugs legacy' in section and line.startswith('| ') and not line.startswith('| Bug') and not line.startswith('|---'):
             c = cells(line)
             bugs.append({'bug': c[0], 'desc': c[1], 'decision': c[2], 'tasks': TASK_RE.findall(c[4]), 'spec': num})
 
-# Tareas que no salen de una spec funcional (preparación, calidad, infra, corte)
+# Tareas que no salen de una spec funcional (preparación, calidad, infra, corte): (fase, ID, tipo, título, cubre, depende de, archivos)
 EXTRA = [
-    ('F0', 'T-PREP.1', 'Inicializar el repositorio: `git init`, remoto `github.com/cc-santiago-alvarez/ms-blooming-go` y rama `master`. Los líderes de área lo llevan después a `futurapps`', [], [], '`.git/`'),
-    ('F0', 'T-PREP.2', '`.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`). `.github/workflows/branch-flow.yml` lo agrega DevOps al integrar el repositorio en `futurapps`', [], ['T-PREP.1'], '`.gitignore`'),
-    ('F0', 'T-PREP.3', '`go.mod` (`module github.com/futurapps/ms-blooming-go`, `go 1.27.0`); eliminar `internal/database/mongo/connection.go`; `cmd/healthcheck` con `package main`; `go build ./...` compila', [], ['T-PREP.1'], '`go.mod`, `go.sum`, `cmd/healthcheck/main.go`, `internal/database/`'),
-    ('F0', 'T-PREP.4', '`.air.toml` para desarrollo con hot reload (sin `Makefile`)', [], ['T-PREP.3'], '`.air.toml`'),
-    ('F0', 'T-PREP.5', '`README.md` y `CLAUDE.md`: arquitectura, comandos, variables y enlace a `docs/constitution.md`', [], ['T-PREP.3'], '`README.md`, `CLAUDE.md`'),
-    ('F0', 'T-PREP.6', 'Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración: contenedor `atlas` (`mongodb/atlas`), conexión por las variables `FA_MONGO_*`', [], ['T-PREP.3'], '`README.md` (instrucciones)'),
-    ('F0', 'T-PREP.7', 'Dump anonimizado de testing de `bondType`, `bondObject`, `bondBound`, `bondHistory`, `bondUserSetting`, `balanceAccount` y `profile` para paridad e integración', [], [], 'fuera del repo (almacenamiento del equipo)'),
-    ('F8', 'T-QA.1', 'Arnés de paridad: ejecutar los métodos Meteor (DDP) y los endpoints Go sobre el mismo dump y comparar las fórmulas (`getDataChart`, `preSale`, derivados del listado)', ['RF-03.1', 'RF-05.2', 'RF-06.11'], ['T-PREP.7', 'T-03.7', 'T-05.7', 'T-06.7'], '`cmd/tools/parity/`'),
-    ('F8', 'T-QA.2', 'Suite end-to-end de flujos completos: compra → venta; compra → maduración → canje; compra masiva → listado → reporte', ['RF-04.1', 'RF-04.2', 'RF-05.3', 'RF-10.3', 'RF-07.1'], ['T-04.11', 'T-05.9', 'T-10.8', 'T-07.7'], '`test/e2e/`'),
-    ('F8', 'T-QA.3', 'Matriz de autorización rol × endpoint (usuario, dueño, admin, otra agencia) ejecutada sobre todas las rutas registradas', ['RF-00.5', 'RF-04.1', 'RF-05.3', 'RF-06.6', 'RF-09.3'], ['T-06.6', 'T-09.8', 'T-05.6'], '`test/authz/`'),
-    ('F8', 'T-QA.4', 'Prueba de carga: 50 compras concurrentes sobre la misma cuenta y p95 del listado de administración con 100k bonos', ['RF-04.5', 'RF-06.1'], ['T-04.11', 'T-06.9'], '`test/load/`'),
-    ('F9', 'T-INFRA.1', '`.deploy/Dockerfile` multi-stage (`golang:1.27-alpine` → `scratch`, binario de healthcheck, `USER 1001`, `EXPOSE ${API_PORT}`) y `.dockerignore` — **solo en `main`**', ['RF-00.16'], ['T-00.19'], '`.deploy/Dockerfile`, `.dockerignore`'),
-    ('F9', 'T-INFRA.2', '`.deploy/docker-compose.yml` (Swarm, 3 réplicas, healthcheck, `/opt/ms-blooming-go/.env`), `docker-stack-deploy.sh` y `.deploy-testing/` — **solo en `main`**', [], ['T-INFRA.1'], '`.deploy/`, `.deploy-testing/`'),
-    ('F9', 'T-INFRA.3', '`.github/workflows/docker-build.yml` (release `X.Y.Z-live`/`-testing`, Jenkins, Discord), con `go vet` y `go test` antes del build — **solo en `main`**', [], ['T-INFRA.1'], '`.github/workflows/docker-build.yml`'),
-    ('F9', 'T-INFRA.4', 'Entornos: `.env` en `/opt/ms-blooming-go/` (testing y live), replica set confirmado, exposición pública del servicio (proxy y DNS) para el front y `CORS_ORIGINS`', ['RF-00.1', 'RF-00.6'], ['T-INFRA.2'], 'servidores'),
-    ('F10', 'T-CORTE.1', 'Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `\'2\'`/`\'6\'` con `soldDate` (B22)', ['RF-04.3', 'RF-09.1', 'RF-10.3'], ['T-PREP.7', 'T-04.4', 'T-09.2'], 'informe en `docs/migracion-blooming/`'),
-    ('F10', 'T-CORTE.2', 'Revisar el servicio `:8090` (`MS_FINOBONDS_FEED_URL`), desactivarlo junto con el `SyncedCron` `BondBoundCheckMaturity` de Meteor y activar `BOND_MATURITY_CRON` en el mismo deploy', ['RF-10.1'], ['T-10.8', 'T-INFRA.4'], '`backend/server/lib/crons.js`, `.env` de servidores'),
-    ('F10', 'T-CORTE.3', 'Corte de compra y venta: correr la siembra de contadores (T-04.4), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**', ['RF-04.3', 'RF-04.1', 'RF-05.3'], ['T-04.4', 'T-05.9', 'T-CORTE.1'], '`backend/server/model/bond.bound.js`'),
-    ('F10', 'T-CORTE.4', 'Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec', ['RF-01.1', 'RF-02.9', 'RF-09.1', 'RF-04.1', 'RF-06.4'], ['T-INFRA.4'], 'repo del front'),
-    ('F10', 'T-CORTE.5', 'Retirar `bond.*.js` de Meteor y la referencia a `MS_FINOBONDS_FEED_URL`, una vez desplegado T-09.9', [], ['T-CORTE.2', 'T-CORTE.3', 'T-CORTE.4', 'T-09.9'], '`backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`'),
-    ('F10', 'T-CORTE.6', 'Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`', ['RF-05.5', 'RF-10.3'], ['T-CORTE.3'], 'dashboards y logs'),
+    ('F0', 'T-PREP.1', 'ops', 'Inicializar el repositorio: `git init`, remoto `github.com/cc-santiago-alvarez/ms-blooming-go` y rama `master`. Los líderes de área lo llevan después a `futurapps`', [], [], '`.git/`'),
+    ('F0', 'T-PREP.2', 'ops', '`.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`). `.github/workflows/branch-flow.yml` lo agrega DevOps al integrar el repositorio en `futurapps`', [], ['T-PREP.1'], '`.gitignore`'),
+    ('F0', 'T-PREP.3', 'ops', '`go.mod` (`module github.com/futurapps/ms-blooming-go`, `go 1.27.0`); eliminar `internal/database/mongo/connection.go`; `cmd/healthcheck` con `package main`; `go build ./...` compila', [], ['T-PREP.1'], '`go.mod`, `go.sum`, `cmd/healthcheck/main.go`, `internal/database/`'),
+    ('F0', 'T-PREP.4', 'ops', '`.air.toml` para desarrollo con hot reload (sin `Makefile`)', [], ['T-PREP.3'], '`.air.toml`'),
+    ('F0', 'T-PREP.5', 'ops', '`README.md` y `CLAUDE.md`: arquitectura, comandos, variables y enlace a `docs/constitution.md`', [], ['T-PREP.3'], '`README.md`, `CLAUDE.md`'),
+    ('F0', 'T-PREP.6', 'ops', 'Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración: contenedor `atlas` (`mongodb/atlas`), conexión por las variables `FA_MONGO_*`', [], ['T-PREP.3'], '`README.md` (instrucciones)'),
+    ('F0', 'T-PREP.7', 'ops', 'Dump anonimizado de testing de `bondType`, `bondObject`, `bondBound`, `bondHistory`, `bondUserSetting`, `balanceAccount` y `profile` para paridad e integración', [], [], 'fuera del repo (almacenamiento del equipo)'),
+    ('F8', 'BLM-0125', 'test', 'Arnés de paridad: ejecutar los métodos Meteor (DDP) y los endpoints Go sobre el mismo dump y comparar las fórmulas (`getDataChart`, `preSale`, derivados del listado)', ['RF-03.1', 'RF-05.2', 'RF-06.11'], ['T-PREP.7', 'BLM-0031', 'BLM-0096', 'BLM-0107'], '`cmd/tools/parity/`'),
+    ('F8', 'BLM-0126', 'test', 'Suite end-to-end de flujos completos: compra → venta; compra → maduración → canje; compra masiva → listado → reporte', ['RF-04.1', 'RF-04.2', 'RF-05.3', 'RF-10.3', 'RF-07.1'], ['BLM-0088', 'BLM-0098', 'BLM-0124', 'BLM-0116'], '`test/e2e/`'),
+    ('F8', 'BLM-0127', 'test', 'Matriz de autorización rol × endpoint (usuario, dueño, admin, otra agencia) ejecutada sobre todas las rutas registradas', ['RF-00.5', 'RF-04.1', 'RF-05.3', 'RF-06.6', 'RF-09.3'], ['BLM-0106', 'BLM-0071', 'BLM-0095'], '`test/authz/`'),
+    ('F8', 'BLM-0128', 'test', 'Prueba de carga: 50 compras concurrentes sobre la misma cuenta y p95 del listado de administración con 100k bonos', ['RF-04.5', 'RF-06.1'], ['BLM-0088', 'BLM-0109'], '`test/load/`'),
+    ('F9', 'BLM-0129', 'ops', '`.deploy/Dockerfile` multi-stage (`golang:1.27-alpine` → `scratch`, binario de healthcheck, `USER 1001`, `EXPOSE ${API_PORT}`) y `.dockerignore` — **solo en `main`**', ['RF-00.16'], ['BLM-0019'], '`.deploy/Dockerfile`, `.dockerignore`'),
+    ('F9', 'BLM-0130', 'ops', '`.deploy/docker-compose.yml` (Swarm, 3 réplicas, healthcheck, `/opt/ms-blooming-go/.env`), `docker-stack-deploy.sh` y `.deploy-testing/` — **solo en `main`**', [], ['BLM-0129'], '`.deploy/`, `.deploy-testing/`'),
+    ('F9', 'BLM-0131', 'ops', '`.github/workflows/docker-build.yml` (release `X.Y.Z-live`/`-testing`, Jenkins, Discord), con `go vet` y `go test` antes del build — **solo en `main`**', [], ['BLM-0129'], '`.github/workflows/docker-build.yml`'),
+    ('F9', 'BLM-0132', 'ops', 'Entornos: `.env` en `/opt/ms-blooming-go/` (testing y live), replica set confirmado, exposición pública del servicio (proxy y DNS) para el front y `CORS_ORIGINS`', ['RF-00.1', 'RF-00.6'], ['BLM-0130'], 'servidores'),
+    ('F10', 'BLM-0133', 'ops', 'Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `\'2\'`/`\'6\'` con `soldDate` (B22)', ['RF-04.3', 'RF-09.1', 'RF-10.3'], ['T-PREP.7', 'BLM-0079', 'BLM-0065'], 'informe en `docs/migracion-blooming/`'),
+    ('F10', 'BLM-0134', 'ops', 'Revisar el servicio `:8090` (`MS_FINOBONDS_FEED_URL`), desactivarlo junto con el `SyncedCron` `BondBoundCheckMaturity` de Meteor y activar `BOND_MATURITY_CRON` en el mismo deploy', ['RF-10.1'], ['BLM-0124', 'BLM-0132'], '`backend/server/lib/crons.js`, `.env` de servidores'),
+    ('F10', 'BLM-0135', 'ops', 'Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**', ['RF-04.3', 'RF-04.1', 'RF-05.3'], ['BLM-0079', 'BLM-0098', 'BLM-0133'], '`backend/server/model/bond.bound.js`'),
+    ('F10', 'BLM-0136', 'ops', 'Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec', ['RF-01.1', 'RF-02.9', 'RF-09.1', 'RF-04.1', 'RF-06.4'], ['BLM-0132'], 'repo del front'),
+    ('F10', 'BLM-0137', 'ops', 'Retirar `bond.*.js` de Meteor y la referencia a `MS_FINOBONDS_FEED_URL`, una vez desplegado BLM-0072', [], ['BLM-0134', 'BLM-0135', 'BLM-0136', 'BLM-0072'], '`backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`'),
+    ('F10', 'BLM-0138', 'ops', 'Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`', ['RF-05.5', 'RF-10.3'], ['BLM-0135'], 'dashboards y logs'),
 ]
 
 PHASES = [
@@ -88,34 +93,15 @@ PHASES = [
     ('F10', 'Corte y retiro del legado', 'El front usa solo REST, Meteor no tiene código de bonos y el monitoreo no muestra incidencias.'),
 ]
 
-PHASE_OF = {}
-for tid, t in tasks.items():
-    s = t['spec']
-    n = int(tid.split('.')[1])
-    if s == '00':
-        PHASE_OF[tid] = 'F1'
-    elif s == '08':
-        PHASE_OF[tid] = 'F3' if n == 7 else ('F5' if n in (8, 10) else 'F2')
-    elif s == '03':
-        PHASE_OF[tid] = 'F2' if n in (1, 2, 3, 7) else ('F3' if n in (4, 6, 8) else 'F5')
-    elif s in ('01', '02'):
-        PHASE_OF[tid] = 'F3'
-    elif s == '09':
-        PHASE_OF[tid] = 'F4'
-    elif s in ('04', '05'):
-        PHASE_OF[tid] = 'F5'
-    elif s in ('06', '07'):
-        PHASE_OF[tid] = 'F6'
-    elif s == '10':
-        PHASE_OF[tid] = 'F7'
-
-for phase, tid, title, covers, deps, files in EXTRA:
-    tasks[tid] = {'id': tid, 'title': title, 'type': 'test' if tid.startswith('T-QA') else 'ops',
+for phase, tid, type_, title, covers, deps, files in EXTRA:
+    if tid in tasks:
+        dup_ids.append(tid)
+    tasks[tid] = {'id': tid, 'title': title, 'type': type_,
                   'covers': covers, 'deps': deps, 'files': files, 'spec': None}
     PHASE_OF[tid] = phase
 
 # ---------- validaciones ----------
-errors = []
+errors = [f'{tid}: ID duplicado' for tid in dup_ids]
 for tid, t in tasks.items():
     for d in t['deps']:
         if d not in tasks:
@@ -131,8 +117,8 @@ for tid, t in tasks.items():
         errors.append(f'{tid}: tipo inválido {t["type"]}')
     if t['spec'] and t['type'] == 'test' and not any(c.startswith('CA') for c in t['covers']):
         errors.append(f'{tid}: tarea de test sin CA')
-    if tid not in PHASE_OF:
-        errors.append(f'{tid}: sin fase')
+    if PHASE_OF.get(tid) not in [p[0] for p in PHASES]:
+        errors.append(f'{tid}: fase inválida {PHASE_OF.get(tid)!r}')
 
 order = [p[0] for p in PHASES]
 for tid, t in tasks.items():
@@ -201,8 +187,9 @@ if errors:
 
 # ---------- render ----------
 def sort_key(tid):
-    pre, n = tid[2:].split('.')
-    return (pre, int(n))
+    if tid.startswith('T-PREP.'):
+        return (0, int(tid[7:]))
+    return (1, int(tid[4:]))
 
 
 def topo_order(ids):
@@ -234,11 +221,12 @@ out = []
 w = out.append
 w('# Tareas — Migración de Blooming a ms-blooming-go')
 w('')
-w('> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad, infraestructura y corte (`T-PREP`, `T-QA`, `T-INFRA`, `T-CORTE`) no salen de una spec funcional y se definen en el script.')
+w('> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad, infraestructura y corte no salen de una spec funcional y se definen en el script (`EXTRA`).')
 w('')
 w('## 1. Cómo leer este documento')
 w('')
-w('- **ID:** `T-NN.x`, donde `NN` es el número de la spec (`T-04.3` es la tercera tarea de la spec 04).')
+w('- **ID:** `BLM-xxxx`, numeración global de 4 dígitos; es también el ticket del commit (`[BLM-0042] [MS-BLOOMING][ÁREA] …`). Una tarea nueva toma el siguiente ID libre (ver §6) y no se renumeran las existentes. Excepción: las tareas de F0 conservan su formato original `T-PREP.x`.')
+w('- **Fase:** la define la columna *Fase* de la tabla *Tareas* de cada spec; la spec de cada tarea se ve en el enlace al inicio de su fase.')
 w('- **Formato:** `- [ ] ID [P] tipo título`, seguido de una línea con lo que cubre y sus dependencias, y otra con los archivos.')
 w('- **`[P]`:** la tarea puede empezar al inicio de su fase, porque no depende de otra tarea de la misma fase. Las tareas `[P]` de una fase se pueden repartir en paralelo.')
 w('- **Cubre:** requisitos (`RF-NN.x`) que implementa, o criterios de aceptación (`CA-NN.x`) que verifica.')
@@ -247,7 +235,7 @@ w('- **Reglas** (constitución §14):')
 w('  - toda tarea funcional cita al menos un RF o CA;')
 w('  - todo RF tiene al menos una tarea `impl` y una `test`;')
 w('  - un cambio de comportamiento se hace primero en la spec y después aquí (regenerando).')
-w('- **PR:** cada PR cita sus `T-…`, sus `RF-…` y su spec.')
+w('- **PR:** cada PR cita sus `BLM-…`, sus `RF-…` y su spec.')
 w('')
 w('## 2. Resumen')
 w('')
@@ -264,7 +252,7 @@ w('F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F
 w('          └─▶ F9 (infra en main) ──────────────────────────┘')
 w('```')
 w('')
-w('F9 (infra, en `main`) puede empezar cuando T-00.19 está terminada y correr en paralelo con F2–F8.')
+w('F9 (infra, en `main`) puede empezar cuando BLM-0019 está terminada y correr en paralelo con F2–F8.')
 w('')
 w('## 3. Tareas por fase')
 w('')
@@ -309,6 +297,7 @@ w('')
 w('## 6. Regenerar y validar')
 w('')
 w('El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada spec. Escribe este archivo y falla (código 1, con la lista de problemas) si encuentra:')
+w('- un ID duplicado o una fase inexistente;')
 w('- una dependencia o un RF/CA inexistente;')
 w('- un RF sin tarea `impl`, sin tarea `test` o sin CA;')
 w('- un CA que ningún test verifica;')
@@ -319,7 +308,7 @@ w('```bash')
 w('python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming')
 w('```')
 w('')
-w(f'Última generación: {len(specs)} specs, {len(rfs)} RF, {len(cas)} CA, {len(tasks)} tareas, {len(bugs)} bugs. Validación sin errores.')
+w(f'Última generación: {len(specs)} specs, {len(rfs)} RF, {len(cas)} CA, {len(tasks)} tareas, {len(bugs)} bugs. Validación sin errores. Siguiente ID libre: `BLM-{max(sort_key(t)[1] for t in tasks if t.startswith("BLM-")) + 1:04d}`.')
 
 OUT.write_text('\n'.join(out) + '\n')
 print(f'OK: {len(specs)} specs, {len(rfs)} RF, {len(cas)} CA, {len(tasks)} tareas, {len(bugs)} bugs')

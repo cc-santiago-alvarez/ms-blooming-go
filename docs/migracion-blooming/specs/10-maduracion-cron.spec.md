@@ -85,7 +85,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 ## 7. Ports y dependencias
 
 - `BondBoundApplicationPorts.RunMaturity(ctx, now) (MaturityResult, error)`.
-- `BondBoundMongoccRepositoryPorts`: `FindMaturable(ctx, now, limit, afterID)` y `UpdateStatusIf` (T-04.3).
+- `BondBoundMongoccRepositoryPorts`: `FindMaturable(ctx, now, limit, afterID)` y `UpdateStatusIf` (BLM-0077).
 - `JobLockPort`: `Acquire(ctx, name, ttl) (bool, error)` y `Release(ctx, name)`, en `shared_ports`.
 - `BondHistoryPort.Add` en modo sistema (spec 08).
 - `NoticePort`, `NotificationPort`, `ProfileReader` (spec 00) y lectura de los nombres de `bondType` y `bondObject` (specs 01 y 02).
@@ -95,9 +95,9 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B22 | La regla legacy (`checkMaturity`) maduraba también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | Dinero (crítico). | T-10.2 |
-| B32 | `SyncedCron.start()` solo corre en `Cron.init()`, que está comentado en `main.js`. La maduración solo arranca después de editar un cronjob, y depende de un servicio externo que no está versionado en el workspace. | Corregir | Los bonos podían no madurar nunca. | T-10.5 |
-| B33 | Con 3 réplicas sin lock, la maduración y los avisos se ejecutarían tres veces. | Corregir (prevención) | Avisos duplicados. | T-10.3 |
+| B22 | La regla legacy (`checkMaturity`) maduraba también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | Dinero (crítico). | BLM-0118 |
+| B32 | `SyncedCron.start()` solo corre en `Cron.init()`, que está comentado en `main.js`. La maduración solo arranca después de editar un cronjob, y depende de un servicio externo que no está versionado en el workspace. | Corregir | Los bonos podían no madurar nunca. | BLM-0121 |
+| B33 | Con 3 réplicas sin lock, la maduración y los avisos se ejecutarían tres veces. | Corregir (prevención) | Avisos duplicados. | BLM-0119 |
 
 ## 9. Criterios de aceptación
 
@@ -121,18 +121,18 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-10.1 | Dominio: `MaturityResult` y función pura `BuildMaturityTable(rows)` (HTML del legado) | impl | RF-10.3, RF-10.5 | T-04.1 | `internal/core/bondBound/domain/bondBound.maturity.go` |
-| T-10.2 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | RF-10.3 | T-04.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go` |
-| T-10.3 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | RF-10.2 | T-00.10 | `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go` |
-| T-10.4 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | T-10.1, T-10.2, T-10.3, T-08.4, T-00.13, T-00.14, T-00.15 | `internal/core/bondBound/application/bondBound.runMaturity.go` |
-| T-10.5 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | RF-10.1 | T-10.4, T-00.19 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |
-| T-10.6 | Endpoint interno de ejecución manual | impl | RF-10.7 | T-10.4, T-00.4 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |
-| T-10.7 | Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial | test | CA-10.3, CA-10.6, CA-10.7 | T-10.4 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go` |
-| T-10.8 | Tests de integración: idempotencia, lock concurrente, historial de sistema, registro del cron y endpoint | test | CA-10.1, CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 | T-10.5, T-10.6 | `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`, `internal/cron/infra/scheduler_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0117 | Dominio: `MaturityResult` y función pura `BuildMaturityTable(rows)` (HTML del legado) | impl | F7 | RF-10.3, RF-10.5 | BLM-0075 | `internal/core/bondBound/domain/bondBound.maturity.go` |
+| BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go` |
+| BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go` |
+| BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go` |
+| BLM-0121 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | F7 | RF-10.1 | BLM-0120, BLM-0019 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |
+| BLM-0122 | Endpoint interno de ejecución manual | impl | F7 | RF-10.7 | BLM-0120, BLM-0004 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |
+| BLM-0123 | Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial | test | F7 | CA-10.3, CA-10.6, CA-10.7 | BLM-0120 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go` |
+| BLM-0124 | Tests de integración: idempotencia, lock concurrente, historial de sistema, registro del cron y endpoint | test | F7 | CA-10.1, CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 | BLM-0121, BLM-0122 | `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`, `internal/cron/infra/scheduler_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
-- **Pregunta:** ¿qué hace hoy el servicio `:8090` (`MS_FINOBONDS_FEED_URL`)? ¿Escribe historial, o madura también estados `'5'`/`'4'`? Hay que revisarlo antes del corte, porque con los datos actuales puede haber bonos vendidos que pasaron a `'2'`. Se agrega una tarea de auditoría (T-CORTE.2).
+- **Pregunta:** ¿qué hace hoy el servicio `:8090` (`MS_FINOBONDS_FEED_URL`)? ¿Escribe historial, o madura también estados `'5'`/`'4'`? Hay que revisarlo antes del corte, porque con los datos actuales puede haber bonos vendidos que pasaron a `'2'`. Se agrega una tarea de auditoría (BLM-0134).
 - **Pregunta:** ¿la frecuencia de 5 minutos es suficiente? El legado corría cada 30 s, pero los avisos se pueden atrasar unos minutos sin impacto.

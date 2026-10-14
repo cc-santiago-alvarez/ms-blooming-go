@@ -241,12 +241,12 @@ type BondObject struct {
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| O2 | El diff de `update` no detecta cambios en `earlyCashTerm` ni en fechas. | Corregir | Auditoría incompleta de cambios de términos financieros. | T-02.6 |
-| O3 | Los privados se filtran en el método `getBondObjectsByBondTypeId`, pero no en la publicación ni en `getMostPurchased`/`getLatest`. | Corregir | Exposición de bonos privados a usuarios no autorizados. | T-02.8 |
-| O4 | `massiveUpdateOfKeys` nunca responde, y el cliente queda colgado. | Corregir | Llamada que no responde. | T-02.7 |
-| O5 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. | Corregir | Rendimiento y scoping. | T-02.5 |
-| O6 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. | Corregir | Cálculos de dinero inválidos. | T-02.1 |
-| O9 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. | Corregir | Seguridad. | T-02.5 |
+| O2 | El diff de `update` no detecta cambios en `earlyCashTerm` ni en fechas. | Corregir | Auditoría incompleta de cambios de términos financieros. | BLM-0053 |
+| O3 | Los privados se filtran en el método `getBondObjectsByBondTypeId`, pero no en la publicación ni en `getMostPurchased`/`getLatest`. | Corregir | Exposición de bonos privados a usuarios no autorizados. | BLM-0055 |
+| O4 | `massiveUpdateOfKeys` nunca responde, y el cliente queda colgado. | Corregir | Llamada que no responde. | BLM-0054 |
+| O5 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. | Corregir | Rendimiento y scoping. | BLM-0052 |
+| O6 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. | Corregir | Cálculos de dinero inválidos. | BLM-0045 |
+| O9 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. | Corregir | Seguridad. | BLM-0052 |
 
 ## 9. Criterios de aceptación
 
@@ -268,20 +268,20 @@ type BondObject struct {
 
 ## 10. Tareas
 
-| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
-|---|---|---|---|---|---|
-| T-02.1 | Dominio: `BondObject` (con `FlexNumber` para numéricos legacy), DTOs con defaults legacy en `Normalize()` y validaciones de §5.1, errores y `httpStatus` | impl | RF-02.4, RF-02.5 | T-00.9, T-01.1, T-03.1 | `internal/core/bondObject/domain/*.go` |
-| T-02.2 | Ports: `BondObjectApplicationPorts`, `BondObjectMongoccRepositoryPorts`, `BondBoundStatsPort` | impl | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | T-02.1 | `internal/core/bondObject/ports/bondObject.ports.go` |
-| T-02.3 | Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`) y `EnsureIndexes` | impl | RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11 | T-02.2 | `internal/core/bondObject/infrastructure/mongocc/*.adapter.go` |
-| T-02.4 | Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01 | impl | RF-02.8, RF-02.10, RF-01.2, RF-01.6 | T-02.3 | `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.counter.go` |
-| T-02.5 | Casos de uso admin de consulta: `List`, `ListGroupedByType` (sin N+1), `GetByID` con `authorizedUser` seguro y `GetByIDIncludingRemoved` | impl | RF-02.1, RF-02.2, RF-02.3 | T-02.3, T-00.17 | `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go` |
-| T-02.6 | Función pura `BuildChanges(old, new)` con escalares, fechas, arreglos y `earlyCashTerm.*` | impl | RF-02.5 | T-02.1 | `internal/core/bondObject/domain/bondObject.changes.go` |
-| T-02.7 | Casos de uso `Create`, `Update`, `UpdateKeys` y `Remove`, con history y activity best-effort | impl | RF-02.4, RF-02.5, RF-02.6, RF-02.7 | T-02.3, T-02.6, T-08.4, T-00.13, T-01.4 | `internal/core/bondObject/application/bondObject.create.go`, `bondObject.update.go`, `bondObject.updateKeys.go`, `bondObject.remove.go` |
-| T-02.8 | Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase` | impl | RF-02.8, RF-02.9, RF-02.10, RF-02.11 | T-02.4 | `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go` |
-| T-02.9 | Handlers, registro de rutas, `server.bondObject.go` y `linkBondObjectToBondType` | impl | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | T-02.5, T-02.7, T-02.8, T-00.7, T-00.26 | `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go` |
-| T-02.10 | Tests unitarios de casos de uso y handlers con fakes | test | CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 | T-02.9 | `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go` |
-| T-02.11 | Tests de integración del repositorio y de las agregaciones | test | CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 | T-02.3, T-02.4 | `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go` |
-| T-02.12 | Test de tabla de `BuildChanges` | test | CA-02.6 | T-02.6 | `internal/core/bondObject/domain/bondObject.changes_test.go` |
+| ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|---|
+| BLM-0045 | Dominio: `BondObject` (con `FlexNumber` para numéricos legacy), DTOs con defaults legacy en `Normalize()` y validaciones de §5.1, errores y `httpStatus` | impl | F3 | RF-02.4, RF-02.5 | BLM-0009, BLM-0039, BLM-0028 | `internal/core/bondObject/domain/*.go` |
+| BLM-0046 | Ports: `BondObjectApplicationPorts`, `BondObjectMongoccRepositoryPorts`, `BondBoundStatsPort` | impl | F3 | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0045 | `internal/core/bondObject/ports/bondObject.ports.go` |
+| BLM-0047 | Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`) y `EnsureIndexes` | impl | F3 | RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11 | BLM-0046 | `internal/core/bondObject/infrastructure/mongocc/*.adapter.go` |
+| BLM-0048 | Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01 | impl | F3 | RF-02.8, RF-02.10, RF-01.2, RF-01.6 | BLM-0047 | `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.counter.go` |
+| BLM-0052 | Casos de uso admin de consulta: `List`, `ListGroupedByType` (sin N+1), `GetByID` con `authorizedUser` seguro y `GetByIDIncludingRemoved` | impl | F3 | RF-02.1, RF-02.2, RF-02.3 | BLM-0047, BLM-0017 | `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go` |
+| BLM-0053 | Función pura `BuildChanges(old, new)` con escalares, fechas, arreglos y `earlyCashTerm.*` | impl | F3 | RF-02.5 | BLM-0045 | `internal/core/bondObject/domain/bondObject.changes.go` |
+| BLM-0054 | Casos de uso `Create`, `Update`, `UpdateKeys` y `Remove`, con history y activity best-effort | impl | F3 | RF-02.4, RF-02.5, RF-02.6, RF-02.7 | BLM-0047, BLM-0053, BLM-0035, BLM-0013, BLM-0042 | `internal/core/bondObject/application/bondObject.create.go`, `bondObject.update.go`, `bondObject.updateKeys.go`, `bondObject.remove.go` |
+| BLM-0055 | Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase` | impl | F3 | RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0048 | `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go` |
+| BLM-0056 | Handlers, registro de rutas, `server.bondObject.go` y `linkBondObjectToBondType` | impl | F3 | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0052, BLM-0054, BLM-0055, BLM-0007, BLM-0026 | `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go` |
+| BLM-0057 | Tests unitarios de casos de uso y handlers con fakes | test | F3 | CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 | BLM-0056 | `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go` |
+| BLM-0058 | Tests de integración del repositorio y de las agregaciones | test | F3 | CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 | BLM-0047, BLM-0048 | `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0059 | Test de tabla de `BuildChanges` | test | F3 | CA-02.6 | BLM-0053 | `internal/core/bondObject/domain/bondObject.changes_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
