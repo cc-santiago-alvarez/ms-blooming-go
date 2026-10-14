@@ -1,0 +1,144 @@
+# Spec 07 — Reportes y KPIs
+
+| | |
+|---|---|
+| Estado | Borrador |
+| Dominio | `internal/core/bondBound` |
+| Handlers | `cmd/api/handlers/bondBounds` |
+| Colección | `bondBound` (lectura); genera archivos vía ms-exporter |
+| Depende de | Spec 00 (`ExporterPort`, `AgencyReader`), spec 06 (`DateRangeStage`, búsqueda escapada) |
+
+## 1. Resumen y alcance
+
+Salidas para el dashboard de administración:
+- dos reportes Excel, que arma **ms-exporter**: el detalle de bonos comprados y el resumen por inversionista;
+- el indicador `total` / `count` de bonos por estado.
+
+## 2. Origen legacy
+
+Archivo: `backend/server/model/bond.bound.js`.
+
+| Operación legacy | Línea | Destino |
+|---|---|---|
+| `bondBound.reportPurchasedBonds` | 940 | `GET /bond-bounds/reports/purchased` (RF-07.1) |
+| `bondBound.reportSummaryPurchasedBonds` | 1125 | `GET /bond-bounds/reports/purchased-summary` (RF-07.2) |
+| `bondBound.countByStatusId` | 1212 | `GET /bond-bounds/kpis/count-by-status` (RF-07.3) |
+
+Del lado de ms-exporter: `ms-exporter/src/modules/bond/bond.routes.js` y `bond.purchased.service.js`. Las columnas son Key, Usuario, Tipo, Bono, Monto, Fecha de inicio, Fecha de maduración, Tiempo de maduración en días, Ganancia (%) y Estatus.
+
+## 3. Requisitos funcionales
+
+- **RF-07.1** — Reporte de bonos comprados (admin).
+  - **Filtro:** `isRemove: false` y la `agencyId` de la sesión (paridad: el reporte **no** abre a todas las agencias aunque la agencia sea la principal).
+  - **`statusId`:** `'1'` por defecto; `'0'` incluye todos los estados.
+  - Filtro opcional de `userId` (exacto) y búsqueda escapada (`search`) sobre `profile.first_name`, `bondObject.name` y `bondType.name` (paridad de campos).
+  - Filtro de fecha de RF-06.12 sobre `createdAt`.
+  - **Orden:** `createdAt` desc.
+  - **Filas:** `{key, status: <nombre>, amount, maturityTimeInDays, initialDate, maturityDate, maturityRewardsPercentage, profile: {first_name, last_name}, bondType: {name}, bondObject: {name}, createdAt}`.
+  - Se envía a `ExporterPort.Excel("purchasedBonds", {currency, bondBounds})`, con `currency = AgencyReader.SymbolCurrency(session.agencyId)`.
+- **RF-07.2** — Reporte resumen por inversionista (admin).
+  - **Filtro:** `isRemove: false`, `agencyId` de la sesión y `statusId` (`'1'` por defecto; `'0'` todos).
+  - Agrupa por `userId` con `total = Σ amount` y hace `$lookup` a `profile` con la proyección `{first_name, last_name}`.
+  - Se envía a `ExporterPort.Excel("summaryPurchasedBonds", {currency, bondBounds})`.
+- **RF-07.3** — KPI de bonos por estado.
+  - **Filtro:** `isRemove: false` más `AgencyScope(ctx)`. `statusId` se aplica solo si es un estado válido (paridad: si no, se cuentan todos).
+  - **Usuario:**
+    - un admin puede pasar `userId` o no pasarlo (toda la agencia);
+    - un no admin siempre recibe sus propios números: `userId` se fuerza al de la sesión, y si manda otro, `ERR_FORBIDDEN`.
+  - Filtro de fecha de RF-06.12 sobre `createdAt` y búsqueda escapada sobre `profile.id`, `first_name`, `last_name`, `email` y `bondObject.name`.
+  - **Respuesta:** `{total: Σ amount, count, status: <nombre del estado> | ""}`.
+- **RF-07.4** — Entrega de archivos.
+  - Los reportes responden el binario con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` y `Content-Disposition: attachment; filename="<FILENAME_REPORT>.xlsx"`.
+  - El nombre es `reporte-purchased-bonds_<YYYY-MM-DD_HHmmss>` o `reporte-summary-purchased-bonds_<…>`, con la hora en `utcDiff`.
+  - Si ms-exporter falla, `502 ERR_EXPORT_FAILED`.
+
+## 4. Contrato API
+
+| Método | Ruta | Permiso | RF |
+|---|---|---|---|
+| GET | `/bond-bounds/reports/purchased` | admin | RF-07.1, RF-07.4 |
+| GET | `/bond-bounds/reports/purchased-summary` | admin | RF-07.2, RF-07.4 |
+| GET | `/bond-bounds/kpis/count-by-status` | usuario (alcance según RF-07.3) | RF-07.3 |
+
+**Parámetros comunes de query:**
+- `statusId`
+- `userId`
+- `search`
+- `filter` ∈ {`aDate`, `betweenDates`, `aMonth`, `aYear`}, con sus valores: `aDate`, o `startDate` y `endDate`, o `month` y `year`
+
+**`GET /bond-bounds/reports/purchased?statusId=0&filter=aMonth&month=10&year=2026`** → `200` con el binario xlsx.
+
+**`GET /bond-bounds/kpis/count-by-status?statusId=1`** → `200`
+
+```json
+{ "total": 125000, "count": 120, "status": "Iniciado" }
+```
+
+**Cambio de contrato respecto al legado:**
+- Los reportes respondían `{fileName, code, document: <Buffer JSON>, headerContentType}`, y el front armaba el archivo. Ahora el endpoint devuelve el archivo directamente.
+- El KPI respondía `{success, code, data}`.
+- El KPI ya no recibe `utcDiff` del cliente; usa el de la sesión.
+
+**Errores:**
+- `ERR_INVALID_ID` (400): un id de path, query o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19).
+- `ERR_FORBIDDEN` (403).
+- `ERR_INVALID_DATE_FILTER` (400).
+- `ERR_EXPORT_FAILED` (502; el legado devolvía `code -1000` con status 200).
+
+## 5. Reglas de negocio
+
+- **Normalización de `statusId` (reportes):** vacío → `'1'`; `'0'` → sin filtro de estado; otro valor → debe estar en el enum, si no `ERR_INVALID_STATUS`.
+- **Normalización de `statusId` (KPI):** vacío o fuera del enum → sin filtro de estado y `status: ""` (paridad).
+- Los rangos de fecha usan `DateRangeStage` (T-06.2), siempre en la zona de la sesión.
+
+## 6. Modelo de datos
+
+Esta spec no persiste nada.
+- Las filas del reporte (`PurchasedReportRow`, `SummaryReportRow`) viven en `bondBound/ports`.
+- El payload a ms-exporter se mantiene **idéntico** al del legado, para no tocar ms-exporter.
+
+## 7. Ports y dependencias
+
+- `BondBoundApplicationPorts`: `ReportPurchased`, `ReportSummary` y `CountByStatus`.
+- `BondBoundMongoccRepositoryPorts`: `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus`.
+- `ExporterPort` y `AgencyReader` (spec 00).
+- `DateRangeStage` y el helper de búsqueda escapada (spec 06).
+
+## 8. Bugs legacy
+
+| Bug | Descripción | Decisión | Motivo | Tarea |
+|---|---|---|---|---|
+| B11 | `reportSummaryPurchasedBonds` lee `data.data.statusId` (crashea sin `data.data`) y `countByStatusId` exige `data.query`. | Corregir | Llamadas que no responden. | T-07.1 |
+| B12 | El `betweenDates` del KPI compara año, mes y día por separado: del 25-ene al 5-feb no incluye el 30-ene. Además deriva `utcDiff` de la zona del servidor o del cliente. | Corregir | Indicadores incorrectos. | T-07.2 |
+| B34 | Búsqueda con `$regex` sin escapar en los reportes y el KPI (mismo problema que B24 del listado). | Corregir | Seguridad y robustez. | T-07.2 |
+| B29 | Los filtros `aDate` y `betweenDates` del reporte ignoran `utcDiff` (zona del servidor), y `month`/`year` salen de `initialDate` en UTC. | Corregir | Mismo criterio de fechas que el listado. | T-07.2 |
+| B30 | Si falla ms-exporter, se responde `code -1000` con HTTP 200 e incluye el objeto de error interno (`err`). | Corregir | Contrato HTTP y exposición de detalles internos. | T-07.3 |
+| B31 | El KPI sin permisos permite que cualquier sesión consulte totales de la agencia o de otro usuario. | Corregir | Seguridad. | T-07.4 |
+
+## 9. Criterios de aceptación
+
+- **CA-07.1** (RF-07.1, RF-07.4) — Sin `statusId`, el payload a ms-exporter contiene solo bonos en estado `'1'`, cada fila con `status: "Iniciado"`, y `currency` es el símbolo de la agencia. Con `statusId=0` contiene todos los estados. La respuesta es `200`, con el `Content-Type` de xlsx y un `Content-Disposition` que empieza por `reporte-purchased-bonds_`.
+- **CA-07.2** (RF-07.1) — Con `utcDiff -5`, `filter=aMonth&month=10&year=2026` incluye un bono creado el `2026-11-01T03:00Z`. `search=plus` encuentra bonos cuyo `bondObject.name` contiene "Plus".
+- **CA-07.3** (RF-07.2) — Si el usuario u1 tiene dos bonos activos de 1000 y 500, el resumen envía `{_id: u1, total: 1500, profile: {first_name, last_name}}`. Un request sin parámetros responde `200` y no falla (B11).
+- **CA-07.4** (RF-07.4) — Si ms-exporter responde 500, el endpoint responde `502 ERR_EXPORT_FAILED`, sin detalles internos.
+- **CA-07.5** (RF-07.3) — `filter=betweenDates&startDate=2026-01-25&endDate=2026-02-05` cuenta un bono creado el 2026-01-30 (B12).
+- **CA-07.6** (RF-07.3) — Un no admin sin `userId` recibe solo sus totales, y con el `userId` de otro recibe `403`. Un admin sin `userId` recibe los totales de su agencia. `statusId=9` cuenta todos los estados y responde `status: ""`.
+- **CA-07.7** (RF-07.1, RF-07.2) — Un no admin que llama a los reportes recibe `403`.
+- **CA-07.8** (RF-07.1, RF-07.3) — El reporte y el KPI cuentan e incluyen por igual bonos legacy (17 caracteres) y nuevos (UUID), y `userId=<id legacy>` filtra correctamente.
+
+## 10. Tareas
+
+| ID | Tarea | Tipo | Cubre | Depende de | Archivos |
+|---|---|---|---|---|---|
+| T-07.1 | DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores | impl | RF-07.1, RF-07.2, RF-07.3 | T-06.1 | `internal/core/bondBound/domain/bondBound.reports.domain.go` |
+| T-07.2 | Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada) | impl | RF-07.1, RF-07.2, RF-07.3 | T-07.1, T-06.2, T-06.3 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go` |
+| T-07.3 | Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo) | impl | RF-07.1, RF-07.2, RF-07.4 | T-07.2, T-00.16, T-00.17 | `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go` |
+| T-07.4 | Caso de uso `CountByStatus`, con el alcance por rol | impl | RF-07.3 | T-07.2, T-00.7 | `internal/core/bondBound/application/bondBound.countByStatus.go` |
+| T-07.5 | Handlers de reportes (respuesta binaria y headers) y del KPI | impl | RF-07.1, RF-07.2, RF-07.3, RF-07.4 | T-07.3, T-07.4, T-04.9, T-00.26 | `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go` |
+| T-07.6 | Tests unitarios: normalización, permisos, fallo de ms-exporter y headers | test | CA-07.1, CA-07.4, CA-07.6, CA-07.7 | T-07.5 | `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go` |
+| T-07.7 | Tests de integración de las agregaciones (rangos, búsqueda, agrupado) | test | CA-07.2, CA-07.3, CA-07.5, CA-07.8 | T-07.2 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go` |
+
+## 11. Fuera de alcance y preguntas abiertas
+
+- La variante PDF de los reportes está comentada en el legado y no se porta.
+- **Pregunta:** ¿el reporte debería respetar `AgencyScope`, es decir, que la agencia principal vea todas? El legado siempre filtra por la agencia de la sesión.
