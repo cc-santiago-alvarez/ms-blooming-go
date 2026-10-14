@@ -49,13 +49,15 @@ transactions). Start it with `docker start atlas`; the connection comes from `FA
 Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bondHistory`,
 `bondUserSetting`, plus `session` and `shared`). Layout and dependency rules: constitution §2.
 
-- `cmd/main.go` — API entrypoint (`server.InitServer().Run()`, pending BLM-0002).
+- `cmd/main.go` — API entrypoint (`server.InitServer().Run()`).
 - `cmd/healthcheck/main.go` — standalone TCP probe of `GET /_health` (`package main`).
 - `cmd/api/config/` — env loading into `ApiEnv`.
 - `cmd/api/server/` — composition root: `server.go`, `server.config.go`, `server.deps.go`
   (`serverDeps` container), `server.<domain>.go` with `init<Domain>Domain` + `register<Domain>Handlers`.
   Initialization order matters: a domain is initialized before any domain that uses its `ApplicationPorts`.
 - `cmd/api/handlers/<domain>/` — one file per endpoint; decode, call the use case, respond.
+  `cmd/api/handlers/shared/` (`handlers_shared`) holds the common helpers: errors are answered with
+  `handlers_shared.ResponseWithError(w, r, status, err)`, which turns a 500 into `ERR_INTERNAL` and logs the detail.
 - `internal/core/<domain>/` — `domain/`, `ports/`, `application/` (one use case per file),
   `infrastructure/mongocc/` (one file per repository method + `EnsureIndexes`).
 - `internal/cron/` — scheduler and jobs (bond maturity, with a distributed lock).

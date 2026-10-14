@@ -2,10 +2,16 @@ package server
 
 import (
 	"github.com/codecraftkit/mongocc"
+	api_config "github.com/futurapps/ms-blooming-go/cmd/api/config"
 )
 
-// serverDeps holds all repositories and applications wired during server initialization.
+// serverDeps contiene la configuración, las conexiones, los repositorios y las aplicaciones que se
+// cablean al inicializar el servidor.
 type serverDeps struct {
+	// ====================== Configuración ======================
+	env *api_config.ApiEnv
+
 	// ====================== Database Connections ======================
+	// El *mongo.Client sale de mongoDB.Database().Client(), para desconectarlo al apagar.
 	mongoDB *mongocc.MongoQueries
 }

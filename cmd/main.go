@@ -1,5 +1,7 @@
 package main
 
+import "github.com/futurapps/ms-blooming-go/cmd/api/server"
+
 func main() {
-	// T-00.2: server.InitServer().Run()
+	server.InitServer().Run()
 }

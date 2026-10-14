@@ -77,7 +77,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `cmd/api/config/config.go`, `cmd/api/config/environments.go`, `.env.example`
 - [ ] **BLM-0002** `impl` Composition root: `serverDeps`, `InitServer`, conexión mongocc, `nexus.Server` con `/api/v1`, `cmd/main.go`
   - cubre: RF-00.1, RF-00.7 · depende de: BLM-0001
-  - archivos: `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go`
+  - archivos: `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go`, `cmd/api/handlers/shared/handlers.response.go`
 - [ ] **BLM-0003** `impl` Middleware `RequestLog` sin headers ni body
   - cubre: RF-00.13 · depende de: BLM-0002
   - archivos: `internal/core/shared/middlewares/requestLog.middleware.go`

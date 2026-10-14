@@ -80,6 +80,7 @@ Ningún endpoint de negocio vive aquí.
   - Éxito: la entidad, el arreglo o el objeto resultado, sin envelope (`nexus.ResponseWithJSON`).
   - Error: `nexus.ResponseWithError(w, status, "ERR_X")`.
   - Los errores no mapeados responden `500 ERR_INTERNAL`; el detalle se loguea y nunca se devuelve.
+  - Los handlers responden los errores con `handlers_shared.ResponseWithError(w, r, status, err)`: con status 500 loguea el detalle (método y ruta, sin headers ni body) y responde `ERR_INTERNAL`; con cualquier otro status responde el sentinel. Un panic en un handler también responde `500 ERR_INTERNAL`.
   - Los listados paginados responden `{items, total, page, limit, totalPages}` (RF-00.18).
 - **RF-00.8** — IDs y helpers de datos.
   - `shared.NewID()` devuelve `uuid.New().String()`. Es el único generador de `_id` para documentos nuevos.
@@ -347,7 +348,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
 | BLM-0001 | Config: `ApiEnv` completo, carga de `.env` y `.env.<ENV>`, validación de requeridas, `.env.example` depurado | impl | F1 | RF-00.1 | T-PREP.3 | `cmd/api/config/config.go`, `cmd/api/config/environments.go`, `.env.example` |
-| BLM-0002 | Composition root: `serverDeps`, `InitServer`, conexión mongocc, `nexus.Server` con `/api/v1`, `cmd/main.go` | impl | F1 | RF-00.1, RF-00.7 | BLM-0001 | `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go` |
+| BLM-0002 | Composition root: `serverDeps`, `InitServer`, conexión mongocc, `nexus.Server` con `/api/v1`, `cmd/main.go` | impl | F1 | RF-00.1, RF-00.7 | BLM-0001 | `cmd/main.go`, `cmd/api/server/server.go`, `server.config.go`, `server.deps.go`, `cmd/api/handlers/shared/handlers.response.go` |
 | BLM-0003 | Middleware `RequestLog` sin headers ni body | impl | F1 | RF-00.13 | BLM-0002 | `internal/core/shared/middlewares/requestLog.middleware.go` |
 | BLM-0004 | Middleware `ValidateApiSecret` con comparación en tiempo constante | impl | F1 | RF-00.2 | BLM-0002 | `internal/core/shared/middlewares/validateApiSecret.middleware.go` |
 | BLM-0005 | `session_domain` (`UserSession`, claves de contexto), cliente ms-oauth y middleware `VerifySession` | impl | F1 | RF-00.3 | BLM-0002 | `internal/core/session/domain/`, `internal/core/shared/adapters/oauth/session.client.go`, `shared/middlewares/verifySession.middleware.go` |
