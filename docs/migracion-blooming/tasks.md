@@ -43,24 +43,24 @@ F9 (infra, en `main`) puede empezar cuando T-00.19 está terminada y correr en p
 
 ### F0 — Preparación del repositorio
 
-- [ ] **T-PREP.1** [P] `ops` Inicializar el repositorio: `git init`, remoto `github.com/futurapps/ms-blooming-go`, ramas `main` e `integrations` y rama de trabajo `cc-*`
+- [ ] **T-PREP.1** [P] `ops` Inicializar el repositorio: `git init`, remoto `github.com/cc-santiago-alvarez/ms-blooming-go` y rama `master`. Los líderes de área lo llevan después a `futurapps`
   - cubre: — · depende de: —
   - archivos: `.git/`
-- [ ] **T-PREP.2** `ops` `.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`) y `.github/workflows/branch-flow.yml` idéntico en `main` e `integrations`
+- [ ] **T-PREP.2** `ops` `.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`). `.github/workflows/branch-flow.yml` lo agrega DevOps al integrar el repositorio en `futurapps`
   - cubre: — · depende de: T-PREP.1
-  - archivos: `.gitignore`, `.github/workflows/branch-flow.yml`
+  - archivos: `.gitignore`
 - [ ] **T-PREP.3** `ops` `go.mod` (`module github.com/futurapps/ms-blooming-go`, `go 1.27.0`); eliminar `internal/database/mongo/connection.go`; `cmd/healthcheck` con `package main`; `go build ./...` compila
   - cubre: — · depende de: T-PREP.1
   - archivos: `go.mod`, `go.sum`, `cmd/healthcheck/main.go`, `internal/database/`
-- [ ] **T-PREP.4** `ops` `Makefile` (`build`, `test`, `test-int`, `vet`, `mongo`) y `.air.toml`
+- [ ] **T-PREP.4** `ops` `.air.toml` para desarrollo con hot reload (sin `Makefile`)
   - cubre: — · depende de: T-PREP.3
-  - archivos: `Makefile`, `.air.toml`
+  - archivos: `.air.toml`
 - [ ] **T-PREP.5** `ops` `README.md` y `CLAUDE.md`: arquitectura, comandos, variables y enlace a `docs/constitution.md`
   - cubre: — · depende de: T-PREP.3
   - archivos: `README.md`, `CLAUDE.md`
-- [ ] **T-PREP.6** `ops` Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración
-  - cubre: — · depende de: T-PREP.4
-  - archivos: `Makefile`, `docs/` (instrucciones)
+- [ ] **T-PREP.6** `ops` Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración: contenedor `atlas` (`mongodb/atlas`), conexión por las variables `FA_MONGO_*`
+  - cubre: — · depende de: T-PREP.3
+  - archivos: `README.md` (instrucciones)
 - [ ] **T-PREP.7** [P] `ops` Dump anonimizado de testing de `bondType`, `bondObject`, `bondBound`, `bondHistory`, `bondUserSetting`, `balanceAccount` y `profile` para paridad e integración
   - cubre: — · depende de: —
   - archivos: fuera del repo (almacenamiento del equipo)

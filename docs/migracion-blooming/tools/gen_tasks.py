@@ -51,12 +51,12 @@ for path in SPECS:
 
 # Tareas que no salen de una spec funcional (preparación, calidad, infra, corte)
 EXTRA = [
-    ('F0', 'T-PREP.1', 'Inicializar el repositorio: `git init`, remoto `github.com/futurapps/ms-blooming-go`, ramas `main` e `integrations` y rama de trabajo `cc-*`', [], [], '`.git/`'),
-    ('F0', 'T-PREP.2', '`.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`) y `.github/workflows/branch-flow.yml` idéntico en `main` e `integrations`', [], ['T-PREP.1'], '`.gitignore`, `.github/workflows/branch-flow.yml`'),
+    ('F0', 'T-PREP.1', 'Inicializar el repositorio: `git init`, remoto `github.com/cc-santiago-alvarez/ms-blooming-go` y rama `master`. Los líderes de área lo llevan después a `futurapps`', [], [], '`.git/`'),
+    ('F0', 'T-PREP.2', '`.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`). `.github/workflows/branch-flow.yml` lo agrega DevOps al integrar el repositorio en `futurapps`', [], ['T-PREP.1'], '`.gitignore`'),
     ('F0', 'T-PREP.3', '`go.mod` (`module github.com/futurapps/ms-blooming-go`, `go 1.27.0`); eliminar `internal/database/mongo/connection.go`; `cmd/healthcheck` con `package main`; `go build ./...` compila', [], ['T-PREP.1'], '`go.mod`, `go.sum`, `cmd/healthcheck/main.go`, `internal/database/`'),
-    ('F0', 'T-PREP.4', '`Makefile` (`build`, `test`, `test-int`, `vet`, `mongo`) y `.air.toml`', [], ['T-PREP.3'], '`Makefile`, `.air.toml`'),
+    ('F0', 'T-PREP.4', '`.air.toml` para desarrollo con hot reload (sin `Makefile`)', [], ['T-PREP.3'], '`.air.toml`'),
     ('F0', 'T-PREP.5', '`README.md` y `CLAUDE.md`: arquitectura, comandos, variables y enlace a `docs/constitution.md`', [], ['T-PREP.3'], '`README.md`, `CLAUDE.md`'),
-    ('F0', 'T-PREP.6', 'Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración', [], ['T-PREP.4'], '`Makefile`, `docs/` (instrucciones)'),
+    ('F0', 'T-PREP.6', 'Mongo local con replica set de un nodo (necesario para transacciones) para desarrollo y tests de integración: contenedor `atlas` (`mongodb/atlas`), conexión por las variables `FA_MONGO_*`', [], ['T-PREP.3'], '`README.md` (instrucciones)'),
     ('F0', 'T-PREP.7', 'Dump anonimizado de testing de `bondType`, `bondObject`, `bondBound`, `bondHistory`, `bondUserSetting`, `balanceAccount` y `profile` para paridad e integración', [], [], 'fuera del repo (almacenamiento del equipo)'),
     ('F8', 'T-QA.1', 'Arnés de paridad: ejecutar los métodos Meteor (DDP) y los endpoints Go sobre el mismo dump y comparar las fórmulas (`getDataChart`, `preSale`, derivados del listado)', ['RF-03.1', 'RF-05.2', 'RF-06.11'], ['T-PREP.7', 'T-03.7', 'T-05.7', 'T-06.7'], '`cmd/tools/parity/`'),
     ('F8', 'T-QA.2', 'Suite end-to-end de flujos completos: compra → venta; compra → maduración → canje; compra masiva → listado → reporte', ['RF-04.1', 'RF-04.2', 'RF-05.3', 'RF-10.3', 'RF-07.1'], ['T-04.11', 'T-05.9', 'T-10.8', 'T-07.7'], '`test/e2e/`'),

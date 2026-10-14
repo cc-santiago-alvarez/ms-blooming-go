@@ -8,3 +8,6 @@ devtools/
 .claude/
 .idea/
 
+
+tmp/
+build-errors.log
