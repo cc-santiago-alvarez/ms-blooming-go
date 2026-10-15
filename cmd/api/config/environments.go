@@ -1,6 +1,6 @@
 package api_config
 
-// ApiEnv contiene la configuración del servicio leída del entorno (spec 00 §5).
+// ApiEnv contiene la configuración del servicio leída del entorno.
 type ApiEnv struct {
 	// Entorno (development, testing o production): se declara en .env y selecciona .env.<ENV>
 	Env string

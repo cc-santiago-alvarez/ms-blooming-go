@@ -17,7 +17,8 @@ do not restate or contradict it. If a rule gets in the way, the constitution is 
 ## Spec-driven process
 
 - No code without an approved spec in `docs/migracion-blooming/specs/NN-<name>.spec.md`.
-- Every task cites the `RF-NN.x` / `CA-NN.x` it implements or verifies; tests cite their `CA-NN.x`.
+- Every task cites the `RF-NN.x` / `CA-NN.x` it implements or verifies in its spec's *Tareas* table; each
+  test cites its `CA-NN.x` in a comment (not in its name).
 - Tasks are identified as `BLM-xxxx` (global 4-digit number, also the commit ticket); F0 tasks keep their original `T-PREP.x` IDs. Each spec's *Tareas*
   table declares the task's *Fase*; a new task takes the next free ID reported at the bottom of `tasks.md`.
   Existing IDs are never renumbered or reused.
@@ -67,6 +68,9 @@ Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bon
 - File/package naming and explicit import aliases (`bondBound_domain`, `bondBound_application`, …):
   constitution §3.
 - Comments, logs, docs and commit messages are in Spanish.
+- Code comments describe what the code does in a few words. They never cite tasks (`BLM-xxxx`, `T-PREP.x`),
+  specs, `RF-NN.x` / `CA-NN.x`, bugs or the constitution. Only exception: each test's comment cites the
+  `CA-NN.x` it verifies.
 - Legacy collections and field names are kept as-is; `_id` is always a `string` (UUID v4 for new docs,
   17-char Meteor ids for legacy ones). See constitution §7.
 

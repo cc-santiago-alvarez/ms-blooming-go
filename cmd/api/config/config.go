@@ -21,8 +21,7 @@ const (
 // allowedEnvs son los valores válidos de ENV; cada uno tiene su archivo .env.<ENV>.
 var allowedEnvs = []string{"development", "testing", "production"}
 
-// requiredEnvs son las variables sin las que el servicio no arranca (spec 00 §5).
-// Ningún secreto tiene valor por defecto (constitución §10).
+// requiredEnvs son las variables sin las que el servicio no arranca.
 var requiredEnvs = []string{
 	"API_NAME",
 	"API_PORT",
@@ -48,10 +47,8 @@ func InitConfig() *cfg {
 	return c
 }
 
-// LoadEnvs carga .env, toma de ahí ENV y después carga .env.<ENV>, cuyos valores pisan a los del
-// primero. ENV es obligatoria y los dos archivos tienen que existir. Si falta una variable requerida
-// o alguna tiene un valor inválido, el proceso termina con código 1 y un log que nombra la variable
-// sin mostrar su valor (RF-00.1).
+// LoadEnvs carga .env y luego .env.<ENV>, que pisa sus valores. Si falta un archivo o una
+// variable requerida, o un valor es inválido, termina el proceso.
 func (c *cfg) LoadEnvs() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatalf("[config] error al cargar .env: %v", err)
@@ -85,9 +82,7 @@ func (c *cfg) LoadEnvs() {
 	c.Env = apiEnv
 }
 
-// newApiEnv construye y valida ApiEnv a partir de getenv. Reporta en un solo error todas las
-// variables requeridas que faltan y las que tienen un valor inválido; los mensajes nombran la
-// variable y nunca incluyen su valor.
+// newApiEnv construye y valida ApiEnv. Reporta todos los problemas en un solo error, sin valores.
 func newApiEnv(getenv func(string) string) (*ApiEnv, error) {
 	get := func(key string) string { return strings.TrimSpace(getenv(key)) }
 

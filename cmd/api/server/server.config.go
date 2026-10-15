@@ -30,8 +30,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 		Port:       cfg.Env.ApiPort,
 		Debug:      cfg.Env.ApiDebug,
 		CorsOptions: cors.Options{
-			// Con opciones vacías rs/cors acepta cualquier origen. Hasta que BLM-0008 configure
-			// CORS_ORIGINS (RF-00.6) no se acepta ninguno.
+			// Rechaza todo origen; con opciones vacías rs/cors los aceptaría todos.
 			AllowOriginFunc: func(string) bool { return false },
 		},
 		Settings: &nexus.Settings{
@@ -40,8 +39,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	}
 
 	// 3. Middlewares (orden importa: el primero envuelve a los demás).
-	// RequestLog va primero para registrar también los 500 que arma recoverPanic y los 401 de
-	// ValidateApiSecret; VerifySession (BLM-0005) va después de ValidateApiSecret.
+	// RequestLog va primero para registrar también los 500 de recoverPanic y los 401 de ValidateApiSecret.
 	server.Use(middlewares_adapters.RequestLog)
 	server.Use(hideRoutesUnlessDebug)
 	server.Use(recoverPanic)
@@ -60,8 +58,7 @@ func initDatabaseConnections(deps *serverDeps) {
 	deps.mongoDB = mongoDB
 }
 
-// hideRoutesUnlessDebug oculta /_routes y /_routes/raw cuando API_DEBUG es falso (spec 00 §4).
-// nexus los registra siempre como públicos; sin debug responden como una ruta inexistente.
+// hideRoutesUnlessDebug responde 404 en /_routes y /_routes/raw cuando API_DEBUG es falso.
 func hideRoutesUnlessDebug(next http.Handler, server *nexus.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !server.Debug && (r.URL.Path == "/_routes" || strings.HasPrefix(r.URL.Path, "/_routes/")) {
@@ -72,7 +69,7 @@ func hideRoutesUnlessDebug(next http.Handler, server *nexus.Server) http.Handler
 	})
 }
 
-// recoverPanic convierte el panic de un handler en 500 ERR_INTERNAL; el detalle y el stack solo
+// recoverPanic convierte el panic de un handler en 500 ERR_INTERNAL y loguea el stack.
 func recoverPanic(next http.Handler, _ *nexus.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

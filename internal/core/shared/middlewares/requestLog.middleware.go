@@ -33,17 +33,15 @@ func (sw *statusWriter) Write(b []byte) (int, error) {
 // Unwrap deja que http.ResponseController alcance el ResponseWriter real (flush y deadlines).
 func (sw *statusWriter) Unwrap() http.ResponseWriter { return sw.ResponseWriter }
 
-// Flush cubre a quien todavía haga la aserción a http.Flusher en vez de usar
-// http.ResponseController.
+// Flush delega en el ResponseWriter real si implementa http.Flusher.
 func (sw *statusWriter) Flush() {
 	if flusher, ok := sw.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
 }
 
-// RequestLog registra cada request como "[API_NAME] METHOD path status duración" y omite /_health
-// (RF-00.13). Usa solo r.URL.Path: nunca headers, body ni query string, que pueden traer el
-// x-token, el x-secret o datos de cuenta (constitución §10).
+// RequestLog registra método, ruta, status y duración de cada request, salvo /_health.
+// No loguea headers, body ni query string.
 func RequestLog(next http.Handler, server *nexus.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/_health" {

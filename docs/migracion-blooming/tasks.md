@@ -13,7 +13,8 @@
 - **Reglas** (constitución §14):
   - toda tarea funcional cita al menos un RF o CA;
   - todo RF tiene al menos una tarea `impl` y una `test`;
-  - un cambio de comportamiento se hace primero en la spec y después aquí (regenerando).
+  - un cambio de comportamiento se hace primero en la spec y después aquí (regenerando);
+  - los comentarios del código no citan tareas, specs, RF ni CA; solo cada test cita en un comentario el CA que verifica.
 - **PR:** cada PR cita sus `BLM-…`, sus `RF-…` y su spec.
 
 ## 2. Resumen

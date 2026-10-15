@@ -161,7 +161,7 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 | Regla | Justificación |
 |---|---|
 | **DEBEN** usarse `testing` + `httptest` de la stdlib. Los fakes embeben la interfaz del port y solo implementan lo que el test usa. | Patrón de petty-cash, sin librerías de mocks. |
-| **DEBE** cada caso de uso tener tests unitarios que citen el `CA-NN.x` que verifican en el nombre o en un comentario. | Trazabilidad spec → test. |
+| **DEBE** cada caso de uso tener tests unitarios, y cada test citar en un comentario el `CA-NN.x` que verifica (no en el nombre). | Trazabilidad spec → test; es la única cita permitida en un comentario (§14). |
 | **DEBE** cada fórmula financiera (preSale, gráficas, acumulados, effectiveDate) tener un test de tabla con casos calculados con el código legacy. | Paridad numérica comprobable. |
 | **DEBEN** los tests de integración llevar `//go:build integration` y hacer `t.Skip` si Mongo no está disponible. Las transacciones requieren replica set. | `go test ./...` corre sin infraestructura. |
 | **DEBEN** los tests de integración de cada repositorio usar fixtures con los dos formatos de `_id` (UUID y Meteor de 17 caracteres), incluidas referencias cruzadas mixtas. | Garantiza que se pueden consultar las colecciones viejas. |
@@ -189,7 +189,8 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 | **NO DEBE** escribirse código sin una spec aprobada en `docs/migracion-blooming/specs/`. | La spec es el contrato. |
 | **DEBEN** las specs nombrarse `NN-<nombre>.spec.md` (por ejemplo `04-bond-bound-compra.spec.md`). `NN` es el número de la spec y el prefijo de sus requisitos y criterios (`RF-04.x`, `CA-04.x`). | El generador de `tasks.md` solo lee `*.spec.md`. |
 | **DEBEN** las tareas identificarse como `BLM-xxxx` (numeración global de 4 dígitos, sin prefijo de spec; las de F0 conservan su formato `T-PREP.x`) y declarar su fase en la columna *Fase* de la tabla *Tareas*. Una tarea nueva toma el siguiente ID libre que informa `tasks.md`; los IDs existentes no se renumeran ni se reutilizan. | El ID es también el ticket del commit y tiene que ser estable. |
-| **DEBE** cada tarea implementar o verificar uno o más `RF-NN.x` / `CA-NN.x` de una spec, y citarlos. | Trazabilidad requisito → tarea → código → test. |
+| **DEBE** cada tarea implementar o verificar uno o más `RF-NN.x` / `CA-NN.x` de una spec, y citarlos. | Trazabilidad requisito → tarea → commit → test. |
+| **DEBEN** los comentarios del código describir en pocas palabras qué hace el código. **NO DEBEN** citar tareas (`BLM-xxxx`, `T-PREP.x`), specs, requisitos (`RF-NN.x`), criterios (`CA-NN.x`), bugs (`Bxx`) ni secciones de esta constitución. Única excepción: el `CA-NN.x` en el comentario de cada test (§11). | La trazabilidad vive en la spec, `tasks.md`, los commits y los PR; un comentario con IDs queda desactualizado cuando estos cambian. |
 | **DEBE**, si cambia un comportamiento, actualizarse primero la spec, luego sus tareas (en la spec y en `tasks.md`) y después el código. | La documentación no queda atrás del código. |
 | **DEBE** cada PR citar en la descripción las tareas (`BLM-xxxx`), los requisitos (`RF-NN.x`) y la spec que cubre. | Revisión contra el contrato. |
 | **DEBE** la tabla *Tareas* de cada spec coincidir con `tasks.md` (mismos IDs, títulos y dependencias). | Una sola fuente de verdad, vista desde dos lados. |
