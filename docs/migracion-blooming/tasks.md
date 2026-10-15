@@ -111,7 +111,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/domain/balance.domain.go`, `balance.dto.domain.go`, `balance.status.domain.go`, `shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/balance.mongocc.repository.go`, `balance.getAccount.adapter.go`, `balance.movement.adapter.go`, `balance.withdraw.adapter.go`, `balance.deposit.adapter.go`
 - [ ] **BLM-0013** `impl` `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`)
   - cubre: RF-00.11 · depende de: BLM-0009
-  - archivos: `internal/core/shared/infrastructure/mongocc/notice.add.adapter.go`, `activity.add.adapter.go`
+  - archivos: `internal/core/shared/domain/notice.domain.go`, `notice.dto.domain.go`, `activity.domain.go`, `activity.dto.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/notice.mongocc.repository.go`, `notice.add.adapter.go`, `activity.mongocc.repository.go`, `activity.add.adapter.go`
 - [ ] **BLM-0014** `impl` `NotificationPort`: cliente HTTP de ms-notification, best-effort
   - cubre: RF-00.11 · depende de: BLM-0005
   - archivos: `internal/core/shared/infrastructure/notification/notification.client.go`

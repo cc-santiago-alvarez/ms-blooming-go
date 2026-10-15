@@ -26,3 +26,13 @@ type BalancePort interface {
 	Withdraw(ctx context.Context, p shared_domain.WithdrawParams) (*shared_domain.BalanceMovement, error)
 	Deposit(ctx context.Context, p shared_domain.DepositParams) (*shared_domain.BalanceMovement, error)
 }
+
+// NoticePort registra un aviso para un usuario. Es best-effort: un fallo se loguea y no se devuelve.
+type NoticePort interface {
+	Add(ctx context.Context, n shared_domain.Notice)
+}
+
+// ActivityPort registra una actividad de Blooming. Es best-effort: un fallo se loguea y no se devuelve.
+type ActivityPort interface {
+	Add(ctx context.Context, a shared_domain.Activity)
+}
