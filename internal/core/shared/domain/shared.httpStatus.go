@@ -22,6 +22,8 @@ func MapToHTTPStatus(err error) int {
 		errors.Is(err, ErrAccountStatus),
 		errors.Is(err, ErrAccountWithdrawAmountMoreThanAvailable):
 		return http.StatusUnprocessableEntity
+	case errors.Is(err, ErrExportFailed):
+		return http.StatusBadGateway
 	}
 	return http.StatusInternalServerError
 }

@@ -120,7 +120,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`, `src/api/views/templates/notifyBlooming*.js`, `src/api/modules/notify/notify.helpers.js`, `notify.service.js`, `notify.constants.js`, `CLAUDE.md`
 - [ ] **BLM-0016** `impl` `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer
   - cubre: RF-00.14 · depende de: BLM-0005
-  - archivos: `internal/core/shared/infrastructure/exporter/exporter.client.go`
+  - archivos: `internal/core/shared/domain/shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/exporter/exporter.client.go`
 - [ ] **BLM-0017** `impl` `ProfileReader` y `AgencyReader` con proyecciones seguras
   - cubre: RF-00.15 · depende de: BLM-0002
   - archivos: `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go`

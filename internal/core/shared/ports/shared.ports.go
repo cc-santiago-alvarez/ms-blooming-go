@@ -42,3 +42,9 @@ type ActivityPort interface {
 type NotificationPort interface {
 	Send(ctx context.Context, group, notification string, params map[string]any)
 }
+
+// ExporterPort genera reportes con ms-exporter.
+type ExporterPort interface {
+	// Excel devuelve el archivo del reporte; cualquier falla es ErrExportFailed.
+	Excel(ctx context.Context, report string, payload any) ([]byte, error)
+}

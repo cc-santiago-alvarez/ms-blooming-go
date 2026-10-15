@@ -15,4 +15,6 @@ var (
 	ErrAccountCancelled                       = errors.New("ERR_ACCOUNT_CANCELLED")
 	ErrAccountStatus                          = errors.New("ERR_ACCOUNT_STATUS")
 	ErrAccountWithdrawAmountMoreThanAvailable = errors.New("ERR_ACCOUNT_WITHDRAW_AMOUNT_MORE_THAN_AVAILABLE")
+	// 502
+	ErrExportFailed = errors.New("ERR_EXPORT_FAILED")
 )

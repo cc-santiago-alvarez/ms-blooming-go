@@ -139,9 +139,9 @@ Ningún endpoint de negocio vive aquí.
   - `shared.FormatCurrency(v float64) string` da 2 decimales y separador de miles con coma (`1234567.5` → `"1,234,567.50"`). Corrige el truncado de `Util.parseCurrency` (B14).
 - **RF-00.13** — `RequestLog` registra `[API_NAME] METHOD path status duración`, omite `/_health` y **nunca** incluye headers ni body.
 - **RF-00.14** — `ExporterPort.Excel(ctx, report string, payload any) ([]byte, error)` hace `POST {MS_EXPORTER_URL}/export/excel/report/{report}`.
-  - Envía `{"data": payload}` (contrato de ms-exporter) y los headers `x-secret` y `x-token`.
+  - Envía el payload tal cual como body JSON, sin envoltorio: es lo que leen los controllers de ms-exporter (`req.body.bondBounds`) y lo que mandaba el legado. Agrega los headers `x-secret` y el `x-token` de la sesión cuando existe. Timeout de 60 s.
   - Una respuesta `201` trae `buffer.toJSON()` (`{"type":"Buffer","data":[...]}`), que se convierte a `[]byte`.
-  - Cualquier otro status da `ERR_EXPORT_FAILED`.
+  - Cualquier otro status, un error de red o una respuesta que no sea un `Buffer` válido da `ERR_EXPORT_FAILED`. El detalle solo se loguea.
 - **RF-00.15** — Lectores compartidos (solo lectura).
   - `ProfileReader.GetPublic(ctx, ids...)` lee de `profile` con la proyección `{_id, id, first_name, last_name, email, avatar_url, agencyId}`.
   - `AgencyReader.SymbolCurrency(ctx, agencyId)` sigue agency → country y devuelve `symbolCurrency`, `'$'` por defecto.
@@ -380,7 +380,7 @@ Contrato de los params:
 | BLM-0013 | `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`) | impl | F1 | RF-00.11 | BLM-0009 | `internal/core/shared/domain/notice.domain.go`, `notice.dto.domain.go`, `activity.domain.go`, `activity.dto.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/notice.mongocc.repository.go`, `notice.add.adapter.go`, `activity.mongocc.repository.go`, `activity.add.adapter.go` |
 | BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/notification/notification.client.go` |
 | BLM-0015 | **(repo ms-notification)** Handlers `notify-blooming-*` de §7.3 y grupo `to-raw-emails` | impl | F1 | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`, `src/api/views/templates/notifyBlooming*.js`, `src/api/modules/notify/notify.helpers.js`, `notify.service.js`, `notify.constants.js`, `CLAUDE.md` |
-| BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/infrastructure/exporter/exporter.client.go` |
+| BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/domain/shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/exporter/exporter.client.go` |
 | BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go` |
 | BLM-0018 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | F1 | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
 | BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
