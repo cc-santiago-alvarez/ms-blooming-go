@@ -42,7 +42,7 @@ Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/b
   - Los bonos madurados en la corrida se agrupan por `userId`.
   - Para cada usuario se envía:
     - un `Notice` tipo `bond`, con la `agencyId` del usuario, título `BOND_BOUND_MESSAGE_MATURITY` y mensaje `BOND_BOUND_MESSAGE_MATURITY_SUCESS[first_name, last_name, tabla]`;
-    - el email `blooming-bondMatured`.
+    - el email `notify-blooming-bondMatured`.
   - La tabla tiene una fila por bono: `Bono (key) | Tipo (bondType.name) | Nombre (bondObject.name)`, con el HTML del legado.
 - **RF-10.6** — Robustez y observabilidad.
   - Si falla un bono, se loguea con su `_id` y el lote sigue.

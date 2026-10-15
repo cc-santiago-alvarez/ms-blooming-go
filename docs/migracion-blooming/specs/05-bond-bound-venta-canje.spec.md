@@ -58,7 +58,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-05.6** — Historial. Registra `{relatedId: bondBoundId, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: [estadoAnterior, estadoNuevo]}`.
   - El formato no se cambia: `B_BondBound_Audit_details`, en `ms-gateway-gql/src/resolvers/B_BoundBound.js`, filtra `{text: 'BOND_BOUND_STATUS_CHANGED', params: {$size: 2}}`.
 - **RF-05.7** — Notificaciones (post-commit y best-effort).
-  - Un `Notice` tipo `bond` y el email `blooming-bondSold` o `blooming-bondTook`.
+  - Un `Notice` tipo `bond` y el email `notify-blooming-bondSold` o `notify-blooming-bondTook`.
   - Título: `BOND_BOUND_SUBJECT_SOLD[key]` o `BOND_BOUND_SUBJECT_TOOK[key]`.
   - Mensaje: `BOND_BOUND_MESSAGE_SOLD` o `BOND_BOUND_MESSAGE_TOOK`, con los 11 parámetros de §5.4.
 

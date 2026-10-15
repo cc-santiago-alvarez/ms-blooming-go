@@ -36,3 +36,9 @@ type NoticePort interface {
 type ActivityPort interface {
 	Add(ctx context.Context, a shared_domain.Activity)
 }
+
+// NotificationPort envía una notificación por ms-notification. Es best-effort: un fallo se loguea
+// y no se devuelve.
+type NotificationPort interface {
+	Send(ctx context.Context, group, notification string, params map[string]any)
+}

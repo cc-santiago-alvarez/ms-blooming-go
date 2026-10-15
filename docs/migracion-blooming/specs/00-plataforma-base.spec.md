@@ -286,16 +286,16 @@ Se **agregan** `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`, que el legado referenc
 
 ### 7.3 Handlers nuevos en ms-notification
 
-ms-notification enruta `POST /notify/:group/:notification` a un handler por notificación (`src/api/modules/notify/handlers/notify-<modulo>-<evento>.js`). Hay que crear:
+ms-notification enruta `POST /notify/:group/:notification` a un handler por notificación (`src/api/modules/notify/handlers/notify-<modulo>-<evento>.js`). `notification` es el nombre del archivo del handler sin `.js`. Hay que crear:
 
 | `notification` | `group` | Params | Origen legacy |
 |---|---|---|---|
-| `blooming-bondPurchased` | `user-ids` | `userIds, key, amount, accountNumberMasked` | `bondBound.insert` |
-| `blooming-bondBulkPurchased` | `user-ids` | `userIds, quantity, total, rows[{key, reference, amount}]` | `bulkPurchaseNotification` |
-| `blooming-bondSold` | `user-ids` | los 11 parámetros de `BOND_BOUND_MESSAGE_SOLD` | `bondBound.setStatus` |
-| `blooming-bondTook` | `user-ids` | los 11 parámetros de `BOND_BOUND_MESSAGE_TOOK` | `bondBound.setStatus` |
-| `blooming-bondMatured` | `user-ids` | `userIds, bonds[{key, type, name}]` | cron `BondBoundCheckMaturity` |
-| `blooming-withdrawAdmin` | `to-emails` | `emails, userName, amount, references, date, keys, unitPrice` | admin de `balanceAccount.withdraw` y bulk |
+| `notify-blooming-bondPurchased` | `user-ids` | `userIds, key, amount, accountNumberMasked` | `bondBound.insert` |
+| `notify-blooming-bondBulkPurchased` | `user-ids` | `userIds, quantity, total, rows[{key, reference, amount}]` | `bulkPurchaseNotification` |
+| `notify-blooming-bondSold` | `user-ids` | los 11 parámetros de `BOND_BOUND_MESSAGE_SOLD` | `bondBound.setStatus` |
+| `notify-blooming-bondTook` | `user-ids` | los 11 parámetros de `BOND_BOUND_MESSAGE_TOOK` | `bondBound.setStatus` |
+| `notify-blooming-bondMatured` | `user-ids` | `userIds, bonds[{key, type, name}]` | cron `BondBoundCheckMaturity` |
+| `notify-blooming-withdrawAdmin` | `to-emails` | `emails, userName, amount, references, date, keys, unitPrice` | admin de `balanceAccount.withdraw` y bulk |
 
 ## 8. Ports y dependencias
 
@@ -371,7 +371,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 | BLM-0011 | Función pura `EffectiveDate(now, utcDiff)` con el cambio de año corregido | impl | F1 | RF-00.10 | BLM-0009 | `internal/core/shared/domain/balance.effectiveDate.go` |
 | BLM-0012 | `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional | impl | F1 | RF-00.10 | BLM-0009, BLM-0010, BLM-0011 | `internal/core/shared/domain/balance.domain.go`, `balance.dto.domain.go`, `balance.status.domain.go`, `shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/balance.mongocc.repository.go`, `balance.getAccount.adapter.go`, `balance.movement.adapter.go`, `balance.withdraw.adapter.go`, `balance.deposit.adapter.go` |
 | BLM-0013 | `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`) | impl | F1 | RF-00.11 | BLM-0009 | `internal/core/shared/domain/notice.domain.go`, `notice.dto.domain.go`, `activity.domain.go`, `activity.dto.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/notice.mongocc.repository.go`, `notice.add.adapter.go`, `activity.mongocc.repository.go`, `activity.add.adapter.go` |
-| BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/infrastructure/notification/notification.client.go` |
+| BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/notification/notification.client.go` |
 | BLM-0015 | **(repo ms-notification)** Handlers `blooming-*` de §7.3 | impl | F1 | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js` |
 | BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/infrastructure/exporter/exporter.client.go` |
 | BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go` |
@@ -391,4 +391,5 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 - **Fuera de alcance:** login y creación de sesión (ms-oauth), y la lógica de saldo que no sea de bonos (depósitos de nómina, anulaciones, retiros manuales).
 - **Pregunta 1:** ¿ms-oauth puede agregar `gmt`/`utcDiff` a la sesión? Mientras no lo haga, se usa el mapa por país (RF-00.4).
 - **Pregunta 2:** ¿qué puerto usará el servicio? El esqueleto copió `25072` de petty-cash.
-- **Pregunta 3:** `blooming-withdrawAdmin` usa el grupo `to-emails`, que en ms-notification busca usuarios por email. Si `bonds@finocompany.com` no es un usuario, hace falta un grupo que envíe a direcciones crudas.
+- **Pregunta 3:** `notify-blooming-withdrawAdmin` usa el grupo `to-emails`, que en ms-notification busca usuarios por email. Si `bonds@finocompany.com` no es un usuario, hace falta un grupo que envíe a direcciones crudas.
+- **Pregunta 4:** `POST /notify/:group/:notification` exige `x-token` (middleware `auth.token` de ms-notification), y el cron de maduración no tiene sesión, así que `notify-blooming-bondMatured` respondería 401. Hay dos salidas: una ruta interna de ms-notification que solo valide `x-secret`, o un token de servicio. Se resuelve en la spec 10.

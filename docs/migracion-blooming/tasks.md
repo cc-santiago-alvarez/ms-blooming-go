@@ -114,7 +114,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/domain/notice.domain.go`, `notice.dto.domain.go`, `activity.domain.go`, `activity.dto.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/notice.mongocc.repository.go`, `notice.add.adapter.go`, `activity.mongocc.repository.go`, `activity.add.adapter.go`
 - [ ] **BLM-0014** `impl` `NotificationPort`: cliente HTTP de ms-notification, best-effort
   - cubre: RF-00.11 · depende de: BLM-0005
-  - archivos: `internal/core/shared/infrastructure/notification/notification.client.go`
+  - archivos: `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/notification/notification.client.go`
 - [ ] **BLM-0015** [P] `impl` **(repo ms-notification)** Handlers `blooming-*` de §7.3
   - cubre: RF-00.11 · depende de: —
   - archivos: `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`
