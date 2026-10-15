@@ -40,11 +40,12 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	}
 
 	// 3. Middlewares (orden importa: el primero envuelve a los demás).
-	// RequestLog va primero para registrar también los 500 que arma recoverPanic;
-	// ValidateApiSecret (BLM-0004) y VerifySession (BLM-0005) van después de recoverPanic.
+	// RequestLog va primero para registrar también los 500 que arma recoverPanic y los 401 de
+	// ValidateApiSecret; VerifySession (BLM-0005) va después de ValidateApiSecret.
 	server.Use(middlewares_adapters.RequestLog)
 	server.Use(hideRoutesUnlessDebug)
 	server.Use(recoverPanic)
+	server.Use(middlewares_adapters.ValidateApiSecret)
 
 	return server, deps
 }
