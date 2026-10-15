@@ -61,12 +61,14 @@ Archivo: `backend/server/model/bond.bound.js`.
   1. `Notice` tipo `bond` para el comprador: título `BOND_BOUND_SUBJECT_PURCHASED[key, amount]` y mensaje `BOND_BOUND_MESSAGE_PURCHASED[first_name, last_name, key, amount, cuentaEnmascarada]`.
   2. Email `notify-blooming-bondPurchased` al comprador.
   3. `Notice` tipo `balance` para el comprador: título `NEW_WITHDRAWAL` y mensaje `BALANCE_ACCOUNT_WITHDRAW_CONTENT[nombre, cuentaEnmascarada, amount]`.
-  4. Email `notify-blooming-withdrawAdmin` a `BLOOMING_ADMIN_EMAILS`.
+  4. Email `notify-blooming-withdrawUser` al comprador, como una compra de 1 bono.
+  5. Email `notify-blooming-withdrawAdmin` a `BLOOMING_ADMIN_EMAILS`, como una compra de 1 bono.
 - **RF-04.7** — Notificaciones de la compra masiva (post-commit y best-effort). Paridad con `bulkPurchaseNotification`:
   1. `Notice` tipo `bond` con `BOND_BOUND_SUBJECT_MASSIVE_PURCHASED[quantity, total]` y `BOND_BOUND_MESSAGE_MASSIVE_PURCHASED[nombre, quantity, total, amount, cuentaEnmascarada, tabla]`. La tabla tiene una fila por bono: `# | key | reference | amount`.
   2. Email `notify-blooming-bondBulkPurchased`.
   3. `Notice` tipo `balance` con `NEW_WITHDRAWAL` y `BALANCE_ACCOUNT_WITHDRAW_FOR_BONUS[nombre, cuentaEnmascarada, total, keys, amount]`.
-  4. Email `notify-blooming-withdrawAdmin` con las referencias, la fecha, las claves y el precio unitario.
+  4. Email `notify-blooming-withdrawUser` al comprador.
+  5. Email `notify-blooming-withdrawAdmin` con las referencias, la fecha, las claves y el precio unitario.
 - **RF-04.8** — Persistencia de `bondBound`.
   - Entidad, enum de estados (§6) y repositorio base: `InsertMany`, `FindOneByID`, `UpdateOne` condicional por estado y `EnsureIndexes`. Las specs 03, 05, 06, 07 y 10 lo reutilizan.
   - El decoder acepta documentos legacy: `_id` Meteor, numéricos como string (`FlexNumber`) y sin `keySeq`.
@@ -242,7 +244,7 @@ type BondKeyCounter struct { // colección bondKeyCounter
 - **CA-04.8** (RF-04.4) — Una compra a `2026-10-13T20:30:00Z` de un producto de 365 días guarda `maturityDate 2027-10-13T20:30:00Z` (sin el corrimiento de 12 h).
 - **CA-04.9** (RF-04.5) — Si en una compra masiva de 3 el tercer `Withdraw` falla (fake que devuelve error), no queda ningún `bondBound`, `balanceDetail` ni `bondHistory`, el contador no avanza y el saldo queda igual.
 - **CA-04.10** (RF-04.5) — Con `available 1500`, dos compras concurrentes de 1000: exactamente una responde `201`, la otra un `422`, y el saldo final es 500.
-- **CA-04.11** (RF-04.6) — Una compra individual exitosa crea un `notice` `typeId '3'` y uno `typeId '1'`, y envía `notify-blooming-bondPurchased` y `notify-blooming-withdrawAdmin`. Si ms-notification responde 500, la compra igual responde `201`.
+- **CA-04.11** (RF-04.6) — Una compra individual exitosa crea un `notice` `typeId '3'` y uno `typeId '1'`, y envía `notify-blooming-bondPurchased`, `notify-blooming-withdrawUser` y `notify-blooming-withdrawAdmin`. Si ms-notification responde 500, la compra igual responde `201`.
 - **CA-04.12** (RF-04.7) — Una compra masiva de 3 genera un solo `notice` de bono con una tabla de 3 filas que contienen las `reference` de los `balanceDetail`, un `notice` de balance con las 3 claves y un email de admin.
 - **CA-04.13** (RF-04.8) — `EnsureIndexes` crea los índices de §6 y es idempotente. Un documento legacy con `_id` de 17 caracteres y `amount: "1000"` (string) se decodifica sin error.
 - **CA-04.14** (RF-04.1, RF-04.3, RF-04.4) — Compra de un bondObject legacy (`_id` y `bondTypeId` de 17 caracteres) con una cuenta legacy: el `bondBound` creado tiene `_id` UUID y guarda `bondObjectId` y `bondTypeId` de 17 caracteres tal cual, y el contador `bondKeyCounter` usa el `bondTypeId` legacy como `_id`.

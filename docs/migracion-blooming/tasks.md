@@ -115,9 +115,9 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
 - [ ] **BLM-0014** `impl` `NotificationPort`: cliente HTTP de ms-notification, best-effort
   - cubre: RF-00.11 · depende de: BLM-0005
   - archivos: `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/notification/notification.client.go`
-- [ ] **BLM-0015** [P] `impl` **(repo ms-notification)** Handlers `blooming-*` de §7.3
+- [ ] **BLM-0015** [P] `impl` **(repo ms-notification)** Handlers `notify-blooming-*` de §7.3 y grupo `to-raw-emails`
   - cubre: RF-00.11 · depende de: —
-  - archivos: `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`
+  - archivos: `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`, `src/api/views/templates/notifyBlooming*.js`, `src/api/modules/notify/notify.helpers.js`, `notify.service.js`, `notify.constants.js`, `CLAUDE.md`
 - [ ] **BLM-0016** `impl` `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer
   - cubre: RF-00.14 · depende de: BLM-0005
   - archivos: `internal/core/shared/infrastructure/exporter/exporter.client.go`
