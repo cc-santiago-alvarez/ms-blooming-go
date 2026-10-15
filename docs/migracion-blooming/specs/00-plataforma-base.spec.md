@@ -115,7 +115,11 @@ Ningún endpoint de negocio vive aquí.
     - la actualización del saldo, que es **atómica y condicional**: filtro `{_id, available: {$gte: amount}}` con `$inc {available: -amount, global: -amount}`. Si no modifica nada, `ERR_ACCOUNT_WITHDRAW_AMOUNT_MORE_THAN_AVAILABLE`.
 
     `effectiveDate` según §7.1.
-  - `Deposit(ctx, DepositParams{AccountID, UserID, AgencyID, DescriptionID, Amount, Comment}) (*BalanceMovement, error)` escribe:
+  - `Deposit(ctx, DepositParams{AccountID, UserID, AgencyID, DescriptionID, Amount, Comment}) (*BalanceMovement, error)` valida, sin escribir nada si falla:
+    1. `Amount` redondeado a 2 decimales `> 0`; si no, `ERR_ACCOUNT_DEPOSIT_AMOUNT_INVALID`. El legado acredita cualquier monto, y uno negativo restaría saldo sin ningún control;
+    2. la cuenta existe para `UserID` con `isRemove:false`; si no, `ERR_ACCOUNT_NOT_FOUND`. No se valida el estado de la cuenta (paridad con el legado; ver la pregunta abierta de la spec 05).
+
+    Después escribe:
     - `balanceDetail` con `operationTypeId '2'` (MC), monto positivo y `effectiveDate: null`;
     - `balanceHistory` (`typeId '2'`, `text 'BALANCE_ACCOUNT_DEPOSIT'`);
     - `balanceOperation` (`categoryId '2'`);
@@ -195,6 +199,7 @@ Esta spec no define endpoints de negocio. Expone:
 | `ERR_ACCOUNT_STATUS` | 422 | -730 |
 | `ERR_ACCOUNT_WITHDRAW_AMOUNT_INVALID` | 400 | -710 |
 | `ERR_ACCOUNT_WITHDRAW_AMOUNT_MORE_THAN_AVAILABLE` | 422 | -720 |
+| `ERR_ACCOUNT_DEPOSIT_AMOUNT_INVALID` | 400 | — |
 | `ERR_EXPORT_FAILED` | 502 | -1000 |
 
 ## 5. Configuración (`.env.example`)
@@ -347,6 +352,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 - **CA-00.30** (RF-00.8, RF-00.19) — `IDFormat` devuelve `uuid` para `3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f` y `meteor` para `tDr6NwSsDe4Lnccp8`. Devuelve `invalid` para `""`, `abc`, un ObjectId de 24 caracteres hex (`64b7f0c2a1e4d3b2c1a0f9e8`), un id de 17 caracteres con `-` y un UUID v1.
 - **CA-00.31** (RF-00.19) — Un `GET` a un endpoint con `{id}` = `abc` responde `400 ERR_INVALID_ID`, y el fake del repositorio registra cero llamadas.
 - **CA-00.32** (RF-00.19) — Con un fixture de dos documentos en la misma colección, uno con `_id` UUID y otro con `_id` Meteor de 17 caracteres, `FindOneByID` encuentra a los dos, y un `UpdateOne` sobre el legacy conserva su `_id` original.
+- **CA-00.33** (RF-00.10) — `Deposit` con `Amount 0` o negativo devuelve `ERR_ACCOUNT_DEPOSIT_AMOUNT_INVALID` y no escribe nada. Sobre una cuenta que existe pero es de otro usuario devuelve `ERR_ACCOUNT_NOT_FOUND` y no escribe nada.
 
 ## 11. Tareas
 
@@ -363,7 +369,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 | BLM-0009 | Helpers compartidos: `NewID`, `Now`, `Round2`, `StartOfDay`, `DaysBetween`, `MaskAccountNumber`, `RandomAlnum`, `Pagination` | impl | F1 | RF-00.8, RF-00.18 | T-PREP.3 | `internal/core/shared/domain/`, `internal/core/shared/adapters/utils/` |
 | BLM-0010 | `TransactionRunnerPort` y su adapter mongocc | impl | F1 | RF-00.9 | BLM-0002 | `internal/core/shared/ports/shared.ports.go`, `shared/infrastructure/mongocc/shared.transaction.adapter.go` |
 | BLM-0011 | Función pura `EffectiveDate(now, utcDiff)` con el cambio de año corregido | impl | F1 | RF-00.10 | BLM-0009 | `internal/core/shared/domain/balance.effectiveDate.go` |
-| BLM-0012 | `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional | impl | F1 | RF-00.10 | BLM-0009, BLM-0010, BLM-0011 | `internal/core/shared/infrastructure/mongocc/balance.withdraw.adapter.go`, `balance.deposit.adapter.go` |
+| BLM-0012 | `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional | impl | F1 | RF-00.10 | BLM-0009, BLM-0010, BLM-0011 | `internal/core/shared/domain/balance.domain.go`, `balance.dto.domain.go`, `balance.status.domain.go`, `shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/balance.mongocc.repository.go`, `balance.getAccount.adapter.go`, `balance.movement.adapter.go`, `balance.withdraw.adapter.go`, `balance.deposit.adapter.go` |
 | BLM-0013 | `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`) | impl | F1 | RF-00.11 | BLM-0009 | `internal/core/shared/infrastructure/mongocc/notice.add.adapter.go`, `activity.add.adapter.go` |
 | BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/infrastructure/notification/notification.client.go` |
 | BLM-0015 | **(repo ms-notification)** Handlers `blooming-*` de §7.3 | impl | F1 | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js` |
@@ -373,7 +379,7 @@ ms-notification enruta `POST /notify/:group/:notification` a un handler por noti
 | BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
 | BLM-0020 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | F1 | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
 | BLM-0021 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | F1 | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 | BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go` |
-| BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0023 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | F1 | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 | BLM-0009, BLM-0011, BLM-0018 | `internal/core/shared/domain/*_test.go` |
 | BLM-0024 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | F1 | CA-00.19, CA-00.23 | BLM-0014, BLM-0016 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
 | BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go` |

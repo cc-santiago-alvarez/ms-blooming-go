@@ -108,7 +108,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/domain/balance.effectiveDate.go`
 - [ ] **BLM-0012** `impl` `BalancePort`: `GetAccount` (con control de dueño), `Withdraw` y `Deposit` con escrituras en detail, history, operation y `$inc` condicional
   - cubre: RF-00.10 · depende de: BLM-0009, BLM-0010, BLM-0011
-  - archivos: `internal/core/shared/infrastructure/mongocc/balance.withdraw.adapter.go`, `balance.deposit.adapter.go`
+  - archivos: `internal/core/shared/domain/balance.domain.go`, `balance.dto.domain.go`, `balance.status.domain.go`, `shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/balance.mongocc.repository.go`, `balance.getAccount.adapter.go`, `balance.movement.adapter.go`, `balance.withdraw.adapter.go`, `balance.deposit.adapter.go`
 - [ ] **BLM-0013** `impl` `NoticePort` y `ActivityPort` (inserts en `notice` y `activity`)
   - cubre: RF-00.11 · depende de: BLM-0009
   - archivos: `internal/core/shared/infrastructure/mongocc/notice.add.adapter.go`, `activity.add.adapter.go`
@@ -137,7 +137,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - cubre: CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 · depende de: BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007
   - archivos: `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go`
 - [ ] **BLM-0022** `test` Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers
-  - cubre: CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29 · depende de: BLM-0010, BLM-0012, BLM-0013, BLM-0017
+  - cubre: CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 · depende de: BLM-0010, BLM-0012, BLM-0013, BLM-0017
   - archivos: `internal/core/shared/infrastructure/mongocc/*_integration_test.go`
 - [ ] **BLM-0023** `test` Tests unitarios de helpers, `EffectiveDate`, textos y paginación
   - cubre: CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 · depende de: BLM-0009, BLM-0011, BLM-0018
@@ -576,7 +576,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.7 | BLM-0002 | BLM-0025 | CA-00.10 | — |
 | 00 | RF-00.8 | BLM-0009, BLM-0026 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30 | — |
 | 00 | RF-00.9 | BLM-0010 | BLM-0022 | CA-00.13 | — |
-| 00 | RF-00.10 | BLM-0011, BLM-0012 | BLM-0022, BLM-0023 | CA-00.14, CA-00.15, CA-00.16, CA-00.17, CA-00.18, CA-00.29 | — |
+| 00 | RF-00.10 | BLM-0011, BLM-0012 | BLM-0022, BLM-0023 | CA-00.14, CA-00.15, CA-00.16, CA-00.17, CA-00.18, CA-00.29, CA-00.33 | — |
 | 00 | RF-00.11 | BLM-0013, BLM-0014, BLM-0015 | BLM-0022, BLM-0024 | CA-00.19, CA-00.20 | — |
 | 00 | RF-00.12 | BLM-0018 | BLM-0023 | CA-00.21 | — |
 | 00 | RF-00.13 | BLM-0003 | BLM-0021 | CA-00.22 | — |
@@ -746,4 +746,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 96 RF, 147 CA, 145 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0139`.
+Última generación: 11 specs, 96 RF, 148 CA, 145 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0139`.
