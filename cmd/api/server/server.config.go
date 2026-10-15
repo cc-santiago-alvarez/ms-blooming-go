@@ -11,6 +11,7 @@ import (
 	"github.com/codecraftkit/nexus"
 	api_config "github.com/futurapps/ms-blooming-go/cmd/api/config"
 	handlers_shared "github.com/futurapps/ms-blooming-go/cmd/api/handlers/shared"
+	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 	"github.com/rs/cors"
 )
@@ -23,7 +24,10 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	// 1. Conexiones a bases de datos
 	initDatabaseConnections(deps)
 
-	// 2. Crear servidor Nexus
+	// 2. Adaptadores compartidos
+	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.SessionServiceURL, cfg.Env.SessionServiceSecret)
+
+	// 3. Crear servidor Nexus
 	server := &nexus.Server{
 		ServerName: cfg.Env.ApiName,
 		Secret:     cfg.Env.ApiSecret,
@@ -38,12 +42,13 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 		},
 	}
 
-	// 3. Middlewares (orden importa: el primero envuelve a los demás).
-	// RequestLog va primero para registrar también los 500 de recoverPanic y los 401 de ValidateApiSecret.
+	// 4. Middlewares (orden importa: el primero envuelve a los demás).
+	// RequestLog va primero para registrar también los 500 de recoverPanic y los 401 de autenticación.
 	server.Use(middlewares_adapters.RequestLog)
 	server.Use(hideRoutesUnlessDebug)
 	server.Use(recoverPanic)
 	server.Use(middlewares_adapters.ValidateApiSecret)
+	server.Use(middlewares_adapters.VerifySession(deps.sessionVerifier))
 
 	return server, deps
 }
