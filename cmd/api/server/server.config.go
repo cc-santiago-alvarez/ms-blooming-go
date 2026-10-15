@@ -11,6 +11,7 @@ import (
 	"github.com/codecraftkit/nexus"
 	api_config "github.com/futurapps/ms-blooming-go/cmd/api/config"
 	handlers_shared "github.com/futurapps/ms-blooming-go/cmd/api/handlers/shared"
+	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 	"github.com/rs/cors"
 )
 
@@ -39,8 +40,9 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	}
 
 	// 3. Middlewares (orden importa: el primero envuelve a los demás).
-	// RequestLog (BLM-0003) va antes de recoverPanic para registrar también los 500;
-	// ValidateApiSecret (BLM-0004) y VerifySession (BLM-0005) van después.
+	// RequestLog va primero para registrar también los 500 que arma recoverPanic;
+	// ValidateApiSecret (BLM-0004) y VerifySession (BLM-0005) van después de recoverPanic.
+	server.Use(middlewares_adapters.RequestLog)
 	server.Use(hideRoutesUnlessDebug)
 	server.Use(recoverPanic)
 
@@ -70,7 +72,6 @@ func hideRoutesUnlessDebug(next http.Handler, server *nexus.Server) http.Handler
 }
 
 // recoverPanic convierte el panic de un handler en 500 ERR_INTERNAL; el detalle y el stack solo
-// van al log (RF-00.7).
 func recoverPanic(next http.Handler, _ *nexus.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
