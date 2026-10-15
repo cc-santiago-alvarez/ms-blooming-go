@@ -11,6 +11,7 @@ import (
 	"github.com/codecraftkit/nexus"
 	api_config "github.com/futurapps/ms-blooming-go/cmd/api/config"
 	handlers_shared "github.com/futurapps/ms-blooming-go/cmd/api/handlers/shared"
+	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 	"github.com/rs/cors"
@@ -20,6 +21,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	// 0. Cargar configuración
 	cfg := api_config.InitConfig()
 	deps := &serverDeps{env: cfg.Env}
+	session_domain.SetDefaultUtcDiff(cfg.Env.DefaultUtcDiff)
 
 	// 1. Conexiones a bases de datos
 	initDatabaseConnections(deps)

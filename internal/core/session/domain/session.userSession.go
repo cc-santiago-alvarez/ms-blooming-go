@@ -13,6 +13,10 @@ type UserSession struct {
 	AdminBlooming  bool          `json:"adminBlooming"`
 	SymbolCurrency string        `json:"symbolCurrency"`
 	AccessUser     AccessUser    `json:"accessUser"`
+
+	// ms-oauth todavía no los entrega; si llegan, tienen prioridad sobre el país.
+	UtcDiff OptionalUtcDiff `json:"utcDiff"`
+	Gmt     OptionalUtcDiff `json:"gmt"`
 }
 
 // SessionAgency es la agencia del usuario; IsMain indica que no se filtra por agencia.

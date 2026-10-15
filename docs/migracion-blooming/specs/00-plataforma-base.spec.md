@@ -68,6 +68,8 @@ Ningún endpoint de negocio vive aquí.
   2. el mapa por `countryCode` del legado: `CO:-5, VE:-4, MX:-7, US:-6`;
   3. `DEFAULT_UTC_DIFF` (por defecto `-5`).
 
+  En el paso 1, `utcDiff` tiene prioridad sobre `gmt`, y un valor presente vale aunque sea `0`. El legado lo descartaba (`if(!utcDiff)`) y mandaba al país a los usuarios en UTC. Se acepta un entero, o un string con un entero, dentro de `[-12, 14]`. Cualquier otro valor (fraccionario, fuera de rango, de otro tipo) se ignora y se pasa al paso 2; nunca hace fallar la lectura de la sesión.
+
   Se expone con `session_domain.UtcDiff(ctx) int`.
 - **RF-00.5** — Autorización.
   - `RequireBloomingAdmin(handler)` responde `403 ERR_FORBIDDEN` si `session.adminBlooming != true`.
