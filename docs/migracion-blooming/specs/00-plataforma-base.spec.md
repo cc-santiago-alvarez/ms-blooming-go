@@ -77,6 +77,9 @@ Ningún endpoint de negocio vive aquí.
   - `shared.AgencyScope(ctx) *string` devuelve `nil` si `session.agency.isMain` (sin filtro de agencia); si no, devuelve `&session.agencyId`.
 - **RF-00.6** — CORS con `rs/cors`.
   - `AllowOriginFunc` acepta los orígenes de `CORS_ORIGINS`, separados por coma, y los patrones `*.dominio.com` compilados a regex.
+  - Una entrada sin esquema acepta `http` y `https`; con esquema, solo ese esquema y ese puerto.
+  - `CORS_ORIGINS=*` acepta cualquier origen. Está pensado para development y testing; en production se listan los dominios del front. El origen `null` nunca se acepta.
+  - Una entrada mal formada (`*.com`, `a.*.com`, un esquema que no sea `http`/`https`, una ruta) detiene el arranque.
   - Headers permitidos: `Origin, X-Requested-With, Content-Type, Accept, X-Secret, X-Token`. Métodos: `GET, POST, PUT, PATCH, DELETE, OPTIONS`. `AllowCredentials: true`.
 - **RF-00.7** — Formato de respuestas.
   - Éxito: la entidad, el arreglo o el objeto resultado, sin envelope (`nexus.ResponseWithJSON`).
@@ -203,7 +206,7 @@ Esta spec no define endpoints de negocio. Expone:
 | `API_PORT` | sí | — | Puerto HTTP (también lo usa el binario de healthcheck) |
 | `API_SECRET` | sí | — | Valor esperado de `x-secret` |
 | `API_DEBUG` | no | `false` | Activa `/_routes` y el log de nexus |
-| `CORS_ORIGINS` | sí | — | Orígenes permitidos, separados por coma; acepta `*.dominio.com` |
+| `CORS_ORIGINS` | sí | — | Orígenes permitidos, separados por coma; acepta `*.dominio.com`, o `*` para cualquiera |
 | `FA_MONGO_URL` | sí | — | URI de Mongo (replica set, por las transacciones) |
 | `FA_MONGO_DBNAME` | sí | — | Base `futurapps` |
 | `FA_MONGO_DEBUG` | no | `false` | Log de queries de mongocc |

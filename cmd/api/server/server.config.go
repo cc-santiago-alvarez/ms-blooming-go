@@ -14,7 +14,6 @@ import (
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
-	"github.com/rs/cors"
 )
 
 func initServerConfig() (*nexus.Server, *serverDeps) {
@@ -29,22 +28,28 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	// 2. Adaptadores compartidos
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.SessionServiceURL, cfg.Env.SessionServiceSecret)
 
-	// 3. Crear servidor Nexus
+	// 3. CORS
+	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)
+	if err != nil {
+		log.Fatalf("[server] CORS_ORIGINS inválido: %v", err)
+	}
+	if middlewares_adapters.AllowsAnyOrigin(cfg.Env.CorsOrigins) {
+		log.Printf("[server] CORS abierto a cualquier origen")
+	}
+
+	// 4. Crear servidor Nexus
 	server := &nexus.Server{
-		ServerName: cfg.Env.ApiName,
-		Secret:     cfg.Env.ApiSecret,
-		Port:       cfg.Env.ApiPort,
-		Debug:      cfg.Env.ApiDebug,
-		CorsOptions: cors.Options{
-			// Rechaza todo origen; con opciones vacías rs/cors los aceptaría todos.
-			AllowOriginFunc: func(string) bool { return false },
-		},
+		ServerName:  cfg.Env.ApiName,
+		Secret:      cfg.Env.ApiSecret,
+		Port:        cfg.Env.ApiPort,
+		Debug:       cfg.Env.ApiDebug,
+		CorsOptions: corsOptions,
 		Settings: &nexus.Settings{
 			PathPrefix: "/api/v1",
 		},
 	}
 
-	// 4. Middlewares (orden importa: el primero envuelve a los demás).
+	// 5. Middlewares (orden importa: el primero envuelve a los demás).
 	// RequestLog va primero para registrar también los 500 de recoverPanic y los 401 de autenticación.
 	server.Use(middlewares_adapters.RequestLog)
 	server.Use(hideRoutesUnlessDebug)
