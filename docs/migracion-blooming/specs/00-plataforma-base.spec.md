@@ -134,9 +134,9 @@ Ningún endpoint de negocio vive aquí.
   - Los handlers de ms-notification que hacen falta están en §7.3.
   - Ningún fallo de estos tres ports se propaga al llamador: se loguea (constitución §9).
 - **RF-00.12** — Textos y formato.
-  - `shared_domain.Text` es el catálogo de las plantillas legacy que se usan, en §7.2.
-  - `shared.Format(tpl string, args ...any)` reemplaza `{0}`, `{1}`, …
-  - `shared.FormatCurrency(v float64) string` da 2 decimales y separador de miles con coma (`1234567.5` → `"1,234,567.50"`). Corrige el truncado de `Util.parseCurrency` (B14).
+  - `shared_domain.Text(key)` devuelve la plantilla legacy de la clave (catálogo de §7.2), o la clave misma si no existe.
+  - `shared.Format(tpl string, args ...any)` reemplaza `{0}`, `{1}`, … en una sola pasada: un `{n}` sin argumento queda igual y un `nil` se escribe vacío.
+  - `shared.FormatCurrency(v float64) string` redondea con `Round2` y da 2 decimales y separador de miles con coma (`1234567.5` → `"1,234,567.50"`). Un valor no finito da `"0.00"`. Corrige el truncado de `Util.parseCurrency` (B14).
 - **RF-00.13** — `RequestLog` registra `[API_NAME] METHOD path status duración`, omite `/_health` y **nunca** incluye headers ni body.
 - **RF-00.14** — `ExporterPort.Excel(ctx, report string, payload any) ([]byte, error)` hace `POST {MS_EXPORTER_URL}/export/excel/report/{report}`.
   - Envía el payload tal cual como body JSON, sin envoltorio: es lo que leen los controllers de ms-exporter (`req.body.bondBounds`) y lo que mandaba el legado. Agrega los headers `x-secret` y el `x-token` de la sesión cuando existe. Timeout de 60 s.
@@ -284,7 +284,9 @@ Se guarda como string con el mismo formato que el legado: `YYYY-M-D`, sin ceros 
 
 ### 7.2 Catálogo de textos (`backend/server/lib/text.js`)
 
-Se portan literalmente, con sus placeholders: `BOND_ADDED`, `BOND_UPDATED`, `BOND_UPDATED_KEY`, `BOND_REMOVE`, `BOND_BOUND_SOLD`, `BOND_BOUND_PURCHASED`, `BOND_CREATED`, `BOND_BOUND_SUBJECT_PURCHASED`, `BOND_BOUND_MESSAGE_PURCHASED`, `BOND_BOUND_SUBJECT_SOLD`, `BOND_BOUND_MESSAGE_SOLD`, `BOND_BOUND_SUBJECT_TOOK`, `BOND_BOUND_MESSAGE_TOOK`, `BOND_BOUND_MESSAGE_MATURITY`, `BOND_BOUND_MESSAGE_MATURITY_SUCESS`, `BOND_BOUND_SUBJECT_MASSIVE_PURCHASED`, `BOND_BOUND_MESSAGE_MASSIVE_PURCHASED`, `BALANCE_ACCOUNT_WITHDRAW_FOR_BONUS`, `BALANCE_ACCOUNT_WITHDRAW_ADMIN_NOTIFICATION_SUBJECT`, `BALANCE_ACCOUNT_WITHDRAW_ADMIN_NOTIFICATION_FOR_BONUS`, `BALANCE_ACCOUNT_WITHDRAW_CONTENT`, `NEW_WITHDRAWAL`, `WITHDRAW`, `NOT_EXIST`, `FILENAME_REPORT`.
+Se portan literalmente, con sus placeholders: `BOND_ADDED`, `BOND_UPDATED`, `BOND_UPDATED_KEY`, `BOND_REMOVE`, `BOND_BOUND_SOLD`, `BOND_BOUND_PURCHASED`, `BOND_CREATED`, `BOND_BOUND_SUBJECT_PURCHASED`, `BOND_BOUND_MESSAGE_PURCHASED`, `BOND_BOUND_SUBJECT_SOLD`, `BOND_BOUND_MESSAGE_SOLD`, `BOND_BOUND_SUBJECT_TOOK`, `BOND_BOUND_MESSAGE_TOOK`, `BOND_BOUND_MESSAGE_MATURITY`, `BOND_BOUND_MESSAGE_MATURITY_SUCESS`, `BOND_BOUND_SUBJECT_MASSIVE_PURCHASED`, `BOND_BOUND_MESSAGE_MASSIVE_PURCHASED`, `BALANCE_ACCOUNT_WITHDRAW_FOR_BONUS`, `BALANCE_ACCOUNT_WITHDRAW_CONTENT`, `NEW_WITHDRAWAL`, `NOT_EXIST`, `FILENAME_REPORT`.
+
+Los textos que solo usan los emails viven en las plantillas de ms-notification (§7.3).
 
 Se **agregan** `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`, que el legado referencia pero nunca definió (H2, spec 08).
 
