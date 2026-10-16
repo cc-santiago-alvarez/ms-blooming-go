@@ -11,7 +11,8 @@ func MapToHTTPStatus(err error) int {
 		return http.StatusOK
 	}
 	switch {
-	case errors.Is(err, ErrAccountWithdrawAmountInvalid),
+	case errors.Is(err, ErrInvalidID),
+		errors.Is(err, ErrAccountWithdrawAmountInvalid),
 		errors.Is(err, ErrAccountDepositAmountInvalid):
 		return http.StatusBadRequest
 	case errors.Is(err, ErrAccountNotFound):
