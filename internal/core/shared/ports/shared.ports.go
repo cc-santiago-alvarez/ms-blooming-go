@@ -43,6 +43,18 @@ type NotificationPort interface {
 	Send(ctx context.Context, group, notification string, params map[string]any)
 }
 
+// ProfileReader lee perfiles públicos de profile, sin datos sensibles.
+type ProfileReader interface {
+	// GetPublic devuelve los perfiles no borrados que existan entre ids; los demás no aparecen.
+	GetPublic(ctx context.Context, ids ...string) ([]shared_domain.PublicProfile, error)
+}
+
+// AgencyReader lee datos de agency.
+type AgencyReader interface {
+	// SymbolCurrency devuelve el símbolo de moneda del país de la agencia, o "$" si no hay.
+	SymbolCurrency(ctx context.Context, agencyID string) (string, error)
+}
+
 // ExporterPort genera reportes con ms-exporter.
 type ExporterPort interface {
 	// Excel devuelve el archivo del reporte; cualquier falla es ErrExportFailed.

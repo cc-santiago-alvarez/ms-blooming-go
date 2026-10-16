@@ -123,7 +123,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/domain/shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/exporter/exporter.client.go`
 - [ ] **BLM-0017** `impl` `ProfileReader` y `AgencyReader` con proyecciones seguras
   - cubre: RF-00.15 · depende de: BLM-0002
-  - archivos: `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go`
+  - archivos: `internal/core/shared/domain/profile.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/profile.mongocc.repository.go`, `profile.getPublic.adapter.go`, `agency.mongocc.repository.go`, `agency.symbolCurrency.adapter.go`
 - [ ] **BLM-0018** [P] `impl` Catálogo `Text`, `Format` y `FormatCurrency`
   - cubre: RF-00.12 · depende de: T-PREP.3
   - archivos: `internal/core/shared/domain/shared.text.go`, `shared.format.go`

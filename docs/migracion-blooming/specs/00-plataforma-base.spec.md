@@ -143,8 +143,12 @@ Ningún endpoint de negocio vive aquí.
   - Una respuesta `201` trae `buffer.toJSON()` (`{"type":"Buffer","data":[...]}`), que se convierte a `[]byte`.
   - Cualquier otro status, un error de red o una respuesta que no sea un `Buffer` válido da `ERR_EXPORT_FAILED`. El detalle solo se loguea.
 - **RF-00.15** — Lectores compartidos (solo lectura).
-  - `ProfileReader.GetPublic(ctx, ids...)` lee de `profile` con la proyección `{_id, id, first_name, last_name, email, avatar_url, agencyId}`.
-  - `AgencyReader.SymbolCurrency(ctx, agencyId)` sigue agency → country y devuelve `symbolCurrency`, `'$'` por defecto.
+  - `ProfileReader.GetPublic(ctx, ids...) ([]PublicProfile, error)` lee de `profile` con la proyección explícita `{_id, id, first_name, last_name, email, avatar_url, agencyId}` y el filtro `isRemove: false`.
+    - Deduplica los ids e ignora los vacíos; sin ids no consulta la base.
+    - Un id inexistente o borrado no aparece en el resultado.
+  - `AgencyReader.SymbolCurrency(ctx, agencyId) (string, error)` sigue agency → country (las dos con `isRemove: false`) y devuelve `symbolCurrency`.
+    - Devuelve `'$'` si la agencia o el país no existen, están borrados o no tienen símbolo.
+    - Un error de Mongo se devuelve como error.
 - **RF-00.16** — Health y apagado.
   - `GET /_health` es el de nexus.
   - `cmd/healthcheck` es un binario `package main` que hace `GET /_health` por TCP a `127.0.0.1:${API_PORT}` y termina en 1 si la respuesta no es 200.
@@ -381,7 +385,7 @@ Contrato de los params:
 | BLM-0014 | `NotificationPort`: cliente HTTP de ms-notification, best-effort | impl | F1 | RF-00.11 | BLM-0005 | `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/notification/notification.client.go` |
 | BLM-0015 | **(repo ms-notification)** Handlers `notify-blooming-*` de §7.3 y grupo `to-raw-emails` | impl | F1 | RF-00.11 | — | `ms-notification/src/api/modules/notify/handlers/notify-blooming-*.js`, `src/api/views/templates/notifyBlooming*.js`, `src/api/modules/notify/notify.helpers.js`, `notify.service.js`, `notify.constants.js`, `CLAUDE.md` |
 | BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/domain/shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/exporter/exporter.client.go` |
-| BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/infrastructure/mongocc/profile.getPublic.adapter.go`, `agency.symbolCurrency.adapter.go` |
+| BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/domain/profile.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/profile.mongocc.repository.go`, `profile.getPublic.adapter.go`, `agency.mongocc.repository.go`, `agency.symbolCurrency.adapter.go` |
 | BLM-0018 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | F1 | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
 | BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
 | BLM-0020 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | F1 | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
