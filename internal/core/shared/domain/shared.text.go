@@ -36,7 +36,7 @@ var texts = map[string]string{
 	TextBondBoundPurchased:        "Bono Comprado",
 	TextBondCreated:               "Se ha creado el bono <b>{0}</b> con un valor de <b>{1}</b>, no te pierdas de esta oportunidad.",
 	TextBondBoundSubjectPurchased: "Compra de Bono ({0}), por $ {1}",
-	TextBondBoundMessagePurchased: "Gracias, <b>{0} {1}</b>, has adquirido el bono <b>{2}</b> por un monto total de $ {3}<br/><br/>El sistema automaticamente le descontara el dinero de la cuenta <b>{4}</b>. Dicho dinero será descontado de su nómina.",
+	TextBondBoundMessagePurchased: "Gracias, <b>{0} {1}</b>, has adquirido el bono <b>{2}</b> por un monto total de $ {3}<br/></br>El sistema automaticamente le descontara el dinero de la cuenta <b>{4}</b>. Dicho dinero será descontado de su nómina.",
 	TextBondBoundSubjectSold:      "Bono {0} vendido",
 	TextBondBoundMessageSold: `
   <h3>Detalles del Bono Vendido</h3>

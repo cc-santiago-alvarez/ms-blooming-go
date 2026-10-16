@@ -20,17 +20,63 @@ const sharedDomain = "shared"
 
 // Ningún paquete *_domain importa otro *_domain, salvo shared_domain. CA-00.27
 func TestDomainPackagesAreIndependent(t *testing.T) {
-	violations, checked, err := domainImportViolations(".")
+	problems, _, err := domainRuleProblems(".")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Si el layout cambia y no se encuentran dominios, el test pasaría sin revisar nada.
+	for _, p := range problems {
+		t.Error(p)
+	}
+}
+
+// Un *_domain que importa otro *_domain, directo, por un subpaquete o desde un test, hace fallar la
+// regla con un mensaje que nombra los dos paquetes y el archivo. CA-00.27
+func TestDomainRuleDetectsForbiddenImport(t *testing.T) {
+	problems, checked, err := domainRuleProblems(filepath.Join("testdata", "forbidden"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checked != 3 {
+		t.Fatalf("se revisaron %d paquetes de dominio, se esperaban 3", checked)
+	}
+	want := []string{
+		"bondBound_domain importa bondObject_domain (bondBound/domain/bondBound.go)",
+		"bondBound_domain importa bondObject_domain (bondBound/domain/bondBound_test.go)",
+		"bondBound_domain importa bondObject_domain (bondBound/domain/sub/sub.go)",
+	}
+	if len(problems) != len(want) {
+		t.Fatalf("se encontraron %d violaciones, se esperaban %d:\n%s", len(problems), len(want), strings.Join(problems, "\n"))
+	}
+	for i, w := range want {
+		if !strings.HasPrefix(problems[i], w) {
+			t.Errorf("violación %d = %q, se esperaba %q", i, problems[i], w)
+		}
+	}
+}
+
+// Si encuentra menos de 2 paquetes de dominio, la regla falla: no estaría revisando nada. CA-00.27
+func TestDomainRuleRequiresDomains(t *testing.T) {
+	problems, checked, err := domainRuleProblems(filepath.Join("testdata", "single"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checked != 1 || len(problems) != 1 || !strings.Contains(problems[0], "se revisaron 1 paquetes de dominio") {
+		t.Fatalf("con un solo dominio: %d revisados y problemas %q", checked, problems)
+	}
+}
+
+// domainRuleProblems devuelve las violaciones de la regla en root, más un problema si encontró menos
+// de 2 paquetes de dominio: el layout cambió y la regla no estaría revisando nada.
+func domainRuleProblems(root string) ([]string, int, error) {
+	violations, checked, err := domainImportViolations(root)
+	if err != nil {
+		return nil, 0, err
+	}
 	if checked < 2 {
-		t.Fatalf("se revisaron %d paquetes de dominio y se esperaban al menos 2: ¿cambió el layout de internal/core?", checked)
+		violations = append(violations, fmt.Sprintf(
+			"se revisaron %d paquetes de dominio y se esperaban al menos 2: ¿cambió el layout de internal/core?", checked))
 	}
-	for _, v := range violations {
-		t.Error(v)
-	}
+	return violations, checked, nil
 }
 
 // domainImportViolations revisa los imports de cada root/<d>/domain/, con sus subpaquetes y tests.

@@ -91,7 +91,7 @@ Ningún endpoint de negocio vive aquí.
   - `shared.NewID()` devuelve `uuid.New().String()`. Es el único generador de `_id` para documentos nuevos.
   - `shared_domain.IDFormat(id)` devuelve `uuid`, `meteor` o `invalid`; `shared_domain.IsValidID(id)` es `IDFormat(id) != invalid` (RF-00.19).
   - `shared.Now()` devuelve `time.Now().UTC()`.
-  - `shared.Round2(float64)` redondea a 2 decimales (half away from zero).
+  - `shared.Round2(float64)` redondea a 2 decimales igual que `Number(v.toFixed(2))` de JavaScript: sobre el valor binario exacto de `v`, con los empates lejos de cero (`0.015 → 0.01`, `2.675 → 2.67`, `0.125 → 0.13`, `-0.125 → -0.13`). Nunca devuelve `-0`.
   - `shared.StartOfDay(t, utcDiff)` devuelve el inicio del día en la zona `utcDiff`, expresado en UTC.
   - `shared.DaysBetween(a, b, utcDiff)` es la diferencia en días calendario.
   - `shared.MaskAccountNumber(n)` devuelve `"****************" + últimos 4`.
@@ -375,6 +375,16 @@ Contrato de los params:
 - **CA-00.31** (RF-00.19) — Un `GET` a un endpoint con `{id}` = `abc` responde `400 ERR_INVALID_ID`, y el fake del repositorio registra cero llamadas.
 - **CA-00.32** (RF-00.19) — Con un fixture de dos documentos en la misma colección, uno con `_id` UUID y otro con `_id` Meteor de 17 caracteres, `FindOneByID` encuentra a los dos, y un `UpdateOne` sobre el legacy conserva su `_id` original.
 - **CA-00.33** (RF-00.10) — `Deposit` con `Amount 0` o negativo devuelve `ERR_ACCOUNT_DEPOSIT_AMOUNT_INVALID` y no escribe nada. Sobre una cuenta que existe pero es de otro usuario devuelve `ERR_ACCOUNT_NOT_FOUND` y no escribe nada.
+- **CA-00.34** (RF-00.5) — `IsOwnerOrAdmin(ctx, ownerUserId)` devuelve `true` si la sesión es del dueño o tiene `adminBlooming`, y `false` sin sesión o para un usuario sin `adminBlooming` que no es el dueño (incluido `ownerUserId` vacío).
+- **CA-00.35** (RF-00.11) — `ActivityPort.Add` inserta en `activity` con `_id` UUID, `moduleId '1'`, `name 'Blooming'` y `params {}` si no se pasan, y escribe aunque el `ctx` del llamador ya esté cancelado.
+- **CA-00.36** (RF-00.15) — `AgencyReader.SymbolCurrency` devuelve el `symbolCurrency` del país de la agencia (`'Pesos $'` para una agencia de `CO`); devuelve `'$'` si la agencia o el país no existen, están borrados o no tienen símbolo, y devuelve error si Mongo falla.
+- **CA-00.37** (RF-00.8) — `Round2` coincide con `toFixed(2)` del legado en una tabla de casos calculados con Node (incluye `0.015 → 0.01`, `2.675 → 2.67` y `-0.125 → -0.13`) y devuelve `0`, no `-0`, para `-0.001`. `MaskAccountNumber("4000123412341234")` da `"****************1234"`. `RandomAlnum(16)` da 16 caracteres `[A-Za-z0-9]` y `RandomAlnum(0)` da `""`.
+- **CA-00.38** (RF-00.12) — Para cada clave legacy de §7.2, `Text(clave)` devuelve exactamente la plantilla de `text.js`; una clave desconocida devuelve la clave misma.
+- **CA-00.39** (RF-00.18) — `NewPaginated` con `total 25` y `limit 10` da `totalPages 3`; con `total 0` da `totalPages 0` e `items []` (nunca `null`), y el JSON usa las claves `items, total, page, limit, totalPages`.
+- **CA-00.40** (RF-00.11) — `NotificationPort.Send` hace `POST {MS_NOTIFICATION_URL}/notify/{group}/{notification}` con body `{"data":{"params":{...}}}` (`{}` si no hay params), `x-secret` y el `x-token` de la sesión solo cuando hay sesión, y la envía aunque el `ctx` del llamador ya esté cancelado.
+- **CA-00.41** (RF-00.14) — `ExporterPort.Excel` hace `POST {MS_EXPORTER_URL}/export/excel/report/{report}` con el payload como body JSON sin envoltorio, `x-secret` y el `x-token` de la sesión cuando existe.
+- **CA-00.42** (RF-00.7) — Un panic en un handler responde `500 ERR_INTERNAL`; el valor del panic y el stack aparecen solo en el log.
+- **CA-00.43** (RF-00.2) — Con `API_DEBUG=false`, `GET /_routes` y `/_routes/raw` responden 404; con `API_DEBUG=true`, `/_routes` devuelve las rutas registradas sin pedir `x-secret`.
 
 ## 11. Tareas
 
@@ -400,13 +410,14 @@ Contrato de los params:
 | BLM-0018 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | F1 | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
 | BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/api/config/config.go`, `cmd/healthcheck/main.go` |
 | BLM-0020 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | F1 | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
-| BLM-0021 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | F1 | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 | BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go` |
-| BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
-| BLM-0023 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | F1 | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 | BLM-0009, BLM-0011, BLM-0018 | `internal/core/shared/domain/*_test.go` |
-| BLM-0024 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | F1 | CA-00.19, CA-00.23 | BLM-0014, BLM-0016 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
-| BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/` |
+| BLM-0021 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | F1 | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22, CA-00.34 | BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go`, `internal/core/shared/application/*_test.go` |
+| BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33, CA-00.35, CA-00.36 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0023 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | F1 | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28, CA-00.37, CA-00.38, CA-00.39 | BLM-0009, BLM-0011, BLM-0018, BLM-0139 | `internal/core/shared/domain/*_test.go`, `internal/core/shared/domain/testdata/`, `internal/core/shared/adapters/utils/*_test.go` |
+| BLM-0024 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | F1 | CA-00.19, CA-00.23, CA-00.40, CA-00.41 | BLM-0014, BLM-0016 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
+| BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27, CA-00.42, CA-00.43 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/config/*_test.go`, `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/` |
 | BLM-0026 | `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`) | impl | F1 | RF-00.19, RF-00.8 | BLM-0009, BLM-0002 | `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go` |
 | BLM-0027 | Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos | test | F1 | CA-00.30, CA-00.31, CA-00.32 | BLM-0026, BLM-0010 | `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go` |
+| BLM-0139 | Paridad con el legado: `Round2` como `toFixed(2)` y plantilla `BOND_BOUND_MESSAGE_PURCHASED` literal | impl | F1 | RF-00.8, RF-00.12 | BLM-0009, BLM-0018 | `internal/core/shared/domain/shared.money.go`, `shared.text.go` |
 
 ## 12. Fuera de alcance y preguntas abiertas
 

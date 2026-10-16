@@ -22,7 +22,7 @@
 | Fase | Nombre | Tareas | impl | test | ops |
 |---|---|---|---|---|---|
 | F0 | Preparación del repositorio | 7 | 0 | 0 | 7 |
-| F1 | Plataforma base (spec 00) | 27 | 21 | 6 | 0 |
+| F1 | Plataforma base (spec 00) | 28 | 22 | 6 | 0 |
 | F2 | Historial y tipos compartidos (specs 08 y 03) | 11 | 9 | 2 | 0 |
 | F3 | Catálogo (specs 01, 02 y 03) | 25 | 19 | 6 | 0 |
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
@@ -32,7 +32,7 @@
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
 | F10 | Corte y retiro del legado | 6 | 0 | 0 | 6 |
-| | **Total** | **145** | **93** | **35** | **17** |
+| | **Total** | **146** | **94** | **35** | **17** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -134,26 +134,29 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - cubre: RF-00.17 · depende de: T-PREP.3
   - archivos: `internal/core/architecture_test.go`
 - [ ] **BLM-0021** `test` Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff
-  - cubre: CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 · depende de: BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007
-  - archivos: `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go`
+  - cubre: CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22, CA-00.34 · depende de: BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007
+  - archivos: `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go`, `internal/core/shared/application/*_test.go`
 - [ ] **BLM-0022** `test` Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers
-  - cubre: CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 · depende de: BLM-0010, BLM-0012, BLM-0013, BLM-0017
+  - cubre: CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33, CA-00.35, CA-00.36 · depende de: BLM-0010, BLM-0012, BLM-0013, BLM-0017
   - archivos: `internal/core/shared/infrastructure/mongocc/*_integration_test.go`
-- [ ] **BLM-0023** `test` Tests unitarios de helpers, `EffectiveDate`, textos y paginación
-  - cubre: CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 · depende de: BLM-0009, BLM-0011, BLM-0018
-  - archivos: `internal/core/shared/domain/*_test.go`
 - [ ] **BLM-0024** `test` Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest`
-  - cubre: CA-00.19, CA-00.23 · depende de: BLM-0014, BLM-0016
+  - cubre: CA-00.19, CA-00.23, CA-00.40, CA-00.41 · depende de: BLM-0014, BLM-0016
   - archivos: `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go`
 - [ ] **BLM-0025** `test` Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido)
-  - cubre: CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 · depende de: BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020
-  - archivos: `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/`
+  - cubre: CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27, CA-00.42, CA-00.43 · depende de: BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020
+  - archivos: `cmd/api/config/*_test.go`, `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/`
 - [ ] **BLM-0026** `impl` `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`)
   - cubre: RF-00.19, RF-00.8 · depende de: BLM-0009, BLM-0002
   - archivos: `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go`
 - [ ] **BLM-0027** `test` Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos
   - cubre: CA-00.30, CA-00.31, CA-00.32 · depende de: BLM-0026, BLM-0010
   - archivos: `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go`
+- [ ] **BLM-0139** `impl` Paridad con el legado: `Round2` como `toFixed(2)` y plantilla `BOND_BOUND_MESSAGE_PURCHASED` literal
+  - cubre: RF-00.8, RF-00.12 · depende de: BLM-0009, BLM-0018
+  - archivos: `internal/core/shared/domain/shared.money.go`, `shared.text.go`
+- [ ] **BLM-0023** `test` Tests unitarios de helpers, `EffectiveDate`, textos y paginación
+  - cubre: CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28, CA-00.37, CA-00.38, CA-00.39 · depende de: BLM-0009, BLM-0011, BLM-0018, BLM-0139
+  - archivos: `internal/core/shared/domain/*_test.go`, `internal/core/shared/domain/testdata/`, `internal/core/shared/adapters/utils/*_test.go`
 
 **Criterio de salida F1:** El servicio arranca, valida `x-secret` y la sesión de ms-oauth, y los ports compartidos (saldo, notificaciones, exportador) tienen tests.
 
@@ -568,23 +571,23 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | Spec | RF | Implementan | Verifican (tests) | CA | Operación / corte |
 |---|---|---|---|---|---|
 | 00 | RF-00.1 | BLM-0001, BLM-0002 | BLM-0025 | CA-00.1 | BLM-0132 |
-| 00 | RF-00.2 | BLM-0004 | BLM-0021 | CA-00.2 | — |
+| 00 | RF-00.2 | BLM-0004 | BLM-0021, BLM-0025 | CA-00.2, CA-00.43 | — |
 | 00 | RF-00.3 | BLM-0005 | BLM-0021 | CA-00.3, CA-00.4, CA-00.5 | — |
 | 00 | RF-00.4 | BLM-0006 | BLM-0021 | CA-00.6 | — |
-| 00 | RF-00.5 | BLM-0007 | BLM-0021, BLM-0127 | CA-00.7, CA-00.8 | — |
+| 00 | RF-00.5 | BLM-0007 | BLM-0021, BLM-0127 | CA-00.7, CA-00.8, CA-00.34 | — |
 | 00 | RF-00.6 | BLM-0008 | BLM-0025 | CA-00.9 | BLM-0132 |
-| 00 | RF-00.7 | BLM-0002 | BLM-0025 | CA-00.10 | — |
-| 00 | RF-00.8 | BLM-0009, BLM-0026 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30 | — |
+| 00 | RF-00.7 | BLM-0002 | BLM-0025 | CA-00.10, CA-00.42 | — |
+| 00 | RF-00.8 | BLM-0009, BLM-0026, BLM-0139 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30, CA-00.37 | — |
 | 00 | RF-00.9 | BLM-0010 | BLM-0022 | CA-00.13 | — |
 | 00 | RF-00.10 | BLM-0011, BLM-0012 | BLM-0022, BLM-0023 | CA-00.14, CA-00.15, CA-00.16, CA-00.17, CA-00.18, CA-00.29, CA-00.33 | — |
-| 00 | RF-00.11 | BLM-0013, BLM-0014, BLM-0015 | BLM-0022, BLM-0024 | CA-00.19, CA-00.20 | — |
-| 00 | RF-00.12 | BLM-0018 | BLM-0023 | CA-00.21 | — |
+| 00 | RF-00.11 | BLM-0013, BLM-0014, BLM-0015 | BLM-0022, BLM-0024 | CA-00.19, CA-00.20, CA-00.35, CA-00.40 | — |
+| 00 | RF-00.12 | BLM-0018, BLM-0139 | BLM-0023 | CA-00.21, CA-00.38 | — |
 | 00 | RF-00.13 | BLM-0003 | BLM-0021 | CA-00.22 | — |
-| 00 | RF-00.14 | BLM-0016 | BLM-0024 | CA-00.23 | — |
-| 00 | RF-00.15 | BLM-0017 | BLM-0022 | CA-00.24 | — |
+| 00 | RF-00.14 | BLM-0016 | BLM-0024 | CA-00.23, CA-00.41 | — |
+| 00 | RF-00.15 | BLM-0017 | BLM-0022 | CA-00.24, CA-00.36 | — |
 | 00 | RF-00.16 | BLM-0019 | BLM-0025 | CA-00.25, CA-00.26 | BLM-0129 |
 | 00 | RF-00.17 | BLM-0020 | BLM-0025 | CA-00.27 | — |
-| 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28 | — |
+| 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28, CA-00.39 | — |
 | 00 | RF-00.19 | BLM-0026 | BLM-0027 | CA-00.30, CA-00.31, CA-00.32 | — |
 | 01 | RF-01.1 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.1, CA-01.2 | BLM-0136 |
 | 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0048, BLM-0050 | BLM-0044, BLM-0051 | CA-01.3 | — |
@@ -746,4 +749,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 96 RF, 148 CA, 145 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0139`.
+Última generación: 11 specs, 96 RF, 158 CA, 146 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0140`.
