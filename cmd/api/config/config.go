@@ -29,8 +29,8 @@ var requiredEnvs = []string{
 	"CORS_ORIGINS",
 	"FA_MONGO_URL",
 	"FA_MONGO_DBNAME",
-	"SESSION_SERVICE_URL",
-	"SESSION_SERVICE_SECRET",
+	"OAUTH_URL",
+	"OAUTH_SECRET",
 	"MS_NOTIFICATION_URL",
 	"MS_NOTIFICATION_SECRET",
 	"MS_EXPORTER_URL",
@@ -116,8 +116,8 @@ func newApiEnv(getenv func(string) string) (*ApiEnv, error) {
 		FuturappsMongoDbName: get("FA_MONGO_DBNAME"),
 		FuturappsMongoDebug:  get("FA_MONGO_DEBUG") == "true",
 
-		SessionServiceURL:    get("SESSION_SERVICE_URL"),
-		SessionServiceSecret: get("SESSION_SERVICE_SECRET"),
+		OAuthURL:    get("OAUTH_URL"),
+		OAuthSecret: get("OAUTH_SECRET"),
 
 		NotificationServiceURL: get("MS_NOTIFICATION_URL"),
 		NotificationSecret:     get("MS_NOTIFICATION_SECRET"),

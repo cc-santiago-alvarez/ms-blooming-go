@@ -59,7 +59,7 @@ Ningún endpoint de negocio vive aquí.
 - **RF-00.2** — `ValidateApiSecret`: compara el header `x-secret` con `API_SECRET` (en tiempo constante, tras quitar caracteres no imprimibles). Si falta o no coincide, responde `401 UNAUTHORIZED_INVALID_SECRET`. Los endpoints `IsPublic` (`/_health`, `/_routes`) se saltan esta validación.
 - **RF-00.3** — `VerifySession`: valida la sesión que **creó ms-oauth**. ms-blooming-go no crea ni renueva sesiones.
   - Lee `x-token`. Si falta, responde `401 TOKEN_IS_REQUIRED`.
-  - Llama a `GET {SESSION_SERVICE_URL}` (ms-oauth, `GET /api/v1/session`) con los headers `x-token` y `x-secret: SESSION_SERVICE_SECRET`. El context tiene timeout de 3 s y el cliente de 4 s.
+  - Llama a `GET {OAUTH_URL}/session` (ms-oauth, `GET /api/v1/session`) con los headers `x-token` y `x-secret: OAUTH_SECRET`. El context tiene timeout de 3 s y el cliente de 4 s.
   - Si la respuesta no es 200, o es un error de red o timeout, responde `401 TOKEN_INVALID`.
   - Con un 200, decodifica el `UserSession` (§6.1) y lo guarda en el context con `session_domain.SetUserSession`.
   - Los endpoints con `NoRequiresAuthentication` (internos) se saltan este paso, pero siguen exigiendo `x-secret`.
@@ -215,8 +215,8 @@ Esta spec no define endpoints de negocio. Expone:
 | `FA_MONGO_URL` | sí | — | URI de Mongo (replica set, por las transacciones) |
 | `FA_MONGO_DBNAME` | sí | — | Base `futurapps` |
 | `FA_MONGO_DEBUG` | no | `false` | Log de queries de mongocc |
-| `SESSION_SERVICE_URL` | sí | — | `http://<ms-oauth>/api/v1/session` |
-| `SESSION_SERVICE_SECRET` | sí | — | `x-secret` de ms-oauth |
+| `OAUTH_URL` | sí | — | Base de ms-oauth, `http://<ms-oauth>/api/v1`; la sesión se lee en `{OAUTH_URL}/session` |
+| `OAUTH_SECRET` | sí | — | `x-secret` de ms-oauth |
 | `MS_NOTIFICATION_URL` | sí | — | Base de ms-notification |
 | `MS_NOTIFICATION_SECRET` | sí | — | `x-secret` de ms-notification |
 | `MS_EXPORTER_URL` | sí | — | Base de ms-exporter |

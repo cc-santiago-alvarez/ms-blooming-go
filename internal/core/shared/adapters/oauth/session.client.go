@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
@@ -25,9 +26,10 @@ type SessionClient struct {
 	client *http.Client
 }
 
-func NewSessionClient(url, secret string) *SessionClient {
+// NewSessionClient recibe la base de la API de ms-oauth (OAUTH_URL); la sesión se lee en /session.
+func NewSessionClient(baseURL, secret string) *SessionClient {
 	return &SessionClient{
-		url:    url,
+		url:    strings.TrimRight(baseURL, "/") + "/session",
 		secret: secret,
 		client: &http.Client{Timeout: clientTimeout},
 	}

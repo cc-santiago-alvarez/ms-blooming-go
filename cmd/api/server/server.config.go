@@ -26,7 +26,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	initDatabaseConnections(deps)
 
 	// 2. Adaptadores compartidos
-	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.SessionServiceURL, cfg.Env.SessionServiceSecret)
+	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
 
 	// 3. CORS
 	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)

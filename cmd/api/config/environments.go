@@ -19,9 +19,9 @@ type ApiEnv struct {
 	FuturappsMongoDbName string
 	FuturappsMongoDebug  bool
 
-	// ms-oauth: validación de la sesión
-	SessionServiceURL    string
-	SessionServiceSecret string
+	// ms-oauth: base de la API; la sesión se valida en /session
+	OAuthURL    string
+	OAuthSecret string
 
 	// ms-notification
 	NotificationServiceURL string
