@@ -1,47 +1,67 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"net"
+	"net/textproto"
 	"os"
 	"strings"
 	"time"
+
+	api_config "github.com/futurapps/ms-blooming-go/cmd/api/config"
 )
 
+const (
+	dialTimeout  = 2 * time.Second
+	totalTimeout = 3 * time.Second
+)
+
+// main consulta GET /_health del API local y termina en 1 si no responde 200.
 func main() {
-	conn, err := net.DialTimeout("tcp", "127.0.0.1:25251", 2*time.Second)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "dial failed: %v\n", err)
+	if err := run(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "healthcheck falló: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// run lee API_PORT de los mismos archivos de entorno que el API y consulta su /_health.
+func run() error {
+	if err := api_config.LoadEnvFiles(); err != nil {
+		return err
+	}
+	port := strings.TrimSpace(os.Getenv("API_PORT"))
+	if port == "" {
+		return errors.New("API_PORT está vacía")
+	}
+	return probe(net.JoinHostPort("127.0.0.1", port))
+}
+
+// probe hace GET /_health en addr y devuelve error si el status no es 200.
+func probe(addr string) error {
+	start := time.Now()
+	conn, err := net.DialTimeout("tcp", addr, dialTimeout)
+	if err != nil {
+		return err
 	}
 	defer conn.Close()
+	if err := conn.SetDeadline(start.Add(totalTimeout)); err != nil {
+		return err
+	}
 
-	// Timeout total de lectura+escritura
-	_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+	// HTTP/1.0 mínimo: sin keep-alive ni headers extra.
+	if _, err := conn.Write([]byte("GET /_health HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")); err != nil {
+		return err
+	}
 
-	// Request HTTP/1.0 mínimo — sin keep-alive, sin headers extra
-	_, err = conn.Write([]byte("GET /_health HTTP/1.0\r\nHost: localhost\r\n\r\n"))
+	// Solo importa la primera línea: "HTTP/1.1 200 OK".
+	statusLine, err := textproto.NewReader(bufio.NewReader(conn)).ReadLine()
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "write failed: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-
-	// Solo necesitamos la primera línea: "HTTP/1.x 200 OK"
-	buf := make([]byte, 256)
-	n, err := conn.Read(buf)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "read failed: %v\n", err)
-		os.Exit(1)
+	if parts := strings.SplitN(statusLine, " ", 3); len(parts) < 2 || parts[1] != "200" {
+		return fmt.Errorf("respuesta inesperada: %q", statusLine)
 	}
-
-	statusLine := string(buf[:n])
-	if idx := strings.Index(statusLine, "\r\n"); idx > 0 {
-		statusLine = statusLine[:idx]
-	}
-
-	if !strings.HasPrefix(statusLine, "HTTP/1.0 200") &&
-		!strings.HasPrefix(statusLine, "HTTP/1.1 200") {
-		_, _ = fmt.Fprintf(os.Stderr, "unhealthy: %s\n", statusLine)
-		os.Exit(1)
-	}
+	return nil
 }

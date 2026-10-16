@@ -47,32 +47,11 @@ func InitConfig() *cfg {
 	return c
 }
 
-// LoadEnvs carga .env y luego .env.<ENV>, que pisa sus valores. Si falta un archivo o una
+// LoadEnvs carga los archivos de entorno y valida las variables. Si falta un archivo o una
 // variable requerida, o un valor es inválido, termina el proceso.
 func (c *cfg) LoadEnvs() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Fatalf("[config] error al cargar .env: %v", err)
-	}
-
-	env := strings.TrimSpace(os.Getenv("ENV"))
-	if err := checkEnvName(env); err != nil {
-		log.Fatalf("[config] configuración inválida: %v", err)
-	}
-
-	envFile := ".env." + env
-	if _, err := os.Stat(envFile); err == nil {
-		if err := godotenv.Overload(envFile); err != nil {
-			log.Fatalf("[config] error al cargar %s: %v", envFile, err)
-		}
-	} else if os.IsNotExist(err) {
-		log.Fatalf("[config] no existe el archivo de entorno %s", envFile)
-	} else {
-		log.Fatalf("[config] error al verificar el archivo de entorno %s: %v", envFile, err)
-	}
-
-	// El entorno lo decide .env; el archivo ya elegido no puede cambiarlo.
-	if strings.TrimSpace(os.Getenv("ENV")) != env {
-		log.Fatalf("[config] %s no puede redefinir ENV", envFile)
+	if err := LoadEnvFiles(); err != nil {
+		log.Fatalf("[config] %v", err)
 	}
 
 	apiEnv, err := newApiEnv(os.Getenv)
@@ -80,6 +59,36 @@ func (c *cfg) LoadEnvs() {
 		log.Fatalf("[config] configuración inválida: %v", err)
 	}
 	c.Env = apiEnv
+}
+
+// LoadEnvFiles carga .env y luego .env.<ENV>, que pisa sus valores, desde el directorio de trabajo.
+// La usan el API y el binario de healthcheck, para leer los mismos archivos con la misma precedencia.
+func LoadEnvFiles() error {
+	if err := godotenv.Load(".env"); err != nil {
+		return fmt.Errorf("error al cargar .env: %w", err)
+	}
+
+	env := strings.TrimSpace(os.Getenv("ENV"))
+	if err := checkEnvName(env); err != nil {
+		return fmt.Errorf("configuración inválida: %w", err)
+	}
+
+	envFile := ".env." + env
+	if _, err := os.Stat(envFile); err == nil {
+		if err := godotenv.Overload(envFile); err != nil {
+			return fmt.Errorf("error al cargar %s: %w", envFile, err)
+		}
+	} else if os.IsNotExist(err) {
+		return fmt.Errorf("no existe el archivo de entorno %s", envFile)
+	} else {
+		return fmt.Errorf("error al verificar el archivo de entorno %s: %w", envFile, err)
+	}
+
+	// El entorno lo decide .env; el archivo ya elegido no puede cambiarlo.
+	if strings.TrimSpace(os.Getenv("ENV")) != env {
+		return fmt.Errorf("%s no puede redefinir ENV", envFile)
+	}
+	return nil
 }
 
 // newApiEnv construye y valida ApiEnv. Reporta todos los problemas en un solo error, sin valores.

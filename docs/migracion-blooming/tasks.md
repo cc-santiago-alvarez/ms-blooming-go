@@ -129,7 +129,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/domain/shared.text.go`, `shared.format.go`
 - [ ] **BLM-0019** `impl` Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`)
   - cubre: RF-00.16 · depende de: BLM-0002
-  - archivos: `cmd/api/server/server.go`, `cmd/healthcheck/main.go`
+  - archivos: `cmd/api/server/server.go`, `cmd/api/config/config.go`, `cmd/healthcheck/main.go`
 - [ ] **BLM-0020** [P] `impl` Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla)
   - cubre: RF-00.17 · depende de: T-PREP.3
   - archivos: `internal/core/architecture_test.go`

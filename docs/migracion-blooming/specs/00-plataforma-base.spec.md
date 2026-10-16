@@ -151,8 +151,14 @@ Ningún endpoint de negocio vive aquí.
     - Un error de Mongo se devuelve como error.
 - **RF-00.16** — Health y apagado.
   - `GET /_health` es el de nexus.
-  - `cmd/healthcheck` es un binario `package main` que hace `GET /_health` por TCP a `127.0.0.1:${API_PORT}` y termina en 1 si la respuesta no es 200.
-  - Graceful shutdown: `signal.NotifyContext(SIGINT, SIGTERM)` → `http.Server.Shutdown` con timeout de 20 s → detener el cron (esperando el job en curso) → `mongo.Client.Disconnect`.
+  - `cmd/healthcheck` es un binario `package main` que hace `GET /_health` por TCP a `127.0.0.1:${API_PORT}`.
+    - Lee `API_PORT` de `.env` + `.env.<ENV>` con el mismo cargador que el API (`api_config.LoadEnvFiles`), relativo al directorio de trabajo. En producción el entorno llega en esos archivos, no como variables del contenedor.
+    - Timeouts: 2 s para conectar y 3 s en total.
+    - Termina en 1 si faltan los archivos, si `API_PORT` está vacía, si no conecta o si el status no es 200.
+  - Graceful shutdown: `signal.NotifyContext(SIGINT, SIGTERM)` → `http.Server.Shutdown` con timeout de 20 s → detener el cron (esperando el job en curso) → `mongo.Client.Disconnect` con timeout de 5 s.
+    - Si `Shutdown` vence, se cierran las conexiones a la fuerza, se completan los pasos siguientes y el proceso termina en 1.
+    - Una segunda señal corta el proceso sin esperar.
+    - El stack de Swarm debe declarar `stop_grace_period` mayor a 20 s; con el default de 10 s, Swarm mata el proceso a la mitad del apagado.
 - **RF-00.17** — `internal/core/architecture_test.go` falla si un paquete `*_domain` importa otro `*_domain` distinto de `shared_domain`.
 - **RF-00.18** — Paginación estándar.
   - `shared_domain.Pagination{Page, Limit}` se normaliza a `Page >= 1` (por defecto 1) y `Limit` entre 1 y 100 (por defecto 10, el `Pagination.default` del legado).
@@ -389,7 +395,7 @@ Contrato de los params:
 | BLM-0016 | `ExporterPort`: cliente HTTP de ms-exporter con conversión del Buffer | impl | F1 | RF-00.14 | BLM-0005 | `internal/core/shared/domain/shared.errors.go`, `shared.httpStatus.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/exporter/exporter.client.go` |
 | BLM-0017 | `ProfileReader` y `AgencyReader` con proyecciones seguras | impl | F1 | RF-00.15 | BLM-0002 | `internal/core/shared/domain/profile.domain.go`, `internal/core/shared/ports/shared.ports.go`, `internal/core/shared/infrastructure/mongocc/profile.mongocc.repository.go`, `profile.getPublic.adapter.go`, `agency.mongocc.repository.go`, `agency.symbolCurrency.adapter.go` |
 | BLM-0018 | Catálogo `Text`, `Format` y `FormatCurrency` | impl | F1 | RF-00.12 | T-PREP.3 | `internal/core/shared/domain/shared.text.go`, `shared.format.go` |
-| BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/healthcheck/main.go` |
+| BLM-0019 | Graceful shutdown y binario `cmd/healthcheck` (`package main`, puerto de `API_PORT`) | impl | F1 | RF-00.16 | BLM-0002 | `cmd/api/server/server.go`, `cmd/api/config/config.go`, `cmd/healthcheck/main.go` |
 | BLM-0020 | Regla de dependencias entre dominios en `architecture_test.go` (el test es la implementación de la regla) | impl | F1 | RF-00.17 | T-PREP.3 | `internal/core/architecture_test.go` |
 | BLM-0021 | Tests de middlewares: secret, sesión, admin, scope de agencia, log, utcDiff | test | F1 | CA-00.2, CA-00.3, CA-00.4, CA-00.5, CA-00.6, CA-00.7, CA-00.8, CA-00.22 | BLM-0003, BLM-0004, BLM-0005, BLM-0006, BLM-0007 | `internal/core/shared/middlewares/*_test.go`, `internal/core/session/domain/*_test.go` |
 | BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
