@@ -160,6 +160,9 @@ Ningún endpoint de negocio vive aquí.
     - Una segunda señal corta el proceso sin esperar.
     - El stack de Swarm debe declarar `stop_grace_period` mayor a 20 s; con el default de 10 s, Swarm mata el proceso a la mitad del apagado.
 - **RF-00.17** — `internal/core/architecture_test.go` falla si un paquete `*_domain` importa otro `*_domain` distinto de `shared_domain`.
+  - Revisa todos los `.go` de `internal/core/<d>/domain/`, incluidos sus subpaquetes y sus tests; omite `testdata/`.
+  - Es violación importar `…/internal/core/<x>/domain` o un subpaquete suyo, con `x` distinto de `<d>` y de `shared`. El mensaje nombra los dos paquetes y el archivo.
+  - Si encuentra menos de 2 paquetes de dominio, falla: el layout cambió y la regla no estaría revisando nada.
 - **RF-00.18** — Paginación estándar.
   - `shared_domain.Pagination{Page, Limit}` se normaliza a `Page >= 1` (por defecto 1) y `Limit` entre 1 y 100 (por defecto 10, el `Pagination.default` del legado).
   - `skip = (page-1)*limit`.
@@ -401,7 +404,7 @@ Contrato de los params:
 | BLM-0022 | Tests de integración: transacción, `BalancePort` (incluida la concurrencia), notice, activity y readers | test | F1 | CA-00.13, CA-00.14, CA-00.15, CA-00.16, CA-00.18, CA-00.20, CA-00.24, CA-00.29, CA-00.33 | BLM-0010, BLM-0012, BLM-0013, BLM-0017 | `internal/core/shared/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0023 | Tests unitarios de helpers, `EffectiveDate`, textos y paginación | test | F1 | CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28 | BLM-0009, BLM-0011, BLM-0018 | `internal/core/shared/domain/*_test.go` |
 | BLM-0024 | Tests de los clientes HTTP (ms-notification, ms-exporter) con `httptest` | test | F1 | CA-00.19, CA-00.23 | BLM-0014, BLM-0016 | `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go` |
-| BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go` |
+| BLM-0025 | Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido) | test | F1 | CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 | BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020 | `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/` |
 | BLM-0026 | `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`) | impl | F1 | RF-00.19, RF-00.8 | BLM-0009, BLM-0002 | `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go` |
 | BLM-0027 | Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos | test | F1 | CA-00.30, CA-00.31, CA-00.32 | BLM-0026, BLM-0010 | `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go` |
 

@@ -147,7 +147,7 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
   - archivos: `internal/core/shared/infrastructure/notification/*_test.go`, `exporter/*_test.go`
 - [ ] **BLM-0025** `test` Tests de arranque, CORS, errores, shutdown y healthcheck, más el caso negativo de la regla de dependencias (paquete de fixture con un import prohibido)
   - cubre: CA-00.1, CA-00.9, CA-00.10, CA-00.25, CA-00.26, CA-00.27 · depende de: BLM-0001, BLM-0002, BLM-0008, BLM-0019, BLM-0020
-  - archivos: `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`
+  - archivos: `cmd/api/server/*_test.go`, `cmd/healthcheck/main_test.go`, `internal/core/architecture_test.go`, `internal/core/testdata/`
 - [ ] **BLM-0026** `impl` `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`)
   - cubre: RF-00.19, RF-00.8 · depende de: BLM-0009, BLM-0002
   - archivos: `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go`
