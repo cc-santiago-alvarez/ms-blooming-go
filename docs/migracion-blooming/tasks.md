@@ -177,7 +177,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/shared/domain/shared.chartGuides.go`
 - [ ] **BLM-0031** `test` Tests de tabla de `SimulateProjection` y de las guías, con casos calculados con el código legacy
   - cubre: CA-03.1, CA-03.2, CA-03.3, CA-03.4, CA-03.5 · depende de: BLM-0029, BLM-0030
-  - archivos: `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go`
+  - archivos: `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go`, `testdata/legacy-projection.json`, `legacy-guides.json`
 - [ ] **BLM-0032** [P] `impl` Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores
   - cubre: RF-08.1, RF-08.6 · depende de: BLM-0009
   - archivos: `internal/core/bondHistory/domain/*.go`
