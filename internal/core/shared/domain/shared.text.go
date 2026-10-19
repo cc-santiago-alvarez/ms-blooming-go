@@ -100,6 +100,10 @@ El sistema automaticamente le descontara el dinero de la cuenta <strong>{4}</str
 	TextNewWithdrawal:                  "Nuevo Retiro",
 	TextNotExist:                       "Disculpe, {0} no existe.",
 	TextFilenameReport:                 "reporte-{0}_{1}",
+
+	// textos nuevos: el legado guardaba estas claves sin haberlas definido
+	TextBondSold:               "Bono adquirido por un inversionista ({0})",
+	TextBondBoundStatusChanged: "Estado cambiado de {0} a {1}",
 }
 
 // Text devuelve la plantilla de key, o la clave misma si no está en el catálogo.

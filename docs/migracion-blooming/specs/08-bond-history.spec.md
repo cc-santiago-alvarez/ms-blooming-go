@@ -96,6 +96,8 @@ Ver RF-08.4 y RF-08.6. `FromNow(t, now)` replica los umbrales de moment:
 | < 548 d | `a year ago` |
 | resto | `N years ago` |
 
+Los límites de la tabla son aproximados. `FromNow` sigue el algoritmo de `fromNow()` de moment 2.29: redondea con `Math.round` y cuenta los meses por calendario en UTC (31 de enero + 1 mes = 28 de febrero), así que cerca de los límites de mes y año puede diferir de la tabla. Una fecha futura sale como `in …` (`in a few seconds`).
+
 ## 6. Modelo de datos
 
 ```go
