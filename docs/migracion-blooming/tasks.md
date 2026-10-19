@@ -186,7 +186,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/bondHistory/ports/bondHistory.ports.go`, `internal/core/bondHistory/domain/bondHistory.dto.domain.go` (tipo de respuesta `HistoryEntry`)
 - [ ] **BLM-0034** `impl` Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes`
   - cubre: RF-08.1, RF-08.2, RF-08.3 · depende de: BLM-0033
-  - archivos: `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go`
+  - archivos: `internal/core/bondHistory/infrastructure/mongocc/bondHistory.mongocc.repository.go`, `*.adapter.go`
 - [ ] **BLM-0035** `impl` Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go`
   - cubre: RF-08.1, RF-08.6 · depende de: BLM-0034, BLM-0005
   - archivos: `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go`
