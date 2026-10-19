@@ -21,6 +21,8 @@ const (
 	shutdownTimeout = 20 * time.Second
 	// disconnectTimeout es lo que se espera a que Mongo cierre sus conexiones.
 	disconnectTimeout = 5 * time.Second
+	// indexesTimeout es lo que se espera a que un repositorio cree sus índices al arrancar.
+	indexesTimeout = 30 * time.Second
 )
 
 // scheduler es lo que el apagado necesita del cron: deja de programar jobs y cierra el context
@@ -44,12 +46,27 @@ func InitServer() *App {
 
 	// Init domains. Un dominio va antes que los que usan su ApplicationPorts.
 	// bondHistory → bondUserSetting → bondType → bondObject → bondBound
+	initBondHistoryDomain(deps)
 
 	// Init and start cron scheduler
 
 	// Register handlers
 
 	return &App{server: server, deps: deps}
+}
+
+// indexer es un repositorio que declara sus índices.
+type indexer interface {
+	EnsureIndexes(ctx context.Context) error
+}
+
+// ensureIndexes crea los índices de un repositorio al arrancar; un fallo solo se loguea.
+func ensureIndexes(name string, repository indexer) {
+	ctx, cancel := context.WithTimeout(context.Background(), indexesTimeout)
+	defer cancel()
+	if err := repository.EnsureIndexes(ctx); err != nil {
+		log.Printf("[%s] warning: no se pudieron crear los índices: %v", name, err)
+	}
 }
 
 // Run atiende requests hasta recibir SIGINT o SIGTERM y entonces apaga el servicio ordenadamente.

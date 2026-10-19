@@ -189,7 +189,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/bondHistory/infrastructure/mongocc/bondHistory.mongocc.repository.go`, `*.adapter.go`
 - [ ] **BLM-0035** `impl` Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go`
   - cubre: RF-08.1, RF-08.6 · depende de: BLM-0034, BLM-0005
-  - archivos: `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go`
+  - archivos: `internal/core/bondHistory/application/bondHistory.add.go`, `bondHistory.application.go`, `internal/core/session/domain/session.context.go` (marca de modo sistema), `cmd/api/server/server.bondHistory.go`, `server.go`, `server.deps.go`
 - [ ] **BLM-0036** [P] `impl` Textos faltantes en el catálogo y helper `FromNow` con los umbrales de moment
   - cubre: RF-08.4, RF-08.5 · depende de: BLM-0018
   - archivos: `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go`

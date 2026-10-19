@@ -69,7 +69,7 @@ para cada lote de Repo.FindMaturable(now, 500):
     ok, err = Repo.UpdateStatusIf(b._id, from '1', to '2', set {matured: true, maturedAt: now})
     si err → log, failed++ ; continue
     si !ok → continue                          // ya no estaba en '1'
-    BondHistory.Add(systemCtx(b.agencyId), {relatedId: b._id, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2']})
+    BondHistory.Add(WithSystemAgency(ctx, b.agencyId), {relatedId: b._id, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2']})
     porUsuario[b.userId].append(b)
 para cada (userId, bonds) en porUsuario:
   Notify(userId, bonds)                         // best-effort

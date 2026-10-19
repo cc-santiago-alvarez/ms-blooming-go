@@ -35,7 +35,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
 
 - **RF-08.1** — Registro (`BondHistoryPort.Add(ctx, AddParams)`).
   - Inserta `{_id, relatedId, userId, typeId, agencyId, text, params, changes, editedProperties, createdAt, updatedAt, isRemove: false}`.
-  - `userId` y `agencyId` salen de la sesión del `ctx`. En procesos sin sesión (cron, spec 10) se guarda `userId: ""` y el `agencyId` del bono, y la presentación muestra "System".
+  - `userId` y `agencyId` salen de la sesión del `ctx`. En procesos sin sesión (cron, spec 10) se guarda `userId: ""` y el `agencyId` del bono, y la presentación muestra "System". El llamador marca ese modo sistema con `session_domain.WithSystemAgency(ctx, agencyId)`; si hay sesión, manda la sesión. Sin sesión ni esa marca, `Add` responde `ERR_BOND_HISTORY_INVALID_PARAMS`.
   - `params` vale `[]` por defecto.
   - Devuelve un error. Cada llamador decide: dentro de una transacción el error aborta (specs 04 y 05); fuera de ella se loguea (spec 02).
 - **RF-08.2** — Historial de un producto (admin). `GET /bond-objects/{id}/history` devuelve los registros con `{relatedId: id, typeId: '1', isRemove: false}` y la `agencyId` de la sesión (paridad), ordenados por `createdAt` desc, en el formato de RF-08.4.
@@ -76,7 +76,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
 
 **Cambio de contrato respecto al legado:** `listByType` recibía `{type: 'BOND'|'BOND_BOUND', relatedId}`. Ahora el tipo lo define la ruta.
 
-**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda un `typeId` distinto de `'1'`/`'2'`, `text` o `relatedId` vacíos, o un `BOND_BOUND_STATUS_CHANGED` sin exactamente dos `params`).
+**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda un `typeId` distinto de `'1'`/`'2'`, `text` o `relatedId` vacíos, o un `BOND_BOUND_STATUS_CHANGED` sin exactamente dos `params`, o si el `ctx` no tiene sesión ni modo sistema).
 
 ## 5. Reglas de negocio
 
@@ -160,7 +160,7 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 | BLM-0032 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | F2 | RF-08.1, RF-08.6 | BLM-0009 | `internal/core/bondHistory/domain/*.go`, `internal/core/shared/domain/shared.text.go` (claves `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`) |
 | BLM-0033 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0032 | `internal/core/bondHistory/ports/bondHistory.ports.go`, `internal/core/bondHistory/domain/bondHistory.dto.domain.go` (tipo de respuesta `HistoryEntry`) |
 | BLM-0034 | Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0033 | `internal/core/bondHistory/infrastructure/mongocc/bondHistory.mongocc.repository.go`, `*.adapter.go` |
-| BLM-0035 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | F2 | RF-08.1, RF-08.6 | BLM-0034, BLM-0005 | `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go` |
+| BLM-0035 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | F2 | RF-08.1, RF-08.6 | BLM-0034, BLM-0005 | `internal/core/bondHistory/application/bondHistory.add.go`, `bondHistory.application.go`, `internal/core/session/domain/session.context.go` (marca de modo sistema), `cmd/api/server/server.bondHistory.go`, `server.go`, `server.deps.go` |
 | BLM-0036 | Textos faltantes en el catálogo y helper `FromNow` con los umbrales de moment | impl | F2 | RF-08.4, RF-08.5 | BLM-0018 | `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go` |
 | BLM-0037 | Caso de uso `ListByRelated` con presentación (perfiles en lote, `Format`, nombres de estado y `FromNow`) | impl | F2 | RF-08.2, RF-08.3, RF-08.4 | BLM-0034, BLM-0017, BLM-0036 | `internal/core/bondHistory/application/bondHistory.listByRelated.go`, `bondHistory.present.go` |
 | BLM-0038 | Tests unitarios de la presentación, los textos y `FromNow` | test | F2 | CA-08.5, CA-08.6, CA-08.7 | BLM-0037, BLM-0036 | `internal/core/bondHistory/application/bondHistory.present_test.go`, `internal/core/shared/domain/shared.fromNow_test.go` |
