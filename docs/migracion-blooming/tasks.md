@@ -180,7 +180,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go`, `testdata/legacy-projection.json`, `legacy-guides.json`
 - [ ] **BLM-0032** [P] `impl` Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores
   - cubre: RF-08.1, RF-08.6 · depende de: BLM-0009
-  - archivos: `internal/core/bondHistory/domain/*.go`
+  - archivos: `internal/core/bondHistory/domain/*.go`, `internal/core/shared/domain/shared.text.go` (claves `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`)
 - [ ] **BLM-0033** `impl` Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts`
   - cubre: RF-08.1, RF-08.2, RF-08.3 · depende de: BLM-0032
   - archivos: `internal/core/bondHistory/ports/bondHistory.ports.go`

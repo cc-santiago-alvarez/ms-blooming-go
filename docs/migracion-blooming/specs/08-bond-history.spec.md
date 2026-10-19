@@ -54,7 +54,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
   Los demás textos (`BOND_ADDED`, `BOND_UPDATED`, `BOND_REMOVE`, `BOND_BOUND_SOLD`) ya existen en el legado.
 - **RF-08.6** — Estabilidad del formato persistido.
   - Los valores de `text` se guardan como **clave** (`"BOND_BOUND_STATUS_CHANGED"`), no como texto ya formateado.
-  - `params` de un cambio de estado tiene exactamente dos elementos: `[estadoAnterior, estadoNuevo]`.
+  - `params` de un cambio de estado tiene exactamente dos elementos: `[estadoAnterior, estadoNuevo]`. `Add` rechaza cualquier otro largo con `ERR_BOND_HISTORY_INVALID_PARAMS`.
   - `typeId` es `'1'` o `'2'` como string.
 
 ## 4. Contrato API
@@ -76,7 +76,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
 
 **Cambio de contrato respecto al legado:** `listByType` recibía `{type: 'BOND'|'BOND_BOUND', relatedId}`. Ahora el tipo lo define la ruta.
 
-**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda `typeId` o `text` vacíos).
+**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda un `typeId` distinto de `'1'`/`'2'`, `text` o `relatedId` vacíos, o un `BOND_BOUND_STATUS_CHANGED` sin exactamente dos `params`).
 
 ## 5. Reglas de negocio
 
@@ -157,7 +157,7 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
-| BLM-0032 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | F2 | RF-08.1, RF-08.6 | BLM-0009 | `internal/core/bondHistory/domain/*.go` |
+| BLM-0032 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | F2 | RF-08.1, RF-08.6 | BLM-0009 | `internal/core/bondHistory/domain/*.go`, `internal/core/shared/domain/shared.text.go` (claves `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`) |
 | BLM-0033 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0032 | `internal/core/bondHistory/ports/bondHistory.ports.go` |
 | BLM-0034 | Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0033 | `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go` |
 | BLM-0035 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | F2 | RF-08.1, RF-08.6 | BLM-0034, BLM-0005 | `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go` |

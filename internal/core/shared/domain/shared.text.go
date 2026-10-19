@@ -7,6 +7,8 @@ const (
 	TextBondUpdatedKey                   = "BOND_UPDATED_KEY"
 	TextBondRemove                       = "BOND_REMOVE"
 	TextBondBoundSold                    = "BOND_BOUND_SOLD"
+	TextBondSold                         = "BOND_SOLD"
+	TextBondBoundStatusChanged           = "BOND_BOUND_STATUS_CHANGED"
 	TextBondBoundPurchased               = "BOND_BOUND_PURCHASED"
 	TextBondCreated                      = "BOND_CREATED"
 	TextBondBoundSubjectPurchased        = "BOND_BOUND_SUBJECT_PURCHASED"
