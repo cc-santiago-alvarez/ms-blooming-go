@@ -19,7 +19,8 @@ type serverDeps struct {
 
 	// ====================== Adapters ======================
 	sessionVerifier shared_ports.SessionVerifier
+	profileReader   shared_ports.ProfileReader
 
 	// ====================== Applications ======================
-	bondHistoryApplication bondHistory_ports.BondHistoryPort
+	bondHistoryApplication bondHistory_ports.BondHistoryApplicationPorts
 }

@@ -13,6 +13,7 @@ import (
 	handlers_shared "github.com/futurapps/ms-blooming-go/cmd/api/handlers/shared"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
+	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 )
 
@@ -27,6 +28,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 
 	// 2. Adaptadores compartidos
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
+	deps.profileReader = &shared_mongocc_repository.ProfileMongoccRepository{DB: deps.mongoDB}
 
 	// 3. CORS
 	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)

@@ -195,7 +195,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go`
 - [ ] **BLM-0037** `impl` Caso de uso `ListByRelated` con presentación (perfiles en lote, `Format`, nombres de estado y `FromNow`)
   - cubre: RF-08.2, RF-08.3, RF-08.4 · depende de: BLM-0034, BLM-0017, BLM-0036
-  - archivos: `internal/core/bondHistory/application/bondHistory.listByRelated.go`, `bondHistory.present.go`
+  - archivos: `internal/core/bondHistory/application/bondHistory.listByRelated.go`, `bondHistory.present.go`, `bondHistory.application.go` (dependencia `ProfileReader`), `cmd/api/server/server.bondHistory.go`, `server.deps.go`, `server.config.go` (cableado del `ProfileReader`)
 - [ ] **BLM-0038** `test` Tests unitarios de la presentación, los textos y `FromNow`
   - cubre: CA-08.5, CA-08.6, CA-08.7 · depende de: BLM-0037, BLM-0036
   - archivos: `internal/core/bondHistory/application/bondHistory.present_test.go`, `internal/core/shared/domain/shared.fromNow_test.go`

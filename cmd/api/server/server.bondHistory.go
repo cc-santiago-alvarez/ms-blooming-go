@@ -13,5 +13,6 @@ func initBondHistoryDomain(deps *serverDeps) {
 
 	deps.bondHistoryApplication = &bondHistory_application.BondHistoryApplication{
 		Repository: repository,
+		Profiles:   deps.profileReader,
 	}
 }
