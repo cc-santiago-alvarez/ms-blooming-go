@@ -46,7 +46,7 @@ La cotización de venta anticipada (`preSale`) **no** está aquí; está en la s
   - Responde `{guides}`, más `data` cuando `simulation=true`.
   - Si no es visible, `ERR_BOND_OBJECT_NOT_FOUND`.
 - **RF-03.5** — Guías de un bono comprado (dueño o admin).
-  - `BuildBoundGuides(bound, utcDiff)` (función pura) usa como base `bondBound.createdAt` y los términos del snapshot `bondBound.earlyCashTerm` y `maturityTimeInDays` (§5.3).
+  - `BuildBoundGuides(terms, createdAt, utcDiff)` (función pura) usa como base `bondBound.createdAt` y los términos del snapshot `bondBound.earlyCashTerm` y `maturityTimeInDays` (§5.3).
   - Si el bono no existe, `ERR_BOND_BOUND_NOT_FOUND`. Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`.
 
 ## 4. Contrato API
