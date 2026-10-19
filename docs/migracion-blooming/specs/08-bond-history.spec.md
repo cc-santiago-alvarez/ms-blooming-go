@@ -126,7 +126,7 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 ## 7. Ports y dependencias
 
 - `bondHistory_ports.BondHistoryPort`: `Add(ctx, AddParams) error`. Es la única dependencia que importan las specs 02, 04, 05 y 10.
-- `BondHistoryApplicationPorts`: `ListByRelated(ctx, typeID, relatedID)`.
+- `BondHistoryApplicationPorts`: `ListByRelated(ctx, typeID, relatedID)`, que devuelve `[]HistoryEntry` con el formato de RF-08.4.
 - `BondHistoryMongoccRepositoryPorts`: `InsertOne`, `FindByRelated`, `EnsureIndexes`.
 - `ProfileReader` y catálogo `Text`/`Format` (spec 00).
 - RF-08.3 lo orquesta la aplicación de `bondBound` (control de dueño) llamando a `BondHistoryApplicationPorts.ListByRelated`. Así `bondHistory` no depende de `bondBound`.
@@ -158,7 +158,7 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
 | BLM-0032 | Dominio: `BondHistory`, `HistoryType`, `ChangeEntry`, `AddParams` (con `Validation`) y errores | impl | F2 | RF-08.1, RF-08.6 | BLM-0009 | `internal/core/bondHistory/domain/*.go`, `internal/core/shared/domain/shared.text.go` (claves `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`) |
-| BLM-0033 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0032 | `internal/core/bondHistory/ports/bondHistory.ports.go` |
+| BLM-0033 | Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0032 | `internal/core/bondHistory/ports/bondHistory.ports.go`, `internal/core/bondHistory/domain/bondHistory.dto.domain.go` (tipo de respuesta `HistoryEntry`) |
 | BLM-0034 | Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes` | impl | F2 | RF-08.1, RF-08.2, RF-08.3 | BLM-0033 | `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go` |
 | BLM-0035 | Caso de uso `Add`, expuesto como `BondHistoryPort` (sesión o modo sistema) e inicialización en `server.bondHistory.go` | impl | F2 | RF-08.1, RF-08.6 | BLM-0034, BLM-0005 | `internal/core/bondHistory/application/bondHistory.add.go`, `cmd/api/server/server.bondHistory.go` |
 | BLM-0036 | Textos faltantes en el catálogo y helper `FromNow` con los umbrales de moment | impl | F2 | RF-08.4, RF-08.5 | BLM-0018 | `internal/core/shared/domain/shared.text.go`, `shared.fromNow.go` |

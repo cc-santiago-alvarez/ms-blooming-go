@@ -183,7 +183,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 08](specs/08-bon
   - archivos: `internal/core/bondHistory/domain/*.go`, `internal/core/shared/domain/shared.text.go` (claves `BOND_SOLD` y `BOND_BOUND_STATUS_CHANGED`)
 - [ ] **BLM-0033** `impl` Ports: `BondHistoryPort`, `BondHistoryApplicationPorts` y `BondHistoryMongoccRepositoryPorts`
   - cubre: RF-08.1, RF-08.2, RF-08.3 · depende de: BLM-0032
-  - archivos: `internal/core/bondHistory/ports/bondHistory.ports.go`
+  - archivos: `internal/core/bondHistory/ports/bondHistory.ports.go`, `internal/core/bondHistory/domain/bondHistory.dto.domain.go` (tipo de respuesta `HistoryEntry`)
 - [ ] **BLM-0034** `impl` Repositorio: `InsertOne`, `FindByRelated` y `EnsureIndexes`
   - cubre: RF-08.1, RF-08.2, RF-08.3 · depende de: BLM-0033
   - archivos: `internal/core/bondHistory/infrastructure/mongocc/*.adapter.go`

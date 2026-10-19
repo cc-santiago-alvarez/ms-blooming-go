@@ -1,8 +1,10 @@
 package bondHistory_domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
@@ -40,4 +42,49 @@ func (p AddParams) Validation() error {
 		return fmt.Errorf("%w: %s con %d params", ErrBondHistoryInvalidParams, p.Text, len(p.Params))
 	}
 	return nil
+}
+
+// HistoryTypeRef es el tipo de un registro como lo muestra el historial.
+type HistoryTypeRef struct {
+	ID   HistoryType `json:"_id"`
+	Name string      `json:"name"`
+}
+
+// HistoryUser es el autor de un registro: el nombre de su perfil o, si no tiene, el sistema.
+type HistoryUser struct {
+	FirstName string
+	LastName  string
+	System    bool
+}
+
+// MarshalJSON escribe {first_name, last_name} o, para el sistema, {name: "System"}.
+func (u HistoryUser) MarshalJSON() ([]byte, error) {
+	if u.System {
+		return json.Marshal(struct {
+			Name string `json:"name"`
+		}{Name: "System"})
+	}
+	return json.Marshal(struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+	}{FirstName: u.FirstName, LastName: u.LastName})
+}
+
+// HistoryEntry es un registro del historial listo para mostrar: con el texto formateado y sin userId
+// ni params.
+type HistoryEntry struct {
+	ID               string                 `json:"_id"`
+	RelatedID        string                 `json:"relatedId"`
+	TypeID           HistoryType            `json:"typeId"`
+	Type             HistoryTypeRef         `json:"type"`
+	AgencyID         string                 `json:"agencyId"`
+	Text             string                 `json:"text"`
+	User             HistoryUser            `json:"user"`
+	Icon             string                 `json:"icon"`
+	Color            string                 `json:"color"`
+	BackgroundColor  string                 `json:"backgroundColor"`
+	Changes          map[string]ChangeEntry `json:"changes,omitempty"`
+	EditedProperties []string               `json:"editedProperties,omitempty"`
+	CreatedAt        time.Time              `json:"createdAt"`
+	CreatedAtFromNow string                 `json:"createdAtFromNow"`
 }
