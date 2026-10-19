@@ -16,6 +16,11 @@ func StartOfDay(t time.Time, utcDiff int) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, local.Location()).UTC()
 }
 
+// formatDate devuelve la fecha de t en la zona utcDiff (horas) con formato YYYY-MM-DD.
+func formatDate(t time.Time, utcDiff int) string {
+	return t.In(time.FixedZone("", utcDiff*3600)).Format(time.DateOnly)
+}
+
 // DaysBetween devuelve los días calendario de a hasta b en la zona utcDiff; es negativo si b es
 // anterior a a.
 func DaysBetween(a, b time.Time, utcDiff int) int {
