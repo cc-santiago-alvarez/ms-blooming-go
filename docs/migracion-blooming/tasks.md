@@ -245,7 +245,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - cubre: RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 · depende de: BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026
   - archivos: `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go`, `server.go` (registro), `cmd/api/handlers/shared/handlers.body.go` (`DecodeBody`)
 - [ ] **BLM-0051** `test` Tests unitarios de casos de uso y handlers con fakes
-  - cubre: CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 · depende de: BLM-0050
+  - cubre: CA-01.1, CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 · depende de: BLM-0050
   - archivos: `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go`
 - [ ] **BLM-0052** `impl` Casos de uso admin de consulta: `List`, `ListGroupedByType` (sin N+1), `GetByID` con `authorizedUser` seguro y `GetByIDIncludingRemoved`
   - cubre: RF-02.1, RF-02.2, RF-02.3 · depende de: BLM-0047, BLM-0017
