@@ -226,16 +226,15 @@ type BondObject struct {
   - `List`, `ListGroupedByType`, `GetByID`, `Create`, `Update`, `UpdateKeys`, `Remove`, `ListInvestors`, `ListByType`, `MostPurchased`, `Latest`.
   - `FindVisibleForPurchase(ctx, id)`, que usa la spec 04.
   - `GetByIDIncludingRemoved(ctx, id)`, que usan las specs 05 y 10 para el nombre del producto en los mensajes.
-- `BondObjectMongoccRepositoryPorts`, con un adapter por método, más `EnsureIndexes`.
+- `BondObjectMongoccRepositoryPorts`, con un adapter por método, más `EnsureIndexes`. Incluye `CountActiveByType(ctx, bondTypeIDs, userID)` y `ExistsNotRemovedByType(ctx, bondTypeID)`, que cuentan sobre `bondObject` para `BondObjectCounterPort` de la spec 01.
 - `BondBoundStatsPort`: adapter de **solo lectura** dentro de `bondObject/infrastructure/mongocc/`, que agrega sobre la colección `bondBound`:
   - `TopPurchasedObjectIDs(ctx, agencyID, limit)`
   - `InvestorsByObject(ctx, objectID, agencyScope)`
-  - `CountActiveByType(...)`, para `BondObjectCounterPort` de la spec 01.
 
   No escribe en `bondBound`.
 - `BondTypeApplicationPorts` (spec 01): `GetByID` y `GetManyByIDs`.
 - `BondHistoryPort.Add` (spec 08), `ActivityPort` y `ProfileReader` (spec 00).
-- Implementa `bondType_ports.BondObjectCounterPort` (spec 01).
+- Implementa `bondType_ports.BondObjectCounterPort` (spec 01): la aplicación delega en `CountActiveByType` y `ExistsNotRemovedByType` del repositorio.
 
 ## 8. Bugs legacy
 
@@ -271,8 +270,8 @@ type BondObject struct {
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
 | BLM-0045 | Dominio: `BondObject` (con `FlexNumber` para numéricos legacy), DTOs con defaults legacy en `Normalize()` y validaciones de §5.1, errores y `httpStatus` | impl | F3 | RF-02.4, RF-02.5 | BLM-0009, BLM-0039, BLM-0028 | `internal/core/bondObject/domain/*.go` |
-| BLM-0046 | Ports: `BondObjectApplicationPorts`, `BondObjectMongoccRepositoryPorts`, `BondBoundStatsPort` | impl | F3 | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0045 | `internal/core/bondObject/ports/bondObject.ports.go` |
-| BLM-0047 | Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`) y `EnsureIndexes` | impl | F3 | RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11 | BLM-0046 | `internal/core/bondObject/infrastructure/mongocc/*.adapter.go` |
+| BLM-0046 | Ports: `BondObjectApplicationPorts`, `BondObjectMongoccRepositoryPorts`, `BondBoundStatsPort` | impl | F3 | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0045 | `internal/core/bondObject/ports/bondObject.ports.go`, `internal/core/bondObject/domain/bondObject.dto.domain.go` (tipos de salida y `VisibleFilter`) |
+| BLM-0047 | Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`, conteos por tipo) y `EnsureIndexes` | impl | F3 | RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11, RF-01.2, RF-01.6 | BLM-0046 | `internal/core/bondObject/infrastructure/mongocc/*.adapter.go` |
 | BLM-0048 | Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01 | impl | F3 | RF-02.8, RF-02.10, RF-01.2, RF-01.6 | BLM-0047 | `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.counter.go` |
 | BLM-0052 | Casos de uso admin de consulta: `List`, `ListGroupedByType` (sin N+1), `GetByID` con `authorizedUser` seguro y `GetByIDIncludingRemoved` | impl | F3 | RF-02.1, RF-02.2, RF-02.3 | BLM-0047, BLM-0017 | `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go` |
 | BLM-0053 | Función pura `BuildChanges(old, new)` con escalares, fechas, arreglos y `earlyCashTerm.*` | impl | F3 | RF-02.5 | BLM-0045 | `internal/core/bondObject/domain/bondObject.changes.go` |

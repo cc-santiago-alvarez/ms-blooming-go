@@ -122,6 +122,48 @@ type UpdateKeysResult struct {
 	Modified int64 `json:"modified"`
 }
 
+// BondObjectDetail es el producto con los perfiles públicos de sus usuarios autorizados.
+type BondObjectDetail struct {
+	BondObject
+	AuthorizedUser []shared_domain.PublicProfile `json:"authorizedUser"`
+}
+
+// BondObjectForInvestor es un producto del listado por tipo, con la fecha de maduración si se compra hoy.
+type BondObjectForInvestor struct {
+	BondObject
+	MaturityDateEstimated time.Time `json:"maturityDateEstimated"`
+	MaturityDateFormatted string    `json:"maturityDateFormatted"`
+}
+
+// InvestorProfile son los datos del perfil que se muestran de un inversionista.
+type InvestorProfile struct {
+	PublicID  string `json:"id" bson:"id"`
+	FirstName string `json:"first_name" bson:"first_name"`
+	LastName  string `json:"last_name" bson:"last_name"`
+	Email     string `json:"email" bson:"email"`
+	Avatar    string `json:"avatar" bson:"avatar"`
+	Address   string `json:"address" bson:"address"`
+	AvatarURL string `json:"avatar_url" bson:"avatar_url"`
+}
+
+// BondObjectInvestor es un usuario con bonos vigentes de un producto y cuántos tiene.
+type BondObjectInvestor struct {
+	UserID      string          `json:"_id" bson:"_id"`
+	NumOfBounds int             `json:"numOfBounds" bson:"numOfBounds"`
+	Investor    InvestorProfile `json:"investor" bson:"investor"`
+}
+
+// VisibleFilter son los productos que ve un inversionista: no borrados, de su agencia y, si son privados,
+// solo si está autorizado. BondTypeID e IDs vacíos no filtran; Limit 0 no limita.
+type VisibleFilter struct {
+	AgencyID   string
+	UserID     string
+	BondTypeID string
+	IDs        []string
+	OnlyActive bool
+	Limit      int64
+}
+
 // uniqueIDs recorta cada id y quita los vacíos y los repetidos, conservando el orden; nunca es nil.
 func uniqueIDs(ids []string) []string {
 	out := make([]string, 0, len(ids))

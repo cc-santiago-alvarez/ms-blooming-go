@@ -231,9 +231,9 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/domain/*.go`
 - [ ] **BLM-0046** `impl` Ports: `BondObjectApplicationPorts`, `BondObjectMongoccRepositoryPorts`, `BondBoundStatsPort`
   - cubre: RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0045
-  - archivos: `internal/core/bondObject/ports/bondObject.ports.go`
-- [ ] **BLM-0047** `impl` Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`) y `EnsureIndexes`
-  - cubre: RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11 · depende de: BLM-0046
+  - archivos: `internal/core/bondObject/ports/bondObject.ports.go`, `internal/core/bondObject/domain/bondObject.dto.domain.go` (tipos de salida y `VisibleFilter`)
+- [ ] **BLM-0047** `impl` Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`, conteos por tipo) y `EnsureIndexes`
+  - cubre: RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11, RF-01.2, RF-01.6 · depende de: BLM-0046
   - archivos: `internal/core/bondObject/infrastructure/mongocc/*.adapter.go`
 - [ ] **BLM-0048** `impl` Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01
   - cubre: RF-02.8, RF-02.10, RF-01.2, RF-01.6 · depende de: BLM-0047
@@ -590,11 +590,11 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28, CA-00.39 | — |
 | 00 | RF-00.19 | BLM-0026 | BLM-0027 | CA-00.30, CA-00.31, CA-00.32 | — |
 | 01 | RF-01.1 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.1, CA-01.2 | BLM-0136 |
-| 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0048, BLM-0050 | BLM-0051, BLM-0058 | CA-01.3 | — |
+| 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0047, BLM-0048, BLM-0050 | BLM-0051, BLM-0058 | CA-01.3 | — |
 | 01 | RF-01.3 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.2, CA-01.4, CA-01.9 | — |
 | 01 | RF-01.4 | BLM-0039, BLM-0040, BLM-0043, BLM-0050 | BLM-0051 | CA-01.2, CA-01.5 | — |
 | 01 | RF-01.5 | BLM-0039, BLM-0040, BLM-0041, BLM-0043, BLM-0050 | BLM-0044, BLM-0051 | CA-01.6, CA-01.9 | — |
-| 01 | RF-01.6 | BLM-0040, BLM-0041, BLM-0048, BLM-0049, BLM-0050 | BLM-0044, BLM-0051 | CA-01.7, CA-01.9 | — |
+| 01 | RF-01.6 | BLM-0040, BLM-0041, BLM-0047, BLM-0048, BLM-0049, BLM-0050 | BLM-0044, BLM-0051 | CA-01.7, CA-01.9 | — |
 | 01 | RF-01.7 | BLM-0039 | BLM-0044 | CA-01.8 | — |
 | 02 | RF-02.1 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.1 | — |
 | 02 | RF-02.2 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.2 | — |
