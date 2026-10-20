@@ -239,8 +239,8 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - cubre: RF-02.8, RF-02.10, RF-01.2, RF-01.6 · depende de: BLM-0047
   - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.application.go`, `bondObject.counter.go`
 - [ ] **BLM-0049** `impl` Caso de uso `Remove` con guarda de bondObjects vivos y conexión `linkBondObjectToBondType`
-  - cubre: RF-01.6 · depende de: BLM-0041, BLM-0048
-  - archivos: `internal/core/bondType/application/bondType.remove.go`, `cmd/api/server/server.bondType.go`
+  - cubre: RF-01.6 · depende de: BLM-0041, BLM-0042, BLM-0043, BLM-0048
+  - archivos: `internal/core/bondType/application/bondType.remove.go`, `bondType.application.go` (aserción de `BondTypeApplicationPorts`), `cmd/api/server/server.bondType.go`, `server.bondObject.go` (inicialización mínima), `server.deps.go`, `server.go`
 - [ ] **BLM-0050** `impl` Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde)
   - cubre: RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 · depende de: BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026
   - archivos: `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go`
@@ -259,7 +259,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
 - [ ] **BLM-0055** `impl` Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase`
   - cubre: RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0048
   - archivos: `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go`
-- [ ] **BLM-0056** `impl` Handlers, registro de rutas, `server.bondObject.go` y `linkBondObjectToBondType`
+- [ ] **BLM-0056** `impl` Handlers, registro de rutas y dependencias de `server.bondObject.go`
   - cubre: RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0052, BLM-0054, BLM-0055, BLM-0007, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go`
 - [ ] **BLM-0057** `test` Tests unitarios de casos de uso y handlers con fakes

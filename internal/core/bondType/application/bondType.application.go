@@ -10,3 +10,5 @@ type BondTypeApplication struct {
 	Repository  bondType_ports.BondTypeMongoccRepositoryPorts
 	BondObjects bondType_ports.BondObjectCounterPort
 }
+
+var _ bondType_ports.BondTypeApplicationPorts = (*BondTypeApplication)(nil)
