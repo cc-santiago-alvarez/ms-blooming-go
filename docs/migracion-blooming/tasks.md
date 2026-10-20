@@ -217,9 +217,9 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
 - [ ] **BLM-0041** `impl` Repositorio mongocc (un archivo por método) y `EnsureIndexes`
   - cubre: RF-01.1, RF-01.2, RF-01.3, RF-01.5, RF-01.6 · depende de: BLM-0040
   - archivos: `internal/core/bondType/infrastructure/mongocc/*.adapter.go`
-- [ ] **BLM-0042** `impl` Casos de uso `List`, `ListActive` (con `numOfBonds`) y `GetByID`
+- [ ] **BLM-0042** `impl` Casos de uso `List`, `ListActive` (con `numOfBonds`), `GetByID` y `GetManyByIDs`
   - cubre: RF-01.1, RF-01.2, RF-01.3 · depende de: BLM-0041
-  - archivos: `internal/core/bondType/application/bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go`
+  - archivos: `internal/core/bondType/application/bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go`, `bondType.getManyByIds.go`
 - [ ] **BLM-0043** `impl` Casos de uso `Create` y `Update`
   - cubre: RF-01.4, RF-01.5 · depende de: BLM-0041
   - archivos: `internal/core/bondType/application/bondType.create.go`, `bondType.update.go`
