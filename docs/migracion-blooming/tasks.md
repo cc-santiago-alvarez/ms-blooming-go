@@ -223,8 +223,8 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
 - [ ] **BLM-0043** `impl` Casos de uso `Create` y `Update`
   - cubre: RF-01.4, RF-01.5 · depende de: BLM-0041
   - archivos: `internal/core/bondType/application/bondType.create.go`, `bondType.update.go`
-- [ ] **BLM-0044** `test` Tests de integración del repositorio (filtros por agencia, `AgencyIDs` legacy, agregación de `numOfBonds`)
-  - cubre: CA-01.1, CA-01.3, CA-01.8, CA-01.9 · depende de: BLM-0041
+- [ ] **BLM-0044** `test` Tests de integración del repositorio (filtros por agencia, `AgencyIDs` legacy e ids Meteor)
+  - cubre: CA-01.1, CA-01.8, CA-01.9 · depende de: BLM-0041
   - archivos: `internal/core/bondType/infrastructure/mongocc/*_integration_test.go`
 - [ ] **BLM-0045** `impl` Dominio: `BondObject` (con `FlexNumber` para numéricos legacy), DTOs con defaults legacy en `Normalize()` y validaciones de §5.1, errores y `httpStatus`
   - cubre: RF-02.4, RF-02.5 · depende de: BLM-0009, BLM-0039, BLM-0028
@@ -266,7 +266,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - cubre: CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 · depende de: BLM-0056
   - archivos: `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go`
 - [ ] **BLM-0058** `test` Tests de integración del repositorio y de las agregaciones
-  - cubre: CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 · depende de: BLM-0047, BLM-0048
+  - cubre: CA-01.3, CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 · depende de: BLM-0047, BLM-0048
   - archivos: `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go`
 - [ ] **BLM-0059** `test` Test de tabla de `BuildChanges`
   - cubre: CA-02.6 · depende de: BLM-0053
@@ -590,7 +590,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28, CA-00.39 | — |
 | 00 | RF-00.19 | BLM-0026 | BLM-0027 | CA-00.30, CA-00.31, CA-00.32 | — |
 | 01 | RF-01.1 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.1, CA-01.2 | BLM-0136 |
-| 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0048, BLM-0050 | BLM-0044, BLM-0051 | CA-01.3 | — |
+| 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0048, BLM-0050 | BLM-0051, BLM-0058 | CA-01.3 | — |
 | 01 | RF-01.3 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.2, CA-01.4, CA-01.9 | — |
 | 01 | RF-01.4 | BLM-0039, BLM-0040, BLM-0043, BLM-0050 | BLM-0051 | CA-01.2, CA-01.5 | — |
 | 01 | RF-01.5 | BLM-0039, BLM-0040, BLM-0041, BLM-0043, BLM-0050 | BLM-0044, BLM-0051 | CA-01.6, CA-01.9 | — |

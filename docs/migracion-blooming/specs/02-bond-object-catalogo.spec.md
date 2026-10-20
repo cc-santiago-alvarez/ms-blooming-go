@@ -280,7 +280,7 @@ type BondObject struct {
 | BLM-0055 | Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase` | impl | F3 | RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0048 | `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go` |
 | BLM-0056 | Handlers, registro de rutas, `server.bondObject.go` y `linkBondObjectToBondType` | impl | F3 | RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 | BLM-0052, BLM-0054, BLM-0055, BLM-0007, BLM-0026 | `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go` |
 | BLM-0057 | Tests unitarios de casos de uso y handlers con fakes | test | F3 | CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 | BLM-0056 | `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go` |
-| BLM-0058 | Tests de integración del repositorio y de las agregaciones | test | F3 | CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 | BLM-0047, BLM-0048 | `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go` |
+| BLM-0058 | Tests de integración del repositorio y de las agregaciones | test | F3 | CA-01.3, CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 | BLM-0047, BLM-0048 | `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0059 | Test de tabla de `BuildChanges` | test | F3 | CA-02.6 | BLM-0053 | `internal/core/bondObject/domain/bondObject.changes_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
