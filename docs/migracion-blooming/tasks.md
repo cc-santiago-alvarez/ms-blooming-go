@@ -219,7 +219,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondType/infrastructure/mongocc/bondType.mongocc.repository.go`, `*.adapter.go`
 - [ ] **BLM-0042** `impl` Casos de uso `List`, `ListActive` (con `numOfBonds`), `GetByID` y `GetManyByIDs`
   - cubre: RF-01.1, RF-01.2, RF-01.3 · depende de: BLM-0041
-  - archivos: `internal/core/bondType/application/bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go`, `bondType.getManyByIds.go`
+  - archivos: `internal/core/bondType/application/bondType.application.go`, `bondType.list.go`, `bondType.listActive.go`, `bondType.getById.go`, `bondType.getManyByIds.go`
 - [ ] **BLM-0043** `impl` Casos de uso `Create` y `Update`
   - cubre: RF-01.4, RF-01.5 · depende de: BLM-0041
   - archivos: `internal/core/bondType/application/bondType.create.go`, `bondType.update.go`
