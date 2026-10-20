@@ -234,7 +234,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/ports/bondObject.ports.go`, `internal/core/bondObject/domain/bondObject.dto.domain.go` (tipos de salida y `VisibleFilter`)
 - [ ] **BLM-0047** `impl` Repositorio mongocc (`find`, agregación agrupada con `$lookup`, filtro de privados, `updateMany` de claves, `softDelete`, conteos por tipo) y `EnsureIndexes`
   - cubre: RF-02.1, RF-02.2, RF-02.6, RF-02.7, RF-02.9, RF-02.11, RF-01.2, RF-01.6 · depende de: BLM-0046
-  - archivos: `internal/core/bondObject/infrastructure/mongocc/*.adapter.go`
+  - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.mongocc.repository.go`, `*.adapter.go`
 - [ ] **BLM-0048** `impl` Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01
   - cubre: RF-02.8, RF-02.10, RF-01.2, RF-01.6 · depende de: BLM-0047
   - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.counter.go`
