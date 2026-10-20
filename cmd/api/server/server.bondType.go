@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/codecraftkit/nexus"
+	bondTypes_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondTypes"
 	bondType_application "github.com/futurapps/ms-blooming-go/internal/core/bondType/application"
 	bondType_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondType/infrastructure/mongocc"
 )
@@ -20,4 +22,9 @@ func initBondTypeDomain(deps *serverDeps) {
 // init porque cada dominio necesita al otro: bondObject valida tipos y bondType cuenta productos.
 func linkBondObjectToBondType(deps *serverDeps) {
 	deps.bondTypeApplication.BondObjects = deps.bondObjectApplication
+}
+
+// registerBondTypeHandlers registra las rutas de /bond-types.
+func registerBondTypeHandlers(server *nexus.Server, deps *serverDeps) {
+	bondTypes_handlers.NewBondTypesHandler(server, deps.bondTypeApplication)
 }

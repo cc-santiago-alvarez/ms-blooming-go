@@ -167,7 +167,7 @@ type BondType struct {
 | BLM-0043 | Casos de uso `Create` y `Update` | impl | F3 | RF-01.4, RF-01.5 | BLM-0041 | `internal/core/bondType/application/bondType.create.go`, `bondType.update.go` |
 | BLM-0044 | Tests de integración del repositorio (filtros por agencia, `AgencyIDs` legacy e ids Meteor) | test | F3 | CA-01.1, CA-01.8, CA-01.9 | BLM-0041 | `internal/core/bondType/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0049 | Caso de uso `Remove` con guarda de bondObjects vivos y conexión `linkBondObjectToBondType` | impl | F3 | RF-01.6 | BLM-0041, BLM-0042, BLM-0043, BLM-0048 | `internal/core/bondType/application/bondType.remove.go`, `bondType.application.go` (aserción de `BondTypeApplicationPorts`), `cmd/api/server/server.bondType.go`, `server.bondObject.go` (inicialización mínima), `server.deps.go`, `server.go` |
-| BLM-0050 | Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde) | impl | F3 | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026 | `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go` |
+| BLM-0050 | Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde) | impl | F3 | RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 | BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026 | `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go`, `server.go` (registro), `cmd/api/handlers/shared/handlers.body.go` (`DecodeBody`) |
 | BLM-0051 | Tests unitarios de casos de uso y handlers con fakes | test | F3 | CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 | BLM-0050 | `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas

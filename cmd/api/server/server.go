@@ -55,6 +55,7 @@ func InitServer() *App {
 	// Init and start cron scheduler
 
 	// Register handlers
+	registerBondTypeHandlers(server, deps)
 
 	return &App{server: server, deps: deps}
 }

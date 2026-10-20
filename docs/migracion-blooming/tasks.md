@@ -243,7 +243,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondType/application/bondType.remove.go`, `bondType.application.go` (aserción de `BondTypeApplicationPorts`), `cmd/api/server/server.bondType.go`, `server.bondObject.go` (inicialización mínima), `server.deps.go`, `server.go`
 - [ ] **BLM-0050** `impl` Handlers y registro de rutas (con `RequireBloomingAdmin` donde corresponde)
   - cubre: RF-01.1, RF-01.2, RF-01.3, RF-01.4, RF-01.5, RF-01.6 · depende de: BLM-0042, BLM-0043, BLM-0049, BLM-0007, BLM-0026
-  - archivos: `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go`
+  - archivos: `cmd/api/handlers/bondTypes/*.go`, `cmd/api/server/server.bondType.go`, `server.go` (registro), `cmd/api/handlers/shared/handlers.body.go` (`DecodeBody`)
 - [ ] **BLM-0051** `test` Tests unitarios de casos de uso y handlers con fakes
   - cubre: CA-01.2, CA-01.3, CA-01.4, CA-01.5, CA-01.6, CA-01.7 · depende de: BLM-0050
   - archivos: `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go`
