@@ -237,7 +237,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.mongocc.repository.go`, `*.adapter.go`
 - [ ] **BLM-0048** `impl` Adapter de solo lectura `BondBoundStatsPort` e implementación de `BondObjectCounterPort` para la spec 01
   - cubre: RF-02.8, RF-02.10, RF-01.2, RF-01.6 · depende de: BLM-0047
-  - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.counter.go`
+  - archivos: `internal/core/bondObject/infrastructure/mongocc/bondObject.bondBoundStats.adapter.go`, `internal/core/bondObject/application/bondObject.application.go`, `bondObject.counter.go`
 - [ ] **BLM-0049** `impl` Caso de uso `Remove` con guarda de bondObjects vivos y conexión `linkBondObjectToBondType`
   - cubre: RF-01.6 · depende de: BLM-0041, BLM-0048
   - archivos: `internal/core/bondType/application/bondType.remove.go`, `cmd/api/server/server.bondType.go`
