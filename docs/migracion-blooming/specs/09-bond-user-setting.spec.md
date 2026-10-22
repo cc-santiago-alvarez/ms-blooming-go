@@ -70,6 +70,7 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
   - Paginado (RF-00.18) y ordenado por `createdAt` desc.
 - **RF-09.7** — Detalle de administración. Devuelve el setting por `_id` con `isRemove: false`; si no existe, `ERR_BOND_USER_SETTING_NOT_FOUND`.
 - **RF-09.8** — Baja de administración. Soft delete por `_id`.
+- RF-09.7 y RF-09.8 aplican `AgencyScope`, igual que el listado (constitución §6). Para un admin de una agencia no principal, un setting de otra agencia es `ERR_BOND_USER_SETTING_NOT_FOUND`: no puede leer su `selectedAccountId` ni borrarlo.
 - **RF-09.9** — Sincronización interna desde Meteor.
   - `PUT /internal/bond-user-settings/{userId}/selected-account` con `{selectedAccountId}`. Solo requiere `x-secret` (`NoRequiresAuthentication`).
   - Actualiza `selectedAccountId` **solo si el setting de ese `userId` existe**. Es paridad con `balanceAccount.insert`, que solo llama si encuentra el setting.
@@ -176,7 +177,7 @@ Hay settings legacy con `userId` guardado como ObjectId. Se leen con su hex como
 - **CA-09.6** (RF-09.3, RF-09.4, RF-09.5) — Sin setting previo, cualquiera de los tres `PATCH` lo crea y responde `200`, sin `TypeError`.
 - **CA-09.7** (RF-09.5) — `language: ""` o `language: "español"` responde `400 ERR_INVALID_LANGUAGE`.
 - **CA-09.8** (RF-09.6) — Un admin de una agencia no principal ve solo los settings de su agencia, paginados. Un no admin recibe `403`.
-- **CA-09.9** (RF-09.7, RF-09.8) — `GET` y `DELETE /bond-user-settings/{id}` sobre un id inexistente responden `404`. `DELETE` deja `isRemove: true`.
+- **CA-09.9** (RF-09.7, RF-09.8) — `GET` y `DELETE /bond-user-settings/{id}` sobre un id inexistente responden `404`. `DELETE` deja `isRemove: true`. Un admin de una agencia no principal recibe `404` en `GET` y `DELETE` de un setting de otra agencia, y el setting no se borra.
 - **CA-09.10** (RF-09.9) — `PUT /internal/bond-user-settings/u1/selected-account` con `x-secret` válido y sin `x-token` actualiza el setting de u1 y responde `{updated: true}`. Si u1 no tiene setting responde `{updated: false}` y no crea nada. Sin `x-secret` responde `401`.
 - **CA-09.11** (RF-09.10) — `GetByUser` de un usuario sin setting devuelve `nil` y no crea nada.
 - **CA-09.12** (RF-09.1, RF-09.3) — Dado un setting legacy (`_id` de 17 caracteres) para el usuario, `GET /me` lo devuelve sin crear otro, y `PATCH /me/selected-account` lo actualiza conservando su `_id`.
