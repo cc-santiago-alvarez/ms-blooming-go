@@ -23,12 +23,13 @@ type BondObjectApplicationPorts interface {
 	// agencias. Un agencyID inválido es ErrInvalidID.
 	List(ctx context.Context, agencyIDs []string) ([]*bondObject_domain.BondObject, error)
 	// ListGroupedByType agrupa por tipo los productos del alcance de la sesión; agencyIDs solo filtra si
-	// la agencia de la sesión es la principal.
+	// la agencia de la sesión es la principal. Un agencyID inválido es ErrInvalidID.
 	ListGroupedByType(ctx context.Context, agencyIDs []string) ([]BondObjectGroup, error)
 	// GetByID devuelve el producto no borrado con los perfiles públicos de sus autorizados, o
-	// ErrBondObjectNotFound.
+	// ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
 	GetByID(ctx context.Context, id string) (*bondObject_domain.BondObjectDetail, error)
-	// GetByIDIncludingRemoved devuelve el producto aunque esté borrado, o ErrBondObjectNotFound.
+	// GetByIDIncludingRemoved devuelve el producto aunque esté borrado, o ErrBondObjectNotFound. Un id
+	// inválido es ErrInvalidID.
 	GetByIDIncludingRemoved(ctx context.Context, id string) (*bondObject_domain.BondObject, error)
 	// Create normaliza y valida p, guarda el producto y devuelve el creado.
 	Create(ctx context.Context, p bondObject_domain.CreateParams) (*bondObject_domain.BondObject, error)

@@ -249,7 +249,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondType/application/*_test.go`, `cmd/api/handlers/bondTypes/*_test.go`
 - [ ] **BLM-0052** `impl` Casos de uso admin de consulta: `List`, `ListGroupedByType` (sin N+1), `GetByID` con `authorizedUser` seguro y `GetByIDIncludingRemoved`
   - cubre: RF-02.1, RF-02.2, RF-02.3 · depende de: BLM-0047, BLM-0017
-  - archivos: `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go`
+  - archivos: `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go`, `bondObject.getByIdIncludingRemoved.go`, `bondObject.application.go` (dependencia `ProfileReader`), `cmd/api/server/server.bondObject.go` (cableado del `ProfileReader`)
 - [ ] **BLM-0053** `impl` Función pura `BuildChanges(old, new)` con escalares, fechas, arreglos y `earlyCashTerm.*`
   - cubre: RF-02.5 · depende de: BLM-0045
   - archivos: `internal/core/bondObject/domain/bondObject.changes.go`
