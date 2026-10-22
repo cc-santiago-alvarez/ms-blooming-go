@@ -42,15 +42,19 @@ type BondObjectApplicationPorts interface {
 	// Remove borra el producto de forma lógica, o devuelve ErrBondObjectNotFound. Un id inválido es
 	// ErrInvalidID.
 	Remove(ctx context.Context, id string) error
-	// ListInvestors devuelve los usuarios con bonos vigentes del producto, en el alcance de la sesión.
+	// ListInvestors devuelve los usuarios con bonos vigentes del producto, en el alcance de la sesión. Un
+	// id inválido es ErrInvalidID.
 	ListInvestors(ctx context.Context, id string) ([]bondObject_domain.BondObjectInvestor, error)
-	// ListByType devuelve los productos activos del tipo que ve la sesión, con su fecha de maduración.
+	// ListByType devuelve los productos activos del tipo que ve la sesión, con su fecha de maduración. Un
+	// bondTypeId inválido es ErrInvalidID.
 	ListByType(ctx context.Context, bondTypeID string) ([]bondObject_domain.BondObjectForInvestor, error)
-	// MostPurchased devuelve los productos más comprados en la agencia de la sesión que ella puede ver.
+	// MostPurchased devuelve los productos más comprados en la agencia de la sesión que ella puede ver;
+	// un privado donde no está autorizada no aparece ni se reemplaza.
 	MostPurchased(ctx context.Context) ([]*bondObject_domain.BondObject, error)
 	// Latest devuelve los últimos productos publicados que ve la sesión.
 	Latest(ctx context.Context) ([]*bondObject_domain.BondObject, error)
 	// FindVisibleForPurchase devuelve el producto no borrado, de cualquier agencia, o nil si no existe.
+	// Un id inválido es ErrInvalidID.
 	FindVisibleForPurchase(ctx context.Context, id string) (*bondObject_domain.BondObject, error)
 }
 

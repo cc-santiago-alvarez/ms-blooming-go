@@ -9,9 +9,12 @@ import (
 
 // BondObjectApplication implementa los casos de uso de bondObject.
 type BondObjectApplication struct {
-	Repository bondObject_ports.BondObjectMongoccRepositoryPorts
-	BondTypes  bondType_ports.BondTypeApplicationPorts
-	History    bondHistory_ports.BondHistoryPort
-	Activity   shared_ports.ActivityPort
-	Profiles   shared_ports.ProfileReader
+	Repository     bondObject_ports.BondObjectMongoccRepositoryPorts
+	BondBoundStats bondObject_ports.BondBoundStatsPort
+	BondTypes      bondType_ports.BondTypeApplicationPorts
+	History        bondHistory_ports.BondHistoryPort
+	Activity       shared_ports.ActivityPort
+	Profiles       shared_ports.ProfileReader
 }
+
+var _ bondObject_ports.BondObjectApplicationPorts = (*BondObjectApplication)(nil)

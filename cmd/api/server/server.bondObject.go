@@ -11,10 +11,11 @@ func initBondObjectDomain(deps *serverDeps) {
 	ensureIndexes("bondObject", repository)
 
 	deps.bondObjectApplication = &bondObject_application.BondObjectApplication{
-		Repository: repository,
-		BondTypes:  deps.bondTypeApplication,
-		History:    deps.bondHistoryApplication,
-		Activity:   deps.activityPort,
-		Profiles:   deps.profileReader,
+		Repository:     repository,
+		BondBoundStats: &bondObject_mongocc_repository.BondBoundStatsMongoccRepository{DB: deps.mongoDB},
+		BondTypes:      deps.bondTypeApplication,
+		History:        deps.bondHistoryApplication,
+		Activity:       deps.activityPort,
+		Profiles:       deps.profileReader,
 	}
 }

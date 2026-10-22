@@ -258,7 +258,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/application/bondObject.create.go`, `bondObject.update.go`, `bondObject.updateKeys.go`, `bondObject.remove.go`, `bondObject.history.go`, `bondObject.application.go` (dependencias), `bondObject.getById.go` (`findNotRemoved`), `cmd/api/server/server.bondObject.go`, `server.deps.go`, `server.config.go` (cableado de `ActivityPort`)
 - [ ] **BLM-0055** `impl` Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase`
   - cubre: RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0048
-  - archivos: `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go`
+  - archivos: `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go`, `bondObject.findVisibleForPurchase.go`, `bondObject.application.go` (dependencia `BondBoundStatsPort` y aserción del port), `internal/core/bondObject/domain/bondObject.maturity.go`, `cmd/api/server/server.bondObject.go` (cableado)
 - [ ] **BLM-0056** `impl` Handlers, registro de rutas y dependencias de `server.bondObject.go`
   - cubre: RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0052, BLM-0054, BLM-0055, BLM-0007, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go`
