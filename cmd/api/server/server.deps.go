@@ -6,6 +6,7 @@ import (
 	bondHistory_ports "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/ports"
 	bondObject_application "github.com/futurapps/ms-blooming-go/internal/core/bondObject/application"
 	bondType_application "github.com/futurapps/ms-blooming-go/internal/core/bondType/application"
+	bondUserSetting_ports "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/ports"
 	shared_ports "github.com/futurapps/ms-blooming-go/internal/core/shared/ports"
 )
 
@@ -23,9 +24,13 @@ type serverDeps struct {
 	sessionVerifier shared_ports.SessionVerifier
 	profileReader   shared_ports.ProfileReader
 	activityPort    shared_ports.ActivityPort
+	// transactionRunner es el mismo que usa balancePort, para que sus escrituras se sumen a la transacción.
+	transactionRunner shared_ports.TransactionRunnerPort
+	balancePort       shared_ports.BalancePort
 
 	// ====================== Applications ======================
-	bondHistoryApplication bondHistory_ports.BondHistoryApplicationPorts
+	bondHistoryApplication     bondHistory_ports.BondHistoryApplicationPorts
+	bondUserSettingApplication bondUserSetting_ports.BondUserSettingApplicationPorts
 	// bondType y bondObject se guardan concretos para que linkBondObjectToBondType pueda conectarlos.
 	bondTypeApplication   *bondType_application.BondTypeApplication
 	bondObjectApplication *bondObject_application.BondObjectApplication

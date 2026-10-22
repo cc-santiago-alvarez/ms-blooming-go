@@ -47,6 +47,7 @@ func InitServer() *App {
 	// Init domains. Un dominio va antes que los que usan su ApplicationPorts.
 	// bondHistory → bondUserSetting → bondType → bondObject → bondBound
 	initBondHistoryDomain(deps)
+	initBondUserSettingDomain(deps)
 	initBondTypeDomain(deps)
 	initBondObjectDomain(deps)
 	// bondType y bondObject se usan mutuamente: se conectan cuando los dos existen
@@ -57,6 +58,7 @@ func InitServer() *App {
 	// Register handlers
 	registerBondTypeHandlers(server, deps)
 	registerBondObjectHandlers(server, deps)
+	registerBondUserSettingHandlers(server, deps)
 
 	return &App{server: server, deps: deps}
 }

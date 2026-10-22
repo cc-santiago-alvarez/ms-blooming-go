@@ -13,6 +13,7 @@ import (
 	handlers_shared "github.com/futurapps/ms-blooming-go/cmd/api/handlers/shared"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
+	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 )
@@ -30,6 +31,12 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
 	deps.profileReader = &shared_mongocc_repository.ProfileMongoccRepository{DB: deps.mongoDB}
 	deps.activityPort = &shared_mongocc_repository.ActivityMongoccRepository{DB: deps.mongoDB}
+	deps.transactionRunner = &shared_mongocc_repository.TransactionRunner{DB: deps.mongoDB}
+	deps.balancePort = &shared_mongocc_repository.BalanceMongoccRepository{
+		DB:    deps.mongoDB,
+		Tx:    deps.transactionRunner,
+		Utils: utils_adapters.NewUtils(),
+	}
 
 	// 3. CORS
 	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)

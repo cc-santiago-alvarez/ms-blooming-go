@@ -315,7 +315,7 @@ Specs: [spec 09](specs/09-bond-user-setting.spec.md).
   - archivos: `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `bondUserSetting.application.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.handler.go`, `bondUserSettings.internalSelectedAccount.put.go`
 - [ ] **BLM-0071** `impl` Handlers y `server.bondUserSetting.go`
   - cubre: RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 · depende de: BLM-0067, BLM-0068, BLM-0069, BLM-0026
-  - archivos: `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/server/server.bondUserSetting.go`
+  - archivos: `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/handlers/shared/handlers.pagination.go`, `cmd/api/server/server.bondUserSetting.go`, `server.go`, `server.deps.go`, `server.config.go`
 - [ ] **BLM-0072** `impl` **(repo backend, Meteor)** `balanceAccount.insert` llama por HTTP al endpoint interno en lugar de `Caller.call('bondUserSetting.setSelectedAccount')`
   - cubre: RF-09.9 · depende de: BLM-0070
   - archivos: `backend/server/model/balance.account.js`
