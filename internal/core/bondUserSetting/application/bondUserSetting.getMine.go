@@ -21,12 +21,11 @@ func (app *BondUserSettingApplication) GetMine(ctx context.Context) (*bondUserSe
 		return nil, err
 	}
 	if s == nil {
-		accountID, err := app.FirstAccount.FirstAccountID(ctx, session.UserID, session.AgencyID)
+		defaults, err := app.newSetting(ctx, session)
 		if err != nil {
 			return nil, err
 		}
-		s, err = app.Repository.UpsertDefault(ctx, bondUserSetting_domain.NewBondUserSetting(session.UserID, session.AgencyID, accountID))
-		if err != nil {
+		if s, err = app.Repository.UpsertDefault(ctx, defaults); err != nil {
 			return nil, err
 		}
 	}

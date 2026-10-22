@@ -306,7 +306,7 @@ Specs: [spec 09](specs/09-bond-user-setting.spec.md).
   - archivos: `internal/core/bondUserSetting/application/bondUserSetting.application.go`, `bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go`
 - [ ] **BLM-0068** `impl` Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert
   - cubre: RF-09.3, RF-09.4, RF-09.5 · depende de: BLM-0065, BLM-0012
-  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.set*.go`
+  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.set*.go`, `bondUserSetting.application.go`, `bondUserSetting.getMine.go`
 - [ ] **BLM-0069** `impl` Casos de uso admin `List`, `GetByID` y `Remove`
   - cubre: RF-09.6, RF-09.7, RF-09.8 · depende de: BLM-0065, BLM-0007
   - archivos: `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go`
