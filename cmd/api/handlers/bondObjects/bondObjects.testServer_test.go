@@ -33,7 +33,20 @@ const (
 		`"earlyCashTerm":{"initialPenaltyPercentage":100,"inflectionPoint":90,"initialDayForWithdraw":30}}`
 )
 
-var admin = &session_domain.UserSession{UserID: "admin-1", AgencyID: agencyA, AdminBlooming: true}
+const (
+	// legacyObjectID es un _id Meteor de 17 caracteres.
+	legacyObjectID = "Bd9Xc4Vn7Mz2Lk5Jh"
+
+	// previewBody son los términos de un producto sin guardar, con simulación.
+	previewBody = `{"amount":1000.5,"maturityTimeInDays":365,"maturityRewardsPercentage":15,` +
+		`"earlyCashTerm":{"initialPenaltyPercentage":100,"inflectionPoint":90,"inflectionPenaltyPercentage":75,` +
+		`"initialDayForWithdraw":30},"simulation":true}`
+)
+
+var (
+	admin    = &session_domain.UserSession{UserID: "admin-1", AgencyID: agencyA, AdminBlooming: true}
+	investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
+)
 
 // fakeApp responde lo configurado y registra con qué la llamó el handler.
 type fakeApp struct {
@@ -41,11 +54,27 @@ type fakeApp struct {
 
 	object *bondObject_domain.BondObject
 	detail *bondObject_domain.BondObjectDetail
+	chart  bondObject_domain.BondObjectChart
 	err    error
 
-	calls  []string
-	id     string
-	params bondObject_domain.CreateParams
+	calls      []string
+	id         string
+	params     bondObject_domain.CreateParams
+	preview    bondObject_domain.ChartPreviewParams
+	simulation bool
+}
+
+func (a *fakeApp) ChartPreview(_ context.Context, p bondObject_domain.ChartPreviewParams) (bondObject_domain.BondObjectChart, error) {
+	a.calls = append(a.calls, "ChartPreview")
+	a.preview = p
+	return a.chart, a.err
+}
+
+func (a *fakeApp) ChartByID(_ context.Context, id string, simulation bool) (bondObject_domain.BondObjectChart, error) {
+	a.calls = append(a.calls, "ChartByID")
+	a.id = id
+	a.simulation = simulation
+	return a.chart, a.err
 }
 
 func (a *fakeApp) GetByID(_ context.Context, id string) (*bondObject_domain.BondObjectDetail, error) {
@@ -153,4 +182,22 @@ func sample() *bondObject_domain.BondObject {
 		CreatedAt: createdAt,
 		UpdatedAt: createdAt,
 	}
+}
+
+// sampleChart es una gráfica con la guía de crecimiento y, con data, dos días de simulación.
+func sampleChart(data bool) bondObject_domain.BondObjectChart {
+	thickness := 1.5
+	chart := bondObject_domain.BondObjectChart{Guides: []shared_domain.ChartGuide{{
+		Date:          "2027-01-11",
+		LineColor:     "#CC0000",
+		LineThickness: &thickness,
+		Label:         "Punto de Crecimiento",
+	}}}
+	if data {
+		chart.Data = []shared_domain.ChartPoint{
+			{Date: "2026-10-13", Inversion: 1000},
+			{Date: "2026-10-14", Inversion: 1000},
+		}
+	}
+	return chart
 }

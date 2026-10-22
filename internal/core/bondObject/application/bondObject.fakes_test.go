@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,6 +30,9 @@ const (
 	otherObjectID = "1b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e"
 	missingID     = "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"
 	typeID        = "3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f"
+
+	// legacyObjectID es un _id Meteor de 17 caracteres.
+	legacyObjectID = "Bd9Xc4Vn7Mz2Lk5Jh"
 )
 
 // storedAt es la fecha de alta de los productos que ya están guardados.
@@ -41,9 +45,39 @@ type fakeRepository struct {
 	objects map[string]*bondObject_domain.BondObject
 
 	reads    []string
+	visible  []bondObject_domain.VisibleFilter
 	inserted []bondObject_domain.BondObject
 	updated  []bondObject_domain.BondObject
 	deleted  []string
+}
+
+// FindVisible aplica el filtro en memoria como el adapter: no borrados, de la agencia, privados solo
+// donde UserID está autorizado, del más reciente al más antiguo. Registra cada filtro.
+func (r *fakeRepository) FindVisible(_ context.Context, f bondObject_domain.VisibleFilter) ([]*bondObject_domain.BondObject, error) {
+	r.visible = append(r.visible, f)
+	out := []*bondObject_domain.BondObject{}
+	for _, o := range r.objects {
+		switch {
+		case o.IsRemove, !slices.Contains(o.AgencyID, f.AgencyID):
+		case o.IsPrivateBond && !slices.Contains(o.AuthorizedUserIDs, f.UserID):
+		case f.BondTypeID != "" && o.BondTypeID != f.BondTypeID:
+		case len(f.IDs) > 0 && !slices.Contains(f.IDs, o.ID):
+		case f.OnlyActive && !o.Active:
+		default:
+			found := *o
+			out = append(out, &found)
+		}
+	}
+	slices.SortFunc(out, func(a, b *bondObject_domain.BondObject) int {
+		if c := b.CreatedAt.Compare(a.CreatedAt); c != 0 {
+			return c
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
+	if f.Limit > 0 && int64(len(out)) > f.Limit {
+		out = out[:f.Limit]
+	}
+	return out, nil
 }
 
 // FindOneByID devuelve una copia del producto, o nil si no existe o está borrado.
@@ -187,6 +221,15 @@ func (f *fakes) app() *bondObject_application.BondObjectApplication {
 // withSession es un context con la sesión de userID en agencyID.
 func withSession(userID, agencyID string) context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{UserID: userID, AgencyID: agencyID})
+}
+
+// withAdmin es un context con la sesión de un admin de Blooming en agencyID.
+func withAdmin(agencyID string) context.Context {
+	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
+		UserID:        "adminAAAAAAAAAAAA",
+		AgencyID:      agencyID,
+		AdminBlooming: true,
+	})
 }
 
 // storedObject es un producto válido de la agencia A guardado el 10 de enero.

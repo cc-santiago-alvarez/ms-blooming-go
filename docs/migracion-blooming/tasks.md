@@ -278,8 +278,8 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - cubre: RF-03.3, RF-03.4 · depende de: BLM-0060, BLM-0056, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go`, `bondObjects.handler.go` (registro de las rutas)
 - [ ] **BLM-0062** `test` Tests de casos de uso y handlers de la proyección de bondObject (permisos, visibilidad, validación)
-  - cubre: CA-03.6, CA-03.7, CA-03.9 · depende de: BLM-0061
-  - archivos: `internal/core/bondObject/application/bondObject.chart*_test.go`, `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go`
+  - cubre: CA-03.6, CA-03.7, CA-03.9, CA-03.10 · depende de: BLM-0061
+  - archivos: `internal/core/bondObject/application/bondObject.chart*_test.go`, `bondObject.fakes_test.go` (`FindVisible` en memoria), `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go`, `bondObjects.testServer_test.go` (`ChartPreview` y `ChartByID` en `fakeApp`), `internal/core/bondObject/infrastructure/mongocc/bondObject.chart_integration_test.go`
 - [ ] **BLM-0063** `impl` Handler `GET /bond-objects/{id}/history` (admin)
   - cubre: RF-08.2 · depende de: BLM-0037, BLM-0056, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/bondObjects.history.get.go`
@@ -609,7 +609,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 02 | RF-02.11 | BLM-0046, BLM-0047, BLM-0055, BLM-0056 | BLM-0058 | CA-02.13 | — |
 | 03 | RF-03.1 | BLM-0028, BLM-0029 | BLM-0031, BLM-0125 | CA-03.1, CA-03.2, CA-03.3 | — |
 | 03 | RF-03.2 | BLM-0028, BLM-0030 | BLM-0031 | CA-03.4, CA-03.5 | — |
-| 03 | RF-03.3 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.6 | — |
+| 03 | RF-03.3 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.6, CA-03.10 | — |
 | 03 | RF-03.4 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.7, CA-03.9 | — |
 | 03 | RF-03.5 | BLM-0028, BLM-0030, BLM-0078, BLM-0085 | BLM-0086 | CA-03.8 | — |
 | 04 | RF-04.1 | BLM-0075, BLM-0076, BLM-0081, BLM-0084 | BLM-0087, BLM-0088, BLM-0126, BLM-0127 | CA-04.1, CA-04.2, CA-04.3, CA-04.4, CA-04.14 | BLM-0135, BLM-0136 |
@@ -749,4 +749,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 96 RF, 158 CA, 146 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0140`.
+Última generación: 11 specs, 96 RF, 159 CA, 146 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0140`.
