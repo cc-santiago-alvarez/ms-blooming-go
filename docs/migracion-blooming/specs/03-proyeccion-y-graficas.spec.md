@@ -39,6 +39,7 @@ La cotización de venta anticipada (`preSale`) **no** está aquí; está en la s
 - **RF-03.2** — `BuildObjectGuides(terms, today, utcDiff) []ChartGuide` (función pura) produce las guías del bondObject, siempre relativas a **hoy** (§5.2).
 - **RF-03.3** — Vista previa (admin).
   - Recibe los términos de un bondObject sin guardar (`amount`, `maturityTimeInDays`, `maturityRewardsPercentage`, `earlyCashTerm`) y `simulation`.
+  - Les aplica los defaults del alta: redondea `amount` a 2 decimales y deja en 100 las penalidades en 0 (spec 02 §5.1). Así la vista previa muestra lo que se guardaría; el legado simulaba los valores sin defaults.
   - Los valida con las reglas de la spec 02 §5.1 que aplican a los términos.
   - Responde `{guides}`, más `data` cuando `simulation=true`.
 - **RF-03.4** — Proyección de un bondObject del catálogo (usuario).
@@ -202,7 +203,7 @@ Esta spec no persiste nada.
 | BLM-0029 | Función pura `SimulateProjection` | impl | F2 | RF-03.1 | BLM-0028 | `internal/core/shared/domain/shared.projection.go` |
 | BLM-0030 | Funciones puras `BuildObjectGuides` y `BuildBoundGuides` | impl | F2 | RF-03.2, RF-03.5 | BLM-0028 | `internal/core/shared/domain/shared.chartGuides.go` |
 | BLM-0031 | Tests de tabla de `SimulateProjection` y de las guías, con casos calculados con el código legacy | test | F2 | CA-03.1, CA-03.2, CA-03.3, CA-03.4, CA-03.5 | BLM-0029, BLM-0030 | `internal/core/shared/domain/shared.projection_test.go`, `shared.chartGuides_test.go`, `testdata/legacy-projection.json`, `legacy-guides.json` |
-| BLM-0060 | Casos de uso `ChartPreview` y `ChartByID` en bondObject, con visibilidad de RF-02.9 | impl | F3 | RF-03.3, RF-03.4 | BLM-0029, BLM-0030, BLM-0055 | `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go` |
+| BLM-0060 | Casos de uso `ChartPreview` y `ChartByID` en bondObject, con visibilidad de RF-02.9 | impl | F3 | RF-03.3, RF-03.4 | BLM-0029, BLM-0030, BLM-0055 | `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go`, `internal/core/bondObject/ports/bondObject.ports.go` (`ChartPreview` y `ChartByID`), `internal/core/bondObject/domain/bondObject.dto.domain.go` (`ChartPreviewParams`, `BondObjectChart` y validación de términos compartida con el alta), `bondObject.domain.go` (`ProjectionTerms`) |
 | BLM-0061 | Handlers y rutas de bondObject: `POST /bond-objects/chart/preview` y `GET /bond-objects/{id}/chart` | impl | F3 | RF-03.3, RF-03.4 | BLM-0060, BLM-0056, BLM-0026 | `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go` |
 | BLM-0062 | Tests de casos de uso y handlers de la proyección de bondObject (permisos, visibilidad, validación) | test | F3 | CA-03.6, CA-03.7, CA-03.9 | BLM-0061 | `internal/core/bondObject/application/bondObject.chart*_test.go`, `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go` |
 | BLM-0078 | Caso de uso `ChartGuides` en bondBound, con control de dueño o admin | impl | F5 | RF-03.5 | BLM-0030, BLM-0077, BLM-0007 | `internal/core/bondBound/application/bondBound.chartGuides.go` |

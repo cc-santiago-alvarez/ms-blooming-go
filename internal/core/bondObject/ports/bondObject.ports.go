@@ -53,6 +53,12 @@ type BondObjectApplicationPorts interface {
 	MostPurchased(ctx context.Context) ([]*bondObject_domain.BondObject, error)
 	// Latest devuelve los últimos productos publicados que ve la sesión.
 	Latest(ctx context.Context) ([]*bondObject_domain.BondObject, error)
+	// ChartPreview normaliza y valida los términos de un producto sin guardar y devuelve sus guías y, con
+	// simulation, su simulación diaria.
+	ChartPreview(ctx context.Context, p bondObject_domain.ChartPreviewParams) (bondObject_domain.BondObjectChart, error)
+	// ChartByID devuelve las guías del producto y, con simulation, su simulación diaria. Si la sesión no
+	// lo ve, es ErrBondObjectNotFound; un admin ve cualquiera no borrado. Un id inválido es ErrInvalidID.
+	ChartByID(ctx context.Context, id string, simulation bool) (bondObject_domain.BondObjectChart, error)
 	// FindVisibleForPurchase devuelve el producto no borrado, de cualquier agencia, o nil si no existe.
 	// Un id inválido es ErrInvalidID.
 	FindVisibleForPurchase(ctx context.Context, id string) (*bondObject_domain.BondObject, error)

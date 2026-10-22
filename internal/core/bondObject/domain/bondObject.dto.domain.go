@@ -44,17 +44,10 @@ func (p *CreateParams) Normalize() {
 	p.Amount = shared_domain.Round2(p.Amount)
 	p.SaleInitDate = utc(p.SaleInitDate)
 	p.SaleEndDate = utc(p.SaleEndDate)
-
-	if p.EarlyCashTerm.InitialPenaltyPercentage == 0 {
-		p.EarlyCashTerm.InitialPenaltyPercentage = defaultPenaltyPercentage
-	}
-	if p.EarlyCashTerm.InflectionPenaltyPercentage == 0 {
-		p.EarlyCashTerm.InflectionPenaltyPercentage = defaultPenaltyPercentage
-	}
+	p.EarlyCashTerm = withDefaultPenalties(p.EarlyCashTerm)
 }
 
-// Validation exige los textos y las agencias, ids válidos, montos y plazos positivos, un punto de
-// inflexión y un día de retiro dentro del plazo, penalidades entre 0 y 100 y una ventana de venta
+// Validation exige los textos y las agencias, ids válidos, términos válidos y una ventana de venta
 // ordenada.
 func (p CreateParams) Validation() error {
 	switch {
@@ -68,22 +61,83 @@ func (p CreateParams) Validation() error {
 		return ErrBondObjectAgencyRequired
 	case !allValidIDs(p.AgencyID) || !allValidIDs(p.AuthorizedUserIDs):
 		return shared_domain.ErrInvalidID
-	case p.Amount <= 0:
-		return ErrBondObjectInvalidAmount
-	case p.MaturityTimeInDays <= 0 || p.MaturityRewardsPercentage < 0:
-		return ErrBondObjectInvalidMaturity
 	}
 
-	term := p.EarlyCashTerm
+	terms := shared_domain.ProjectionTerms{
+		MaturityTimeInDays:        p.MaturityTimeInDays,
+		MaturityRewardsPercentage: p.MaturityRewardsPercentage,
+		EarlyCashTerm:             p.EarlyCashTerm,
+	}
+	if err := validateTerms(p.Amount, terms); err != nil {
+		return err
+	}
+	if p.SaleInitDate != nil && p.SaleEndDate != nil && p.SaleEndDate.Before(*p.SaleInitDate) {
+		return ErrBondObjectInvalidSaleWindow
+	}
+	return nil
+}
+
+// ChartPreviewParams es el body de la vista previa: los términos de un producto sin guardar.
+type ChartPreviewParams struct {
+	Amount                    float64                     `json:"amount"`
+	MaturityTimeInDays        int                         `json:"maturityTimeInDays"`
+	MaturityRewardsPercentage float64                     `json:"maturityRewardsPercentage"`
+	EarlyCashTerm             shared_domain.EarlyCashTerm `json:"earlyCashTerm"`
+	Simulation                bool                        `json:"simulation"`
+}
+
+// Normalize redondea amount y aplica los mismos defaults de penalidad que el alta.
+func (p *ChartPreviewParams) Normalize() {
+	p.Amount = shared_domain.Round2(p.Amount)
+	p.EarlyCashTerm = withDefaultPenalties(p.EarlyCashTerm)
+}
+
+// Validation exige términos válidos, con las mismas reglas del alta.
+func (p ChartPreviewParams) Validation() error {
+	return validateTerms(p.Amount, p.ProjectionTerms())
+}
+
+// ProjectionTerms devuelve los términos que usan la simulación y las guías.
+func (p ChartPreviewParams) ProjectionTerms() shared_domain.ProjectionTerms {
+	return shared_domain.ProjectionTerms{
+		MaturityTimeInDays:        p.MaturityTimeInDays,
+		MaturityRewardsPercentage: p.MaturityRewardsPercentage,
+		EarlyCashTerm:             p.EarlyCashTerm,
+	}
+}
+
+// BondObjectChart son las guías de la gráfica de un producto y, si se pidió, su simulación diaria.
+type BondObjectChart struct {
+	Guides []shared_domain.ChartGuide `json:"guides"`
+	Data   []shared_domain.ChartPoint `json:"data,omitempty"`
+}
+
+// withDefaultPenalties aplica el default del legado: las penalidades en 0 quedan en 100.
+func withDefaultPenalties(term shared_domain.EarlyCashTerm) shared_domain.EarlyCashTerm {
+	if term.InitialPenaltyPercentage == 0 {
+		term.InitialPenaltyPercentage = defaultPenaltyPercentage
+	}
+	if term.InflectionPenaltyPercentage == 0 {
+		term.InflectionPenaltyPercentage = defaultPenaltyPercentage
+	}
+	return term
+}
+
+// validateTerms exige monto y plazo positivos, un punto de inflexión y un día de retiro dentro del plazo
+// y penalidades entre 0 y 100.
+func validateTerms(amount float64, terms shared_domain.ProjectionTerms) error {
+	m, term := terms.MaturityTimeInDays, terms.EarlyCashTerm
 	switch {
-	case term.InflectionPoint < 0 || term.InflectionPoint >= p.MaturityTimeInDays:
+	case amount <= 0:
+		return ErrBondObjectInvalidAmount
+	case m <= 0 || terms.MaturityRewardsPercentage < 0:
+		return ErrBondObjectInvalidMaturity
+	case term.InflectionPoint < 0 || term.InflectionPoint >= m:
 		return ErrBondObjectInvalidInflectionPoint
-	case term.InitialDayForWithdraw < 0 || term.InitialDayForWithdraw > p.MaturityTimeInDays:
+	case term.InitialDayForWithdraw < 0 || term.InitialDayForWithdraw > m:
 		return ErrBondObjectInvalidWithdrawDay
 	case !isPercentage(term.InitialPenaltyPercentage) || !isPercentage(term.InflectionPenaltyPercentage):
 		return ErrBondObjectInvalidPercentage
-	case p.SaleInitDate != nil && p.SaleEndDate != nil && p.SaleEndDate.Before(*p.SaleInitDate):
-		return ErrBondObjectInvalidSaleWindow
 	}
 	return nil
 }

@@ -43,6 +43,15 @@ func NewBondObject(p CreateParams) *BondObject {
 	return o
 }
 
+// ProjectionTerms devuelve los términos del producto que usan la simulación y las guías.
+func (o BondObject) ProjectionTerms() shared_domain.ProjectionTerms {
+	return shared_domain.ProjectionTerms{
+		MaturityTimeInDays:        o.MaturityTimeInDays,
+		MaturityRewardsPercentage: o.MaturityRewardsPercentage,
+		EarlyCashTerm:             o.EarlyCashTerm,
+	}
+}
+
 // Apply reemplaza los campos editables con una edición ya normalizada y actualiza updatedAt.
 func (o *BondObject) Apply(p UpdateParams) {
 	o.setEditable(p)

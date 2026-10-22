@@ -273,7 +273,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/domain/bondObject.changes_test.go`
 - [ ] **BLM-0060** `impl` Casos de uso `ChartPreview` y `ChartByID` en bondObject, con visibilidad de RF-02.9
   - cubre: RF-03.3, RF-03.4 · depende de: BLM-0029, BLM-0030, BLM-0055
-  - archivos: `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go`
+  - archivos: `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go`, `internal/core/bondObject/ports/bondObject.ports.go` (`ChartPreview` y `ChartByID`), `internal/core/bondObject/domain/bondObject.dto.domain.go` (`ChartPreviewParams`, `BondObjectChart` y validación de términos compartida con el alta), `bondObject.domain.go` (`ProjectionTerms`)
 - [ ] **BLM-0061** `impl` Handlers y rutas de bondObject: `POST /bond-objects/chart/preview` y `GET /bond-objects/{id}/chart`
   - cubre: RF-03.3, RF-03.4 · depende de: BLM-0060, BLM-0056, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go`
