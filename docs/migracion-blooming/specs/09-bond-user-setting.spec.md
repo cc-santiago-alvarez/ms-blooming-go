@@ -104,13 +104,16 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
 - `getByUserLogged` sin sesión respondía `-13`; ahora la sesión la valida el middleware (401).
 - `user` ya no trae el perfil completo.
 
-**Errores:**
-- `ERR_INVALID_ID` (400): un id de path, query o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19).
-- `ERR_ACCOUNT_NOT_FOUND` (404).
-- `ERR_INVALID_LANGUAGE` (400).
-- `ERR_BOND_USER_SETTING_NOT_FOUND` (404).
-- `ERR_FORBIDDEN` (403).
-- `UNAUTHORIZED_INVALID_SECRET` (401, endpoint interno).
+**Errores**
+
+| Sentinel | HTTP | Código legacy | Cuándo |
+|---|---|---|---|
+| `ERR_INVALID_ID` | 400 | — | Un id de path, query o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19) |
+| `ERR_INVALID_LANGUAGE` | 400 | — | `language` vacío o de más de 5 caracteres |
+| `ERR_ACCOUNT_NOT_FOUND` | 404 | — | La cuenta no existe o no es del usuario de la sesión |
+| `ERR_BOND_USER_SETTING_NOT_FOUND` | 404 | -11 | No existe o `isRemove: true` |
+| `ERR_FORBIDDEN` | 403 | — | No es admin (spec 00) |
+| `UNAUTHORIZED_INVALID_SECRET` | 401 | — | Endpoint interno sin `x-secret` válido (spec 00) |
 
 ## 5. Reglas de negocio
 
