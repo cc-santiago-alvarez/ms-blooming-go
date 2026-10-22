@@ -23,6 +23,8 @@ type BondUserSettingApplication struct {
 	Profiles     shared_ports.ProfileReader
 }
 
+var _ bondUserSetting_ports.BondUserSettingApplicationPorts = (*BondUserSettingApplication)(nil)
+
 // sessionUser devuelve la sesión del context, o errNoSession si no hay o no tiene usuario.
 func sessionUser(ctx context.Context) (*session_domain.UserSession, error) {
 	session, ok := session_domain.GetUserSession(ctx)

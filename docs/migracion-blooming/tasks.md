@@ -312,7 +312,7 @@ Specs: [spec 09](specs/09-bond-user-setting.spec.md).
   - archivos: `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go`
 - [ ] **BLM-0070** `impl` Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication`
   - cubre: RF-09.9 · depende de: BLM-0065, BLM-0004, BLM-0026
-  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.internalSelectedAccount.put.go`
+  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `bondUserSetting.application.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.handler.go`, `bondUserSettings.internalSelectedAccount.put.go`
 - [ ] **BLM-0071** `impl` Handlers y `server.bondUserSetting.go`
   - cubre: RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 · depende de: BLM-0067, BLM-0068, BLM-0069, BLM-0026
   - archivos: `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/server/server.bondUserSetting.go`

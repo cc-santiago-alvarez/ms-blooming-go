@@ -73,6 +73,9 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
 - RF-09.7 y RF-09.8 aplican `AgencyScope`, igual que el listado (constitución §6). Para un admin de una agencia no principal, un setting de otra agencia es `ERR_BOND_USER_SETTING_NOT_FOUND`: no puede leer su `selectedAccountId` ni borrarlo.
 - **RF-09.9** — Sincronización interna desde Meteor.
   - `PUT /internal/bond-user-settings/{userId}/selected-account` con `{selectedAccountId}`. Solo requiere `x-secret` (`NoRequiresAuthentication`).
+  - La cuenta debe existir, no estar borrada y ser **de ese `userId`** (`BalancePort.GetAccount`). Si no, responde `ERR_ACCOUNT_NOT_FOUND` y no cambia nada.
+    - Motivo: `API_SECRET` es el mismo `x-secret` que manda el front. Sin este control, cualquiera podría poner su propia cuenta como destino de otro usuario y desviar sus ventas y canjes.
+    - En el flujo de Meteor siempre se cumple: la cuenta recién creada es de ese usuario.
   - Actualiza `selectedAccountId` **solo si el setting de ese `userId` existe**. Es paridad con `balanceAccount.insert`, que solo llama si encuentra el setting.
   - Responde `200 {updated: true|false}`.
   - Reemplaza la llamada `Caller.call('bondUserSetting.setSelectedAccount', …, {userId})` de `balanceAccount.insert`. Meteor la cambia por un HTTP a este endpoint (BLM-0072).
@@ -114,7 +117,7 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
 |---|---|---|---|
 | `ERR_INVALID_ID` | 400 | — | Un id de path, query o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19) |
 | `ERR_INVALID_LANGUAGE` | 400 | — | `language` vacío o de más de 5 caracteres |
-| `ERR_ACCOUNT_NOT_FOUND` | 404 | — | La cuenta no existe o no es del usuario de la sesión |
+| `ERR_ACCOUNT_NOT_FOUND` | 404 | — | La cuenta no existe o no es del usuario de la sesión, o del `userId` del endpoint interno |
 | `ERR_BOND_USER_SETTING_NOT_FOUND` | 404 | -11 | No existe o `isRemove: true` |
 | `ERR_FORBIDDEN` | 403 | — | No es admin (spec 00) |
 | `UNAUTHORIZED_INVALID_SECRET` | 401 | — | Endpoint interno sin `x-secret` válido (spec 00) |
@@ -178,7 +181,7 @@ Hay settings legacy con `userId` guardado como ObjectId. Se leen con su hex como
 - **CA-09.7** (RF-09.5) — `language: ""` o `language: "español"` responde `400 ERR_INVALID_LANGUAGE`.
 - **CA-09.8** (RF-09.6) — Un admin de una agencia no principal ve solo los settings de su agencia, paginados. Un no admin recibe `403`.
 - **CA-09.9** (RF-09.7, RF-09.8) — `GET` y `DELETE /bond-user-settings/{id}` sobre un id inexistente responden `404`. `DELETE` deja `isRemove: true`. Un admin de una agencia no principal recibe `404` en `GET` y `DELETE` de un setting de otra agencia, y el setting no se borra.
-- **CA-09.10** (RF-09.9) — `PUT /internal/bond-user-settings/u1/selected-account` con `x-secret` válido y sin `x-token` actualiza el setting de u1 y responde `{updated: true}`. Si u1 no tiene setting responde `{updated: false}` y no crea nada. Sin `x-secret` responde `401`.
+- **CA-09.10** (RF-09.9) — `PUT /internal/bond-user-settings/u1/selected-account` con `x-secret` válido y sin `x-token` actualiza el setting de u1 y responde `{updated: true}`. Si u1 no tiene setting responde `{updated: false}` y no crea nada. Sin `x-secret` responde `401`. Con una cuenta de otro usuario responde `404 ERR_ACCOUNT_NOT_FOUND` y el setting no cambia.
 - **CA-09.11** (RF-09.10) — `GetByUser` de un usuario sin setting devuelve `nil` y no crea nada.
 - **CA-09.12** (RF-09.1, RF-09.3) — Dado un setting legacy (`_id` de 17 caracteres) para el usuario, `GET /me` lo devuelve sin crear otro, y `PATCH /me/selected-account` lo actualiza conservando su `_id`.
 
@@ -192,7 +195,7 @@ Hay settings legacy con `userId` guardado como ObjectId. Se leen con su hex como
 | BLM-0067 | Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser` | impl | F4 | RF-09.1, RF-09.2, RF-09.10 | BLM-0066, BLM-0012, BLM-0017 | `internal/core/bondUserSetting/application/bondUserSetting.application.go`, `bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go` |
 | BLM-0068 | Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert | impl | F4 | RF-09.3, RF-09.4, RF-09.5 | BLM-0065, BLM-0012 | `internal/core/bondUserSetting/application/bondUserSetting.set*.go`, `bondUserSetting.application.go`, `bondUserSetting.getMine.go` |
 | BLM-0069 | Casos de uso admin `List`, `GetByID` y `Remove` | impl | F4 | RF-09.6, RF-09.7, RF-09.8 | BLM-0065, BLM-0007 | `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go` |
-| BLM-0070 | Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication` | impl | F4 | RF-09.9 | BLM-0065, BLM-0004, BLM-0026 | `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.internalSelectedAccount.put.go` |
+| BLM-0070 | Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication` | impl | F4 | RF-09.9 | BLM-0065, BLM-0004, BLM-0026 | `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `bondUserSetting.application.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.handler.go`, `bondUserSettings.internalSelectedAccount.put.go` |
 | BLM-0071 | Handlers y `server.bondUserSetting.go` | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | BLM-0067, BLM-0068, BLM-0069, BLM-0026 | `cmd/api/handlers/bondUserSettings/*.go`, `cmd/api/server/server.bondUserSetting.go` |
 | BLM-0072 | **(repo backend, Meteor)** `balanceAccount.insert` llama por HTTP al endpoint interno en lugar de `Caller.call('bondUserSetting.setSelectedAccount')` | impl | F4 | RF-09.9 | BLM-0070 | `backend/server/model/balance.account.js` |
 | BLM-0073 | Tests unitarios de casos de uso y handlers (validaciones, dueño de la cuenta, U6, permisos) | test | F4 | CA-09.2, CA-09.5, CA-09.6, CA-09.7, CA-09.8, CA-09.9, CA-09.11 | BLM-0071 | `internal/core/bondUserSetting/application/*_test.go`, `cmd/api/handlers/bondUserSettings/*_test.go` |
