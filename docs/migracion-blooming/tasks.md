@@ -255,7 +255,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/domain/bondObject.changes.go`
 - [ ] **BLM-0054** `impl` Casos de uso `Create`, `Update`, `UpdateKeys` y `Remove`, con history y activity best-effort
   - cubre: RF-02.4, RF-02.5, RF-02.6, RF-02.7 · depende de: BLM-0047, BLM-0053, BLM-0035, BLM-0013, BLM-0042
-  - archivos: `internal/core/bondObject/application/bondObject.create.go`, `bondObject.update.go`, `bondObject.updateKeys.go`, `bondObject.remove.go`
+  - archivos: `internal/core/bondObject/application/bondObject.create.go`, `bondObject.update.go`, `bondObject.updateKeys.go`, `bondObject.remove.go`, `bondObject.history.go`, `bondObject.application.go` (dependencias), `bondObject.getById.go` (`findNotRemoved`), `cmd/api/server/server.bondObject.go`, `server.deps.go`, `server.config.go` (cableado de `ActivityPort`)
 - [ ] **BLM-0055** `impl` Casos de uso `ListInvestors`, `ListByType` (privados y `maturityDateFormatted`), `MostPurchased`, `Latest` y `FindVisibleForPurchase`
   - cubre: RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0048
   - archivos: `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go`

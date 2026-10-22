@@ -12,6 +12,9 @@ func initBondObjectDomain(deps *serverDeps) {
 
 	deps.bondObjectApplication = &bondObject_application.BondObjectApplication{
 		Repository: repository,
+		BondTypes:  deps.bondTypeApplication,
+		History:    deps.bondHistoryApplication,
+		Activity:   deps.activityPort,
 		Profiles:   deps.profileReader,
 	}
 }

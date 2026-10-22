@@ -29,6 +29,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	// 2. Adaptadores compartidos
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
 	deps.profileReader = &shared_mongocc_repository.ProfileMongoccRepository{DB: deps.mongoDB}
+	deps.activityPort = &shared_mongocc_repository.ActivityMongoccRepository{DB: deps.mongoDB}
 
 	// 3. CORS
 	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)

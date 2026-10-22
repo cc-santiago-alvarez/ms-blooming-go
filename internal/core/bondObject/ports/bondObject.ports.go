@@ -31,13 +31,16 @@ type BondObjectApplicationPorts interface {
 	// GetByIDIncludingRemoved devuelve el producto aunque esté borrado, o ErrBondObjectNotFound. Un id
 	// inválido es ErrInvalidID.
 	GetByIDIncludingRemoved(ctx context.Context, id string) (*bondObject_domain.BondObject, error)
-	// Create normaliza y valida p, guarda el producto y devuelve el creado.
+	// Create normaliza y valida p, guarda el producto y devuelve el creado. Un bondTypeId inexistente o
+	// borrado es ErrBondObjectInvalidBondType.
 	Create(ctx context.Context, p bondObject_domain.CreateParams) (*bondObject_domain.BondObject, error)
 	// Update reemplaza los campos editables y devuelve el producto actualizado, o ErrBondObjectNotFound.
+	// Un bondTypeId inexistente o borrado es ErrBondObjectInvalidBondType.
 	Update(ctx context.Context, id string, p bondObject_domain.UpdateParams) (*bondObject_domain.BondObject, error)
 	// UpdateKeys cambia la clave de los productos no borrados de la lista.
 	UpdateKeys(ctx context.Context, p bondObject_domain.UpdateKeysParams) (bondObject_domain.UpdateKeysResult, error)
-	// Remove borra el producto de forma lógica, o devuelve ErrBondObjectNotFound.
+	// Remove borra el producto de forma lógica, o devuelve ErrBondObjectNotFound. Un id inválido es
+	// ErrInvalidID.
 	Remove(ctx context.Context, id string) error
 	// ListInvestors devuelve los usuarios con bonos vigentes del producto, en el alcance de la sesión.
 	ListInvestors(ctx context.Context, id string) ([]bondObject_domain.BondObjectInvestor, error)

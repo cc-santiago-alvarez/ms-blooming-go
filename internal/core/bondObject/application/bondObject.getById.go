@@ -10,6 +10,20 @@ import (
 // GetByID devuelve el producto no borrado con los perfiles públicos de sus usuarios autorizados, leídos en
 // una sola consulta, o ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
 func (app *BondObjectApplication) GetByID(ctx context.Context, id string) (*bondObject_domain.BondObjectDetail, error) {
+	o, err := app.findNotRemoved(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	profiles, err := app.Profiles.GetPublic(ctx, o.AuthorizedUserIDs...)
+	if err != nil {
+		return nil, err
+	}
+	return &bondObject_domain.BondObjectDetail{BondObject: *o, AuthorizedUser: profiles}, nil
+}
+
+// findNotRemoved devuelve el producto no borrado, o ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
+func (app *BondObjectApplication) findNotRemoved(ctx context.Context, id string) (*bondObject_domain.BondObject, error) {
 	if !shared_domain.IsValidID(id) {
 		return nil, shared_domain.ErrInvalidID
 	}
@@ -21,10 +35,5 @@ func (app *BondObjectApplication) GetByID(ctx context.Context, id string) (*bond
 	if o == nil {
 		return nil, bondObject_domain.ErrBondObjectNotFound
 	}
-
-	profiles, err := app.Profiles.GetPublic(ctx, o.AuthorizedUserIDs...)
-	if err != nil {
-		return nil, err
-	}
-	return &bondObject_domain.BondObjectDetail{BondObject: *o, AuthorizedUser: profiles}, nil
+	return o, nil
 }
