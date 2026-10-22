@@ -118,7 +118,9 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
 ## 5. Reglas de negocio
 
 - **Unicidad:** un setting vivo por `userId`. Se garantiza con un índice único parcial `{userId: 1}` y `partialFilterExpression: {isRemove: false}`, más upserts con `{userId, isRemove: false}`.
-- **Duplicados legacy:** pueden existir, porque el legado no era atómico. Antes de crear el índice, el script de auditoría (BLM-0065) informa los duplicados y conserva el más reciente.
+- **Duplicados legacy:** pueden existir, porque el legado no era atómico. Antes de crear el índice, el script de auditoría (BLM-0065) informa los duplicados y, con `-apply`, borra de forma lógica todos menos el más reciente.
+  - El más reciente es el último modificado: `updatedAt` desc, luego `createdAt` desc y luego `_id`. Es el que el legado venía actualizando, porque su `findOne({userId})` siempre tomaba el mismo documento.
+  - Mientras haya duplicados, la lectura y los upserts eligen ese mismo documento.
 
 ## 6. Modelo de datos
 
@@ -136,6 +138,8 @@ type BondUserSetting struct {
 ```
 
 El modelo en `@futurapps/models` (`blooming.BondUserSetting`) declara `_id: String`, `createdAt`, `updatedAt` e `isRemove` con `strict: false`, y es compatible.
+
+Hay settings legacy con `userId` guardado como ObjectId. Se leen con su hex como `userId`, para que el listado y el detalle de administración no fallen y se puedan borrar.
 
 Índices: el único parcial de §5 y `{agencyId: 1, isRemove: 1, createdAt: -1}`.
 
