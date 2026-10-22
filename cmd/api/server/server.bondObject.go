@@ -22,7 +22,8 @@ func initBondObjectDomain(deps *serverDeps) {
 	}
 }
 
-// registerBondObjectHandlers registra las rutas de /bond-objects y la de productos por tipo.
+// registerBondObjectHandlers registra las rutas de /bond-objects, con el historial de un producto, y la de
+// productos por tipo.
 func registerBondObjectHandlers(server *nexus.Server, deps *serverDeps) {
-	bondObjects_handlers.NewBondObjectsHandler(server, deps.bondObjectApplication)
+	bondObjects_handlers.NewBondObjectsHandler(server, deps.bondObjectApplication, deps.bondHistoryApplication)
 }

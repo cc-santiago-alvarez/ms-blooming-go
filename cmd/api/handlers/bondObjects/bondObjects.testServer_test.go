@@ -102,13 +102,14 @@ func (a *fakeApp) Remove(_ context.Context, id string) error {
 	return a.err
 }
 
-// newTestAPI registra las rutas de /bond-objects sobre app y atiende cada request con la sesión dada.
+// newTestAPI registra las rutas de /bond-objects sobre app, sin historial, y atiende cada request con la
+// sesión dada.
 func newTestAPI(app *fakeApp, session *session_domain.UserSession) http.Handler {
 	server := &nexus.Server{
 		ServerName: "blooming-test",
 		Settings:   &nexus.Settings{PathPrefix: "/api/v1"},
 	}
-	bondObjects_handlers.NewBondObjectsHandler(server, app)
+	bondObjects_handlers.NewBondObjectsHandler(server, app, nil)
 	mux := server.PrepareEndpoints()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

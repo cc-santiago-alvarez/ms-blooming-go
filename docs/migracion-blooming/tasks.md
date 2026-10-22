@@ -282,7 +282,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/application/bondObject.chart*_test.go`, `bondObject.fakes_test.go` (`FindVisible` en memoria), `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go`, `bondObjects.testServer_test.go` (`ChartPreview` y `ChartByID` en `fakeApp`), `internal/core/bondObject/infrastructure/mongocc/bondObject.chart_integration_test.go`
 - [ ] **BLM-0063** `impl` Handler `GET /bond-objects/{id}/history` (admin)
   - cubre: RF-08.2 · depende de: BLM-0037, BLM-0056, BLM-0026
-  - archivos: `cmd/api/handlers/bondObjects/bondObjects.history.get.go`
+  - archivos: `cmd/api/handlers/bondObjects/bondObjects.history.get.go`, `bondObjects.handler.go` (ruta y dependencia `BondHistoryApplicationPorts`), `bondObjects.testServer_test.go` (firma del constructor), `cmd/api/server/server.bondObject.go` (pasa la aplicación del historial)
 
 **Criterio de salida F3:** Tipos y productos se administran y consultan por REST, con historial, proyección y permisos.
 
