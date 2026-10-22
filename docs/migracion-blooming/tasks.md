@@ -303,7 +303,7 @@ Specs: [spec 09](specs/09-bond-user-setting.spec.md).
   - archivos: `internal/core/bondUserSetting/infrastructure/mongocc/bondUserSetting.boundSummary.adapter.go`, `bondUserSetting.firstAccount.adapter.go`
 - [ ] **BLM-0067** `impl` Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser`
   - cubre: RF-09.1, RF-09.2, RF-09.10 · depende de: BLM-0066, BLM-0012, BLM-0017
-  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go`
+  - archivos: `internal/core/bondUserSetting/application/bondUserSetting.application.go`, `bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go`
 - [ ] **BLM-0068** `impl` Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert
   - cubre: RF-09.3, RF-09.4, RF-09.5 · depende de: BLM-0065, BLM-0012
   - archivos: `internal/core/bondUserSetting/application/bondUserSetting.set*.go`

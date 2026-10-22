@@ -49,7 +49,9 @@ Archivo: `backend/server/model/bond.userSetting.js` (257 líneas). El consumidor
     - `userId` y `agencyId` de la sesión.
   - Responde el setting más los datos de RF-09.2.
 - **RF-09.2** — Datos agregados del setting:
-  - `account`: la cuenta seleccionada con la proyección `{_id, number (enmascarado), available, statusId}`, o `null`;
+  - `account`: la cuenta seleccionada con la proyección `{_id, number (enmascarado), available, statusId}`, o `null`.
+    - Se lee con `BalancePort.GetAccount`, con control de dueño: es `null` si la cuenta no existe, está borrada o no es del usuario.
+    - El legado la leía sin filtros, y por U6 pudo quedar apuntando a la cuenta de otro usuario;
   - `user`: el perfil público (`ProfileReader.GetPublic`, sin `password`);
   - `utcDiff`: el de la sesión;
   - `boundSummary = {investment, matured, profit: 0}`, en **una sola agregación** sobre `bondBound` con `{isRemove: false, agencyId, userId}` agrupada por `statusId`:
@@ -185,7 +187,7 @@ Hay settings legacy con `userId` guardado como ObjectId. Se leen con su hex como
 | BLM-0064 | Dominio: `BondUserSetting`, DTOs (`SetSelectedAccountParams`, `SetLanguageParams`, …) con `Validation` y errores | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5 | BLM-0009 | `internal/core/bondUserSetting/domain/*.go` |
 | BLM-0065 | Ports y repositorio: `FindByUser`, `UpsertDefault`, `UpsertField`, `FindPage`, `FindOneByID`, `SoftDelete`, `EnsureIndexes` (índice único parcial) y script de auditoría de duplicados | impl | F4 | RF-09.1, RF-09.3, RF-09.4, RF-09.5, RF-09.6, RF-09.7, RF-09.8 | BLM-0064 | `internal/core/bondUserSetting/ports/*.go`, `internal/core/bondUserSetting/infrastructure/mongocc/*.adapter.go`, `cmd/tools/dedupusersettings/main.go` |
 | BLM-0066 | Adapters de solo lectura `BoundSummary` y `FirstAccountID` | impl | F4 | RF-09.1, RF-09.2 | BLM-0065 | `internal/core/bondUserSetting/infrastructure/mongocc/bondUserSetting.boundSummary.adapter.go`, `bondUserSetting.firstAccount.adapter.go` |
-| BLM-0067 | Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser` | impl | F4 | RF-09.1, RF-09.2, RF-09.10 | BLM-0066, BLM-0012, BLM-0017 | `internal/core/bondUserSetting/application/bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go` |
+| BLM-0067 | Casos de uso `GetMine` (autocreación atómica y datos agregados) y `GetByUser` | impl | F4 | RF-09.1, RF-09.2, RF-09.10 | BLM-0066, BLM-0012, BLM-0017 | `internal/core/bondUserSetting/application/bondUserSetting.application.go`, `bondUserSetting.getMine.go`, `bondUserSetting.getByUser.go` |
 | BLM-0068 | Casos de uso `SetSelectedAccount` (cuenta del usuario), `SetSelectedBondBound` y `SetLanguage`, con upsert | impl | F4 | RF-09.3, RF-09.4, RF-09.5 | BLM-0065, BLM-0012 | `internal/core/bondUserSetting/application/bondUserSetting.set*.go` |
 | BLM-0069 | Casos de uso admin `List`, `GetByID` y `Remove` | impl | F4 | RF-09.6, RF-09.7, RF-09.8 | BLM-0065, BLM-0007 | `internal/core/bondUserSetting/application/bondUserSetting.list.go`, `bondUserSetting.getById.go`, `bondUserSetting.remove.go` |
 | BLM-0070 | Caso de uso `SyncSelectedAccount` y endpoint interno con `NoRequiresAuthentication` | impl | F4 | RF-09.9 | BLM-0065, BLM-0004, BLM-0026 | `internal/core/bondUserSetting/application/bondUserSetting.syncSelectedAccount.go`, `cmd/api/handlers/bondUserSettings/bondUserSettings.internalSelectedAccount.put.go` |
