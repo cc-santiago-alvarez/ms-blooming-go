@@ -56,6 +56,7 @@ func InitServer() *App {
 
 	// Register handlers
 	registerBondTypeHandlers(server, deps)
+	registerBondObjectHandlers(server, deps)
 
 	return &App{server: server, deps: deps}
 }

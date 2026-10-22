@@ -261,7 +261,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/application/bondObject.listInvestors.go`, `bondObject.listByType.go`, `bondObject.mostPurchased.go`, `bondObject.latest.go`, `bondObject.findVisibleForPurchase.go`, `bondObject.application.go` (dependencia `BondBoundStatsPort` y aserción del port), `internal/core/bondObject/domain/bondObject.maturity.go`, `cmd/api/server/server.bondObject.go` (cableado)
 - [ ] **BLM-0056** `impl` Handlers, registro de rutas y dependencias de `server.bondObject.go`
   - cubre: RF-02.1, RF-02.2, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-02.8, RF-02.9, RF-02.10, RF-02.11 · depende de: BLM-0052, BLM-0054, BLM-0055, BLM-0007, BLM-0026
-  - archivos: `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go`
+  - archivos: `cmd/api/handlers/bondObjects/*.go`, `cmd/api/server/server.bondObject.go`, `server.go` (registro de handlers)
 - [ ] **BLM-0057** `test` Tests unitarios de casos de uso y handlers con fakes
   - cubre: CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 · depende de: BLM-0056
   - archivos: `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go`

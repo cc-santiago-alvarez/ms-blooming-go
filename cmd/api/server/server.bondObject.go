@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/codecraftkit/nexus"
+	bondObjects_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondObjects"
 	bondObject_application "github.com/futurapps/ms-blooming-go/internal/core/bondObject/application"
 	bondObject_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondObject/infrastructure/mongocc"
 )
@@ -18,4 +20,9 @@ func initBondObjectDomain(deps *serverDeps) {
 		Activity:       deps.activityPort,
 		Profiles:       deps.profileReader,
 	}
+}
+
+// registerBondObjectHandlers registra las rutas de /bond-objects y la de productos por tipo.
+func registerBondObjectHandlers(server *nexus.Server, deps *serverDeps) {
+	bondObjects_handlers.NewBondObjectsHandler(server, deps.bondObjectApplication)
 }
