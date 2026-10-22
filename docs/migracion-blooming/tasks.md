@@ -276,7 +276,7 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
   - archivos: `internal/core/bondObject/application/bondObject.chartPreview.go`, `bondObject.chartById.go`, `internal/core/bondObject/ports/bondObject.ports.go` (`ChartPreview` y `ChartByID`), `internal/core/bondObject/domain/bondObject.dto.domain.go` (`ChartPreviewParams`, `BondObjectChart` y validación de términos compartida con el alta), `bondObject.domain.go` (`ProjectionTerms`)
 - [ ] **BLM-0061** `impl` Handlers y rutas de bondObject: `POST /bond-objects/chart/preview` y `GET /bond-objects/{id}/chart`
   - cubre: RF-03.3, RF-03.4 · depende de: BLM-0060, BLM-0056, BLM-0026
-  - archivos: `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go`
+  - archivos: `cmd/api/handlers/bondObjects/bondObjects.chartPreview.post.go`, `bondObjects.chart.get.go`, `bondObjects.handler.go` (registro de las rutas)
 - [ ] **BLM-0062** `test` Tests de casos de uso y handlers de la proyección de bondObject (permisos, visibilidad, validación)
   - cubre: CA-03.6, CA-03.7, CA-03.9 · depende de: BLM-0061
   - archivos: `internal/core/bondObject/application/bondObject.chart*_test.go`, `cmd/api/handlers/bondObjects/bondObjects.chart*_test.go`

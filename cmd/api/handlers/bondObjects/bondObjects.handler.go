@@ -16,7 +16,8 @@ type BondObjectsHandler struct {
 }
 
 // NewBondObjectsHandler registra las rutas de /bond-objects y el listado de productos de un tipo en
-// /bond-types. Exigen adminBlooming todas menos las del inversionista: más comprados, últimos y por tipo.
+// /bond-types. Exigen adminBlooming todas menos las del inversionista: más comprados, últimos, por tipo y
+// la gráfica de un producto.
 func NewBondObjectsHandler(server *nexus.Server, bondObjectApplication bondObject_ports.BondObjectApplicationPorts) {
 	handler := &BondObjectsHandler{bondObjectApplication: bondObjectApplication}
 	admin := middlewares_adapters.RequireBloomingAdmin
@@ -28,7 +29,9 @@ func NewBondObjectsHandler(server *nexus.Server, bondObjectApplication bondObjec
 		{Path: "GET /latest", HandlerFunc: handler.Latest},
 		{Path: "GET /{id}", HandlerFunc: admin(handler.GetByID)},
 		{Path: "GET /{id}/investors", HandlerFunc: admin(handler.ListInvestors)},
+		{Path: "GET /{id}/chart", HandlerFunc: handler.ChartByID},
 		{Path: "POST /", HandlerFunc: admin(handler.Create)},
+		{Path: "POST /chart/preview", HandlerFunc: admin(handler.ChartPreview)},
 		{Path: "PUT /{id}", HandlerFunc: admin(handler.Update)},
 		{Path: "PATCH /keys", HandlerFunc: admin(handler.UpdateKeys)},
 		{Path: "DELETE /{id}", HandlerFunc: admin(handler.Remove)},
