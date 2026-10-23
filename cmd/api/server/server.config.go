@@ -15,6 +15,7 @@ import (
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
+	shared_notification "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/notification"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 )
 
@@ -31,11 +32,14 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
 	deps.profileReader = &shared_mongocc_repository.ProfileMongoccRepository{DB: deps.mongoDB}
 	deps.activityPort = &shared_mongocc_repository.ActivityMongoccRepository{DB: deps.mongoDB}
+	deps.noticePort = &shared_mongocc_repository.NoticeMongoccRepository{DB: deps.mongoDB}
+	deps.notificationPort = shared_notification.NewNotificationClient(cfg.Env.NotificationServiceURL, cfg.Env.NotificationSecret)
+	deps.utils = utils_adapters.NewUtils()
 	deps.transactionRunner = &shared_mongocc_repository.TransactionRunner{DB: deps.mongoDB}
 	deps.balancePort = &shared_mongocc_repository.BalanceMongoccRepository{
 		DB:    deps.mongoDB,
 		Tx:    deps.transactionRunner,
-		Utils: utils_adapters.NewUtils(),
+		Utils: deps.utils,
 	}
 
 	// 3. CORS

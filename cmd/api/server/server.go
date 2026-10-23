@@ -52,6 +52,7 @@ func InitServer() *App {
 	initBondObjectDomain(deps)
 	// bondType y bondObject se usan mutuamente: se conectan cuando los dos existen
 	linkBondObjectToBondType(deps)
+	initBondBoundDomain(deps)
 
 	// Init and start cron scheduler
 
@@ -59,6 +60,7 @@ func InitServer() *App {
 	registerBondTypeHandlers(server, deps)
 	registerBondObjectHandlers(server, deps)
 	registerBondUserSettingHandlers(server, deps)
+	registerBondBoundHandlers(server, deps)
 
 	return &App{server: server, deps: deps}
 }
