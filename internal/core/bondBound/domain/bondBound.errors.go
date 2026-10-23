@@ -12,6 +12,7 @@ var (
 	ErrBondPrivateNotAuthorized = errors.New("ERR_BOND_PRIVATE_NOT_AUTHORIZED")
 	// 404
 	ErrBondObjectNotFound = errors.New("ERR_BOND_OBJECT_NOT_FOUND")
+	ErrBondBoundNotFound  = errors.New("ERR_BOND_BOUND_NOT_FOUND")
 	// 422
 	ErrAccountWithoutFunds    = errors.New("ERR_ACCOUNT_WITHOUT_FUNDS")
 	ErrAccountNotActive       = errors.New("ERR_ACCOUNT_NOT_ACTIVE")

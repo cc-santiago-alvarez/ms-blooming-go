@@ -69,3 +69,8 @@ type BulkPurchaseResult struct {
 	Total            float64            `json:"total"`
 	AccountAvailable float64            `json:"accountAvailable"`
 }
+
+// BondBoundChart son las guías de la gráfica de un bono comprado.
+type BondBoundChart struct {
+	Guides []shared_domain.ChartGuide `json:"guides"`
+}

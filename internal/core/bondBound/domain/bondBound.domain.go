@@ -31,3 +31,12 @@ type BondBound struct {
 	UpdatedAt                 time.Time                   `json:"updatedAt" bson:"updatedAt"`
 	IsRemove                  bool                        `json:"isRemove" bson:"isRemove"`
 }
+
+// ProjectionTerms devuelve los términos que el bono copió del producto, para las guías y la cotización.
+func (b BondBound) ProjectionTerms() shared_domain.ProjectionTerms {
+	return shared_domain.ProjectionTerms{
+		MaturityTimeInDays:        b.MaturityTimeInDays,
+		MaturityRewardsPercentage: b.MaturityRewardsPercentage,
+		EarlyCashTerm:             b.EarlyCashTerm,
+	}
+}

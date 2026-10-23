@@ -20,7 +20,8 @@ func MapToHTTPStatus(err error) int {
 		return http.StatusBadRequest
 	case errors.Is(err, ErrBondPrivateNotAuthorized):
 		return http.StatusForbidden
-	case errors.Is(err, ErrBondObjectNotFound):
+	case errors.Is(err, ErrBondObjectNotFound),
+		errors.Is(err, ErrBondBoundNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, ErrAccountWithoutFunds),
 		errors.Is(err, ErrAccountNotActive),

@@ -345,7 +345,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.mongocc.repository.go`, `bondBound.insertMany.adapter.go`, `bondBound.findOneById.adapter.go`, `bondBound.updateStatusIf.adapter.go`, `bondBound.ensureIndexes.adapter.go`
 - [ ] **BLM-0078** `impl` Caso de uso `ChartGuides` en bondBound, con control de dueño o admin
   - cubre: RF-03.5 · depende de: BLM-0030, BLM-0077, BLM-0007
-  - archivos: `internal/core/bondBound/application/bondBound.chartGuides.go`
+  - archivos: `internal/core/bondBound/application/bondBound.chartGuides.go`, `bondBound.application.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`ChartGuides`), `internal/core/bondBound/domain/bondBound.domain.go` (`ProjectionTerms`), `bondBound.dto.domain.go` (`BondBoundChart`), `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_BOND_BOUND_NOT_FOUND`), `internal/core/shared/domain/shared.errors.go` y `shared.httpStatus.go` (`ERR_FORBIDDEN`)
 - [ ] **BLM-0079** `impl` `KeyCounterPort.Reserve`, script de siembra de contadores y auditoría de claves duplicadas existentes
   - cubre: RF-04.3 · depende de: BLM-0077
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.keyCounter.adapter.go`, `cmd/tools/seedkeycounters/main.go`

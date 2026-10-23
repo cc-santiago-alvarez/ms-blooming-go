@@ -25,6 +25,10 @@ type BondBoundApplicationPorts interface {
 	Purchase(ctx context.Context, p bondBound_domain.PurchaseParams) (bondBound_domain.PurchaseResult, error)
 	// BulkPurchase compra quantity bonos del producto como Purchase, todos en una sola transacción.
 	BulkPurchase(ctx context.Context, p bondBound_domain.BulkPurchaseParams) (bondBound_domain.BulkPurchaseResult, error)
+	// ChartGuides devuelve las guías del bono a partir de su createdAt, en la zona de la sesión. Si no
+	// existe es ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id inválido es
+	// ErrInvalidID.
+	ChartGuides(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así

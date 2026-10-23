@@ -8,6 +8,8 @@ var (
 	ErrInvalidID                    = errors.New("ERR_INVALID_ID")
 	ErrAccountWithdrawAmountInvalid = errors.New("ERR_ACCOUNT_WITHDRAW_AMOUNT_INVALID")
 	ErrAccountDepositAmountInvalid  = errors.New("ERR_ACCOUNT_DEPOSIT_AMOUNT_INVALID")
+	// 403
+	ErrForbidden = errors.New("ERR_FORBIDDEN")
 	// 404
 	ErrAccountNotFound = errors.New("ERR_ACCOUNT_NOT_FOUND")
 	// 422
