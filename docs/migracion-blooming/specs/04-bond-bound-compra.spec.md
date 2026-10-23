@@ -47,12 +47,13 @@ Archivo: `backend/server/model/bond.bound.js`.
   - El contador vive en `bondKeyCounter {_id: bondTypeId, seq}` y avanza con `findOneAndUpdate($inc: {seq: n}, upsert)` dentro de la transacción. Corrige la carrera de B8.
   - Antes de habilitar la compra en Go, un script de siembra inicializa cada contador con el `count` actual de `bondBound` por tipo, incluidos los borrados (paridad).
   - Cada bono guarda además `keySeq` (int), con índice único parcial `{bondTypeId, keySeq}` donde `keySeq` existe.
-- **RF-04.4** — Snapshot y fechas. El bono se construye con la función pura `NewBoundFromObject(obj, session, key, seq, now)`, que copia:
-  - de la sesión: `userId` y `agencyId`;
-  - del producto: `bondObjectId`, `bondTypeId`, `amount`, `maturityTimeInDays`, `maturityRewardsPercentage` y `earlyCashTerm` (los cinco campos).
+- **RF-04.4** — Snapshot y fechas. El bono se construye con la función pura `NewBoundFromObject(obj, buyer, seq, token, now)`.
+  - `obj` es un `ObjectSnapshot` del producto y `buyer` el usuario y la agencia de la sesión. Los arma el caso de uso, porque `bondBound_domain` no importa los dominios de `bondObject` ni de la sesión.
+  - Copia del comprador `userId` y `agencyId`, y del producto `bondObjectId`, `bondTypeId`, `amount`, `maturityTimeInDays`, `maturityRewardsPercentage` y `earlyCashTerm` (los cinco campos).
 
   Además asigna:
-  - `statusId '1'` y `token = RandomAlnum(6)`;
+  - `key = obj.key + "-" + seq` y `keySeq = seq` (RF-04.3);
+  - `statusId '1'` y el `token` que recibe, que el caso de uso genera con `RandomAlnum(6)`;
   - `initialDate = now` (UTC) y `maturityDate = now + maturityTimeInDays × 24h`, en UTC y con la hora exacta. Corrige B13 (`hh` de 12 horas).
 - **RF-04.5** — Atomicidad. Dentro de `RunInTransaction` se ejecutan: la reserva de claves, el `InsertMany` de bonos, cada `Withdraw` y los `BondHistory.Add`.
   - Si cualquiera falla (por ejemplo, el saldo cambió entre la validación y el retiro), se revierte todo y se responde el error del paso que falló.
@@ -138,7 +139,7 @@ Los pasos 5–9 siguen el orden de `bondBound.purchase`. La compra masiva del le
 ```
 RunInTransaction(ctx, func(tx) {
   seqStart = KeyCounter.Reserve(tx, obj.bondTypeId, quantity)        // devuelve el primer seq reservado
-  bounds   = [NewBoundFromObject(obj, session, obj.key+"-"+(seqStart+i), seqStart+i, now) para i en 0..quantity-1]
+  bounds   = [NewBoundFromObject(snapshot(obj), buyer(session), seqStart+i, RandomAlnum(6), now) para i en 0..quantity-1]
   Repo.InsertMany(tx, bounds)
   para cada b en bounds:
      mov = BalancePort.Withdraw(tx, {accountId, userId: session.userId, agencyId: session.agencyId,
