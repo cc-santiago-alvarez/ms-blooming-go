@@ -354,7 +354,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/domain/bondBound.new.go`
 - [ ] **BLM-0081** `impl` Caso de uso `Purchase`: validaciones de §5.1 y transacción de §5.2
   - cubre: RF-04.1, RF-04.5 · depende de: BLM-0077, BLM-0079, BLM-0080, BLM-0010, BLM-0012, BLM-0055, BLM-0035
-  - archivos: `internal/core/bondBound/application/bondBound.purchase.go`, `bondBound.validatePurchase.go`
+  - archivos: `internal/core/bondBound/application/bondBound.purchase.go`, `bondBound.validatePurchase.go`, `bondBound.application.go` (dependencias y sesión)
 - [ ] **BLM-0082** `impl` Caso de uso `BulkPurchase`: cantidad, validaciones compartidas y transacción única
   - cubre: RF-04.2, RF-04.5 · depende de: BLM-0081
   - archivos: `internal/core/bondBound/application/bondBound.bulkPurchase.go`
