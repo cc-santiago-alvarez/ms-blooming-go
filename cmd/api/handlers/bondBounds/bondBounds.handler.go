@@ -15,11 +15,13 @@ type BondBoundsHandler struct {
 }
 
 // NewBondBoundsHandler registra las rutas de /bond-bounds. La compra y la compra masiva son del usuario de la
-// sesión, que paga con una de sus cuentas.
+// sesión, que paga con una de sus cuentas. Las guías de un bono las ve su dueño o un admin; lo valida el
+// caso de uso.
 func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_ports.BondBoundApplicationPorts) {
 	handler := &BondBoundsHandler{bondBoundApplication: bondBoundApplication}
 
 	server.Group("/bond-bounds", []nexus.Endpoint{
+		{Path: "GET /{id}/chart-guides", HandlerFunc: handler.ChartGuides},
 		{Path: "POST /purchase", HandlerFunc: handler.Purchase},
 		{Path: "POST /bulk-purchase", HandlerFunc: handler.BulkPurchase},
 	})

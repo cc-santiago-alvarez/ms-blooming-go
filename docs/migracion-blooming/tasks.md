@@ -366,7 +366,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.handler.go`, `bondBounds.purchase.post.go`, `bondBounds.bulkPurchase.post.go`, `cmd/api/server/server.bondBound.go`, `server.go` (inicialización y registro), `server.deps.go` y `server.config.go` (aviso, notificación y utilidades compartidas)
 - [ ] **BLM-0085** `impl` Handler y ruta `GET /bond-bounds/{id}/chart-guides`
   - cubre: RF-03.5 · depende de: BLM-0078, BLM-0084, BLM-0026
-  - archivos: `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get.go`
+  - archivos: `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get.go`, `bondBounds.handler.go` (ruta)
 - [ ] **BLM-0086** `test` Tests del caso de uso y del handler de guías de bondBound (dueño, admin, 404)
   - cubre: CA-03.8 · depende de: BLM-0085
   - archivos: `internal/core/bondBound/application/bondBound.chartGuides_test.go`
