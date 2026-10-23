@@ -378,7 +378,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `bondBound.testdb_integration_test.go` (conexión, fixtures y adapters reales), `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go`
 - [ ] **BLM-0089** `test` Tests de las notificaciones (textos, tabla y tolerancia a fallos)
   - cubre: CA-04.11, CA-04.12 · depende de: BLM-0083
-  - archivos: `internal/core/bondBound/application/bondBound.purchase.notify_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.purchase.notify_test.go`, `bondBound.fakes_test.go` (notificaciones y perfiles registrados)
 - [ ] **BLM-0090** `impl` Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados
   - cubre: RF-05.2 · depende de: BLM-0075, BLM-0009
   - archivos: `internal/core/bondBound/domain/bondBound.quoteSale.go`

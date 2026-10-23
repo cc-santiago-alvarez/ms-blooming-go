@@ -3,6 +3,7 @@ package bondBound_application_test
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -195,27 +196,68 @@ func (n *fakeNotices) Add(_ context.Context, notice shared_domain.Notice) {
 	n.added = append(n.added, notice)
 }
 
-// fakeNotifications registra el nombre de cada notificación; Send corre en una goroutine.
+// notifyTimeout es lo máximo que wait espera las notificaciones.
+const notifyTimeout = 2 * time.Second
+
+// sentNotification es una notificación enviada: el grupo de destinatarios, su nombre y sus parámetros.
+type sentNotification struct {
+	group  string
+	name   string
+	params map[string]any
+}
+
+// fakeNotifications registra cada notificación; Send corre en una goroutine.
 type fakeNotifications struct {
 	shared_ports.NotificationPort
 
 	mu   sync.Mutex
-	sent []string
+	sent []sentNotification
 }
 
-func (n *fakeNotifications) Send(_ context.Context, _, notification string, _ map[string]any) {
+func (n *fakeNotifications) Send(_ context.Context, group, notification string, params map[string]any) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.sent = append(n.sent, notification)
+	n.sent = append(n.sent, sentNotification{group: group, name: notification, params: params})
 }
 
-// fakeProfiles no conoce perfiles: los avisos usan el nombre de la sesión.
+// wait espera a que haya al menos count notificaciones y devuelve una copia; falla el test si no llegan.
+func (n *fakeNotifications) wait(t *testing.T, count int) []sentNotification {
+	t.Helper()
+	deadline := time.Now().Add(notifyTimeout)
+	for {
+		n.mu.Lock()
+		sent := slices.Clone(n.sent)
+		n.mu.Unlock()
+		if len(sent) >= count {
+			return sent
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("llegaron %d notificaciones, se esperaban %d: %+v", len(sent), count, sent)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// fakeProfiles responde los perfiles conocidos, o err; sin perfiles los avisos usan el nombre de la sesión.
 type fakeProfiles struct {
 	shared_ports.ProfileReader
+
+	profiles map[string]shared_domain.PublicProfile
+	err      error
 }
 
-func (fakeProfiles) GetPublic(_ context.Context, _ ...string) ([]shared_domain.PublicProfile, error) {
-	return []shared_domain.PublicProfile{}, nil
+// GetPublic devuelve, en el orden pedido, los perfiles que conoce.
+func (p *fakeProfiles) GetPublic(_ context.Context, ids ...string) ([]shared_domain.PublicProfile, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
+	out := []shared_domain.PublicProfile{}
+	for _, id := range ids {
+		if profile, ok := p.profiles[id]; ok {
+			out = append(out, profile)
+		}
+	}
+	return out, nil
 }
 
 // fakes son las dependencias de la aplicación.
@@ -228,6 +270,7 @@ type fakes struct {
 	tx            *fakeTx
 	notices       *fakeNotices
 	notifications *fakeNotifications
+	profiles      *fakeProfiles
 }
 
 // newFakes arma las dependencias con los bonos dados, sin cuentas ni productos.
@@ -246,6 +289,7 @@ func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 		tx:            &fakeTx{},
 		notices:       &fakeNotices{},
 		notifications: &fakeNotifications{},
+		profiles:      &fakeProfiles{profiles: map[string]shared_domain.PublicProfile{}},
 	}
 }
 
@@ -275,7 +319,7 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Utils:                   fakeUtils{},
 		Notices:                 f.notices,
 		Notifications:           f.notifications,
-		Profiles:                fakeProfiles{},
+		Profiles:                f.profiles,
 		BulkPurchaseMaxQuantity: maxQuantity,
 	}
 }
