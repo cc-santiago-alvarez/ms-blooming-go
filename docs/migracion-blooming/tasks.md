@@ -357,7 +357,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.purchase.go`, `bondBound.validatePurchase.go`, `bondBound.application.go` (dependencias y sesión)
 - [ ] **BLM-0082** `impl` Caso de uso `BulkPurchase`: cantidad, validaciones compartidas y transacción única
   - cubre: RF-04.2, RF-04.5 · depende de: BLM-0081
-  - archivos: `internal/core/bondBound/application/bondBound.bulkPurchase.go`
+  - archivos: `internal/core/bondBound/application/bondBound.bulkPurchase.go`, `bondBound.application.go` (tope de la compra masiva y aserción del port)
 - [ ] **BLM-0083** `impl` Notificaciones post-commit de la compra individual y la masiva (armado de textos y tabla)
   - cubre: RF-04.6, RF-04.7 · depende de: BLM-0081, BLM-0082, BLM-0013, BLM-0014, BLM-0018, BLM-0015
   - archivos: `internal/core/bondBound/application/bondBound.purchase.notify.go`
