@@ -381,7 +381,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.purchase.notify_test.go`, `bondBound.fakes_test.go` (notificaciones y perfiles registrados)
 - [ ] **BLM-0090** `impl` Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados
   - cubre: RF-05.2 · depende de: BLM-0075, BLM-0009
-  - archivos: `internal/core/bondBound/domain/bondBound.quoteSale.go`
+  - archivos: `internal/core/bondBound/domain/bondBound.quoteSale.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_WITHDRAW_DATE`, `ERR_BOND_INVALID_TERMS`)
 - [ ] **BLM-0091** `impl` Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores
   - cubre: RF-05.3 · depende de: BLM-0075
   - archivos: `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go`

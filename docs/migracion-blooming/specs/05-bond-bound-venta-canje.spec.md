@@ -37,7 +37,7 @@ Archivo: `backend/server/model/bond.bound.js`.
   - Si el bono no se puede vender por su estado (§5.3), devuelve el error correspondiente.
   - Si no, calcula `QuoteSale` (RF-05.2) con el `utcDiff` del **dueño** del bono, que es el de la sesión cuando quien consulta es el dueño.
   - Responde la proyección.
-- **RF-05.2** — `QuoteSale(bound, now, utcDiff) (Projection, error)`, función pura con la fórmula de §5.1.
+- **RF-05.2** — `QuoteSale(bound, now, utcDiff) (SaleProjection, error)`, función pura con la fórmula de §5.1.
   - Si hoy es anterior a la fecha mínima de retiro, devuelve `ERR_INVALID_WITHDRAW_DATE`.
   - Usa los valores del snapshot del bono, en `float64`, sin truncar (corrige B14).
 - **RF-05.3** — Venta o canje.
@@ -240,7 +240,7 @@ type SaleProjection struct {
 
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
-| BLM-0090 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | F5 | RF-05.2 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
+| BLM-0090 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | F5 | RF-05.2 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.quoteSale.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_WITHDRAW_DATE`, `ERR_BOND_INVALID_TERMS`) |
 | BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` |
 | BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go` |
 | BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go` |

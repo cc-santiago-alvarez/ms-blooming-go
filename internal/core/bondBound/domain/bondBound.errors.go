@@ -20,4 +20,6 @@ var (
 	ErrInsufficientAmount     = errors.New("ERR_INSUFFICIENT_AMOUNT")
 	ErrBondNotAvailableByDate = errors.New("ERR_BOND_NOT_AVAILABLE_BY_DATE")
 	ErrBondSaleEnded          = errors.New("ERR_BOND_SALE_ENDED")
+	ErrInvalidWithdrawDate    = errors.New("ERR_INVALID_WITHDRAW_DATE")
+	ErrBondInvalidTerms       = errors.New("ERR_BOND_INVALID_TERMS")
 )
