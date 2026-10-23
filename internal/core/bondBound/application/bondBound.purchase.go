@@ -35,6 +35,7 @@ func (app *BondBoundApplication) Purchase(ctx context.Context, p bondBound_domai
 	if err != nil {
 		return bondBound_domain.PurchaseResult{}, err
 	}
+	app.notifyPurchase(ctx, session, order, bounds, movements, now)
 
 	return bondBound_domain.PurchaseResult{
 		BondBoundID:      bounds[0].ID,

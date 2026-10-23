@@ -18,7 +18,7 @@ var errNoSession = errors.New("bondBound: el contexto no tiene sesión de usuari
 
 // BondBoundApplication implementa los casos de uso de bondBound. Tx es el mismo que usa Balance, para que
 // el cobro se sume a la transacción de la compra. BulkPurchaseMaxQuantity es el tope de bonos de una compra
-// masiva.
+// masiva y AdminEmails, los destinatarios del aviso de retiro al área administrativa.
 type BondBoundApplication struct {
 	Repository              bondBound_ports.BondBoundMongoccRepositoryPorts
 	KeyCounter              bondBound_ports.KeyCounterPort
@@ -27,7 +27,11 @@ type BondBoundApplication struct {
 	History                 bondHistory_ports.BondHistoryPort
 	Tx                      shared_ports.TransactionRunnerPort
 	Utils                   utils_adapters.UtilsPorts
+	Notices                 shared_ports.NoticePort
+	Notifications           shared_ports.NotificationPort
+	Profiles                shared_ports.ProfileReader
 	BulkPurchaseMaxQuantity int
+	AdminEmails             []string
 }
 
 var _ bondBound_ports.BondBoundApplicationPorts = (*BondBoundApplication)(nil)

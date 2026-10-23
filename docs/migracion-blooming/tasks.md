@@ -360,7 +360,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.bulkPurchase.go`, `bondBound.application.go` (tope de la compra masiva y aserción del port)
 - [ ] **BLM-0083** `impl` Notificaciones post-commit de la compra individual y la masiva (armado de textos y tabla)
   - cubre: RF-04.6, RF-04.7 · depende de: BLM-0081, BLM-0082, BLM-0013, BLM-0014, BLM-0018, BLM-0015
-  - archivos: `internal/core/bondBound/application/bondBound.purchase.notify.go`
+  - archivos: `internal/core/bondBound/application/bondBound.purchase.notify.go`, `bondBound.application.go` (dependencias de notificación), `bondBound.purchase.go` y `bondBound.bulkPurchase.go` (llamada después del commit)
 - [ ] **BLM-0084** `impl` Handlers `purchase` y `bulk-purchase`, y `server.bondBound.go` (inicialización del dominio y registro)
   - cubre: RF-04.1, RF-04.2 · depende de: BLM-0081, BLM-0082, BLM-0026
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.handler.go`, `bondBounds.purchase.post.go`, `bondBounds.bulkPurchase.post.go`, `cmd/api/server/server.bondBound.go`

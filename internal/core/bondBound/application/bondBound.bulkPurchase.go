@@ -30,6 +30,7 @@ func (app *BondBoundApplication) BulkPurchase(ctx context.Context, p bondBound_d
 	if err != nil {
 		return bondBound_domain.BulkPurchaseResult{}, err
 	}
+	app.notifyBulkPurchase(ctx, session, order, bounds, movements, now)
 
 	items := make([]bondBound_domain.BulkPurchaseItem, len(bounds))
 	var total float64
