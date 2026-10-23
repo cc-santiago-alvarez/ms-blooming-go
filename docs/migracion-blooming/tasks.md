@@ -369,7 +369,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get.go`, `bondBounds.handler.go` (ruta)
 - [ ] **BLM-0086** `test` Tests del caso de uso y del handler de guías de bondBound (dueño, admin, 404)
   - cubre: CA-03.8 · depende de: BLM-0085
-  - archivos: `internal/core/bondBound/application/bondBound.chartGuides_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.chartGuides_test.go`, `bondBound.fakes_test.go` (`FindOneByID` en memoria), `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get_test.go`, `bondBounds.testServer_test.go` (`ChartGuides` en `fakeApp`)
 - [ ] **BLM-0087** `test` Tests unitarios de validaciones (tabla y orden), de `NewBoundFromObject` y de los handlers
   - cubre: CA-04.2, CA-04.3, CA-04.4, CA-04.6, CA-04.8 · depende de: BLM-0084
   - archivos: `internal/core/bondBound/application/bondBound.purchase_test.go`, `internal/core/bondBound/domain/bondBound.new_test.go`

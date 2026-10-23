@@ -1,0 +1,126 @@
+package bondBounds_handlers_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/codecraftkit/nexus"
+	bondBounds_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondBounds"
+	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
+	bondBound_ports "github.com/futurapps/ms-blooming-go/internal/core/bondBound/ports"
+	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
+	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
+)
+
+const (
+	agencyA = "agencyAAAAAAAAAAA"
+	userID  = "user1AAAAAAAAAAAA"
+	boundID = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d"
+
+	// legacyBoundID es un _id Meteor de 17 caracteres.
+	legacyBoundID = "Kp3Wq8Zr5Tn2Yx7Lm"
+
+	boundsPath = "/api/v1/bond-bounds"
+	boundPath  = boundsPath + "/" + boundID
+)
+
+var investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
+
+// fakeApp responde lo configurado y registra con qué la llamó el handler.
+type fakeApp struct {
+	bondBound_ports.BondBoundApplicationPorts
+
+	chart bondBound_domain.BondBoundChart
+	err   error
+
+	calls []string
+	id    string
+}
+
+func (a *fakeApp) ChartGuides(_ context.Context, id string) (bondBound_domain.BondBoundChart, error) {
+	a.calls = append(a.calls, "ChartGuides")
+	a.id = id
+	return a.chart, a.err
+}
+
+// newTestAPI registra las rutas de /bond-bounds sobre app y atiende cada request con la sesión dada.
+func newTestAPI(app *fakeApp, session *session_domain.UserSession) http.Handler {
+	server := &nexus.Server{
+		ServerName: "blooming-test",
+		Settings:   &nexus.Settings{PathPrefix: "/api/v1"},
+	}
+	bondBounds_handlers.NewBondBoundsHandler(server, app)
+	mux := server.PrepareEndpoints()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if session != nil {
+			r = r.WithContext(session_domain.SetUserSession(r.Context(), session))
+		}
+		mux.ServeHTTP(w, r)
+	})
+}
+
+// serve manda un request al handler y devuelve la respuesta. Un body vacío es un request sin body.
+func serve(h http.Handler, method, target, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, target, nil)
+	if body != "" {
+		req = httptest.NewRequest(method, target, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// assertError verifica el status y el código de error de una respuesta de nexus.
+func assertError(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) {
+	t.Helper()
+	if rec.Code != status {
+		t.Fatalf("status %d, se esperaba %d (body %s)", rec.Code, status, rec.Body)
+	}
+	var body nexus.ErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("el body no es un error de nexus: %v (body %s)", err, rec.Body)
+	}
+	if body.Message != code {
+		t.Fatalf("código %q, se esperaba %q", body.Message, code)
+	}
+}
+
+// decodeJSON verifica el status y decodifica el body en v.
+func decodeJSON(t *testing.T, rec *httptest.ResponseRecorder, status int, v any) {
+	t.Helper()
+	if rec.Code != status {
+		t.Fatalf("status %d, se esperaba %d (body %s)", rec.Code, status, rec.Body)
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), v); err != nil {
+		t.Fatalf("el body no es JSON: %v (body %s)", err, rec.Body)
+	}
+}
+
+// sampleChart son las guías de un bono comprado: el punto de crecimiento y la línea de retiro, sin toDate
+// ni fillColor.
+func sampleChart() bondBound_domain.BondBoundChart {
+	thickness := 1.5
+	return bondBound_domain.BondBoundChart{Guides: []shared_domain.ChartGuide{
+		{
+			Date:          "2026-01-31",
+			LineColor:     "#CC0000",
+			FillColor:     "#CC0000",
+			LabelRotation: 90,
+			LineThickness: &thickness,
+			Label:         "Punto de Crecimiento",
+		},
+		{
+			Date:          "2026-01-11",
+			LineColor:     "#4ec74c",
+			LabelRotation: 90,
+			LineThickness: &thickness,
+			Label:         "Zona de Retiro",
+		},
+	}}
+}
