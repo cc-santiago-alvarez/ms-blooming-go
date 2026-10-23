@@ -375,7 +375,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.purchase_test.go`, `bondBound.fakes_test.go` (dependencias de la compra), `internal/core/bondBound/domain/bondBound.new_test.go`, `cmd/api/handlers/bondBounds/bondBounds.purchase.post_test.go`, `bondBounds.bulkPurchase.post_test.go`, `bondBounds.testServer_test.go` (`Purchase` y `BulkPurchase` en `fakeApp`)
 - [ ] **BLM-0088** `test` Tests de integración: compra completa, rollback, concurrencia, contador e índices
   - cubre: CA-04.1, CA-04.5, CA-04.7, CA-04.9, CA-04.10, CA-04.13, CA-04.14 · depende de: BLM-0084
-  - archivos: `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `bondBound.testdb_integration_test.go` (conexión, fixtures y adapters reales), `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go`
 - [ ] **BLM-0089** `test` Tests de las notificaciones (textos, tabla y tolerancia a fallos)
   - cubre: CA-04.11, CA-04.12 · depende de: BLM-0083
   - archivos: `internal/core/bondBound/application/bondBound.purchase.notify_test.go`
