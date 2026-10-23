@@ -17,15 +17,24 @@ import (
 )
 
 const (
-	agencyA = "agencyAAAAAAAAAAA"
-	userID  = "user1AAAAAAAAAAAA"
-	boundID = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d"
+	agencyA   = "agencyAAAAAAAAAAA"
+	userID    = "user1AAAAAAAAAAAA"
+	boundID   = "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d"
+	accountID = "9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a"
+	objectID  = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
 
 	// legacyBoundID es un _id Meteor de 17 caracteres.
 	legacyBoundID = "Kp3Wq8Zr5Tn2Yx7Lm"
 
-	boundsPath = "/api/v1/bond-bounds"
-	boundPath  = boundsPath + "/" + boundID
+	boundsPath       = "/api/v1/bond-bounds"
+	boundPath        = boundsPath + "/" + boundID
+	purchasePath     = boundsPath + "/purchase"
+	bulkPurchasePath = boundsPath + "/bulk-purchase"
+
+	// purchaseBody es la compra de un bono del producto con la cuenta.
+	purchaseBody = `{"accountId":"` + accountID + `","bondObjectId":"` + objectID + `"}`
+	// bulkBody es la compra de 3 bonos del producto con la cuenta.
+	bulkBody = `{"accountId":"` + accountID + `","bondObjectId":"` + objectID + `","quantity":3}`
 )
 
 var investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
@@ -34,11 +43,27 @@ var investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
 type fakeApp struct {
 	bondBound_ports.BondBoundApplicationPorts
 
-	chart bondBound_domain.BondBoundChart
-	err   error
+	chart          bondBound_domain.BondBoundChart
+	purchaseResult bondBound_domain.PurchaseResult
+	bulkResult     bondBound_domain.BulkPurchaseResult
+	err            error
 
-	calls []string
-	id    string
+	calls    []string
+	id       string
+	purchase bondBound_domain.PurchaseParams
+	bulk     bondBound_domain.BulkPurchaseParams
+}
+
+func (a *fakeApp) Purchase(_ context.Context, p bondBound_domain.PurchaseParams) (bondBound_domain.PurchaseResult, error) {
+	a.calls = append(a.calls, "Purchase")
+	a.purchase = p
+	return a.purchaseResult, a.err
+}
+
+func (a *fakeApp) BulkPurchase(_ context.Context, p bondBound_domain.BulkPurchaseParams) (bondBound_domain.BulkPurchaseResult, error) {
+	a.calls = append(a.calls, "BulkPurchase")
+	a.bulk = p
+	return a.bulkResult, a.err
 }
 
 func (a *fakeApp) ChartGuides(_ context.Context, id string) (bondBound_domain.BondBoundChart, error) {

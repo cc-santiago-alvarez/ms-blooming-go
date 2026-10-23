@@ -372,7 +372,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.chartGuides_test.go`, `bondBound.fakes_test.go` (`FindOneByID` en memoria), `cmd/api/handlers/bondBounds/bondBounds.chartGuides.get_test.go`, `bondBounds.testServer_test.go` (`ChartGuides` en `fakeApp`)
 - [ ] **BLM-0087** `test` Tests unitarios de validaciones (tabla y orden), de `NewBoundFromObject` y de los handlers
   - cubre: CA-04.2, CA-04.3, CA-04.4, CA-04.6, CA-04.8 · depende de: BLM-0084
-  - archivos: `internal/core/bondBound/application/bondBound.purchase_test.go`, `internal/core/bondBound/domain/bondBound.new_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.purchase_test.go`, `bondBound.fakes_test.go` (dependencias de la compra), `internal/core/bondBound/domain/bondBound.new_test.go`, `cmd/api/handlers/bondBounds/bondBounds.purchase.post_test.go`, `bondBounds.bulkPurchase.post_test.go`, `bondBounds.testServer_test.go` (`Purchase` y `BulkPurchase` en `fakeApp`)
 - [ ] **BLM-0088** `test` Tests de integración: compra completa, rollback, concurrencia, contador e índices
   - cubre: CA-04.1, CA-04.5, CA-04.7, CA-04.9, CA-04.10, CA-04.13, CA-04.14 · depende de: BLM-0084
   - archivos: `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go`
