@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/codecraftkit/nexus"
 	bondBounds_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondBounds"
@@ -30,6 +31,8 @@ const (
 	boundPath        = boundsPath + "/" + boundID
 	purchasePath     = boundsPath + "/purchase"
 	bulkPurchasePath = boundsPath + "/bulk-purchase"
+	preSalePath      = boundPath + "/pre-sale"
+	salePath         = boundPath + "/sale"
 
 	// purchaseBody es la compra de un bono del producto con la cuenta.
 	purchaseBody = `{"accountId":"` + accountID + `","bondObjectId":"` + objectID + `"}`
@@ -39,6 +42,15 @@ const (
 
 var investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
 
+// investorIn es la sesión del inversionista en la zona utcDiff.
+func investorIn(utcDiff int) *session_domain.UserSession {
+	return &session_domain.UserSession{
+		UserID:   userID,
+		AgencyID: agencyA,
+		UtcDiff:  session_domain.OptionalUtcDiff{Hours: utcDiff, Valid: true},
+	}
+}
+
 // fakeApp responde lo configurado y registra con qué la llamó el handler.
 type fakeApp struct {
 	bondBound_ports.BondBoundApplicationPorts
@@ -46,6 +58,8 @@ type fakeApp struct {
 	chart          bondBound_domain.BondBoundChart
 	purchaseResult bondBound_domain.PurchaseResult
 	bulkResult     bondBound_domain.BulkPurchaseResult
+	projection     bondBound_domain.SaleProjection
+	saleResult     bondBound_domain.SaleResult
 	err            error
 
 	calls    []string
@@ -70,6 +84,18 @@ func (a *fakeApp) ChartGuides(_ context.Context, id string) (bondBound_domain.Bo
 	a.calls = append(a.calls, "ChartGuides")
 	a.id = id
 	return a.chart, a.err
+}
+
+func (a *fakeApp) PreSale(_ context.Context, id string) (bondBound_domain.SaleProjection, error) {
+	a.calls = append(a.calls, "PreSale")
+	a.id = id
+	return a.projection, a.err
+}
+
+func (a *fakeApp) Sale(_ context.Context, id string) (bondBound_domain.SaleResult, error) {
+	a.calls = append(a.calls, "Sale")
+	a.id = id
+	return a.saleResult, a.err
 }
 
 // newTestAPI registra las rutas de /bond-bounds sobre app y atiende cada request con la sesión dada.
@@ -113,6 +139,21 @@ func assertError(t *testing.T, rec *httptest.ResponseRecorder, status int, code 
 	}
 	if body.Message != code {
 		t.Fatalf("código %q, se esperaba %q", body.Message, code)
+	}
+}
+
+// assertWithdrawDateDetail verifica un 422 ERR_INVALID_WITHDRAW_DATE con el mensaje de la fecha de hoy, en la
+// zona utcDiff, en errors.detail.
+func assertWithdrawDateDetail(t *testing.T, rec *httptest.ResponseRecorder, utcDiff int) {
+	t.Helper()
+	assertError(t, rec, http.StatusUnprocessableEntity, "ERR_INVALID_WITHDRAW_DATE")
+	var body nexus.ErrorResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("el body no es un error de nexus: %v (body %s)", err, rec.Body)
+	}
+	today := time.Now().In(time.FixedZone("", utcDiff*3600)).Format("02/01/2006")
+	if want := "El bono no puede ser vendido en la fecha actual (" + today + ")"; body.Errors["detail"] != want {
+		t.Errorf("errors.detail %q, se esperaba %q", body.Errors["detail"], want)
 	}
 }
 

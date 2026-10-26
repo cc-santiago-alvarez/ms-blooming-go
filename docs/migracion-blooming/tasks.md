@@ -400,9 +400,9 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
 - [ ] **BLM-0096** `test` Tests de tabla de `QuoteSale` contra casos calculados con el código legacy
   - cubre: CA-05.1, CA-05.2, CA-05.3, CA-05.4 · depende de: BLM-0090
   - archivos: `internal/core/bondBound/domain/bondBound.quoteSale_test.go`
-- [ ] **BLM-0097** `test` Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino)
+- [ ] **BLM-0097** `test` Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) y de sus handlers
   - cubre: CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 · depende de: BLM-0095
-  - archivos: `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go`, `bondBound.fakes_test.go` (`UpdateStatusIf`, `Deposit`, `GetByIDIncludingRemoved` y `UserSettings` en memoria), `cmd/api/handlers/bondBounds/bondBounds.preSale.get_test.go`, `bondBounds.sale.post_test.go`, `bondBounds.testServer_test.go` (`PreSale` y `Sale` en `fakeApp`)
 - [ ] **BLM-0098** `test` Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones
   - cubre: CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 · depende de: BLM-0095, BLM-0094
   - archivos: `internal/core/bondBound/application/bondBound.sale_integration_test.go`

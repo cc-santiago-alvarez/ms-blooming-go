@@ -16,6 +16,8 @@ import (
 	bondHistory_ports "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/ports"
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
 	bondObject_ports "github.com/futurapps/ms-blooming-go/internal/core/bondObject/ports"
+	bondUserSetting_domain "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/domain"
+	bondUserSetting_ports "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
@@ -44,7 +46,13 @@ const (
 // boundCreatedAt es la fecha de compra de los bonos guardados.
 var boundCreatedAt = time.Date(2026, 1, 1, 15, 0, 0, 0, time.UTC)
 
-// fakeRepository guarda los bonos en memoria y registra las lecturas y los inserts.
+// statusChange es una llamada a UpdateStatusIf: el bono y el cambio pedido.
+type statusChange struct {
+	id     string
+	change bondBound_ports.StatusChange
+}
+
+// fakeRepository guarda los bonos en memoria y registra las lecturas, los inserts y los cambios de estado.
 type fakeRepository struct {
 	bondBound_ports.BondBoundMongoccRepositoryPorts
 
@@ -53,6 +61,7 @@ type fakeRepository struct {
 
 	reads    []string
 	inserted []bondBound_domain.BondBound
+	changes  []statusChange
 }
 
 // FindOneByID devuelve err si está puesto, nil si el bono no existe o está borrado, y si no una copia.
@@ -74,6 +83,19 @@ func (r *fakeRepository) InsertMany(_ context.Context, bounds []*bondBound_domai
 		r.inserted = append(r.inserted, *b)
 	}
 	return nil
+}
+
+// UpdateStatusIf aplica c solo si el bono existe, no está borrado, sigue en c.From y no tiene soldDate ni
+// tookDate; devuelve si lo cambió.
+func (r *fakeRepository) UpdateStatusIf(_ context.Context, id string, c bondBound_ports.StatusChange) (bool, error) {
+	r.changes = append(r.changes, statusChange{id: id, change: c})
+	b, ok := r.bounds[id]
+	if !ok || b.IsRemove || b.StatusID != c.From || b.SoldDate != nil || b.TookDate != nil {
+		return false, nil
+	}
+	b.StatusID = c.To
+	b.SoldDate, b.TookDate = c.SoldDate, c.TookDate
+	return true, nil
 }
 
 // fakeKeyCounter numera las claves por tipo en memoria y registra cuántas reserva cada llamada.
@@ -111,13 +133,43 @@ func (o *fakeBondObjects) FindVisibleForPurchase(_ context.Context, id string) (
 	return &found, nil
 }
 
+// GetByIDIncludingRemoved devuelve una copia del producto, o ErrBondObjectNotFound si no existe.
+func (o *fakeBondObjects) GetByIDIncludingRemoved(_ context.Context, id string) (*bondObject_domain.BondObject, error) {
+	o.reads = append(o.reads, id)
+	obj, ok := o.objects[id]
+	if !ok {
+		return nil, bondObject_domain.ErrBondObjectNotFound
+	}
+	found := *obj
+	return &found, nil
+}
+
+// fakeUserSettings guarda los settings por usuario en memoria y registra las lecturas.
+type fakeUserSettings struct {
+	bondUserSetting_ports.BondUserSettingApplicationPorts
+
+	settings map[string]*bondUserSetting_domain.BondUserSetting
+	reads    []string
+}
+
+// GetByUser devuelve una copia del setting del usuario, o nil si no tiene.
+func (s *fakeUserSettings) GetByUser(_ context.Context, userID string) (*bondUserSetting_domain.BondUserSetting, error) {
+	s.reads = append(s.reads, userID)
+	setting, ok := s.settings[userID]
+	if !ok {
+		return nil, nil
+	}
+	found := *setting
+	return &found, nil
+}
+
 // accountRead es una lectura de cuenta: la cuenta pedida y el usuario con el que se pidió.
 type accountRead struct {
 	accountID string
 	userID    string
 }
 
-// fakeBalance guarda las cuentas en memoria y registra las lecturas y los retiros.
+// fakeBalance guarda las cuentas en memoria y registra las lecturas, los retiros y los depósitos.
 type fakeBalance struct {
 	shared_ports.BalancePort
 
@@ -125,6 +177,7 @@ type fakeBalance struct {
 
 	reads       []accountRead
 	withdrawals []shared_domain.WithdrawParams
+	deposits    []shared_domain.DepositParams
 }
 
 // GetAccount devuelve una copia de la cuenta, o nil si no existe o no es de userID.
@@ -147,6 +200,20 @@ func (b *fakeBalance) Withdraw(_ context.Context, p shared_domain.WithdrawParams
 		DetailID:  fmt.Sprintf("detail-%d", len(b.withdrawals)),
 		Reference: fmt.Sprintf("REF%03d", len(b.withdrawals)),
 		Amount:    -p.Amount,
+		Balance:   a.Available,
+		Available: a.Available,
+	}, nil
+}
+
+// Deposit suma el monto a la cuenta y devuelve el movimiento, con una referencia por depósito.
+func (b *fakeBalance) Deposit(_ context.Context, p shared_domain.DepositParams) (*shared_domain.BalanceMovement, error) {
+	b.deposits = append(b.deposits, p)
+	a := b.accounts[p.AccountID]
+	a.Available += p.Amount
+	return &shared_domain.BalanceMovement{
+		DetailID:  fmt.Sprintf("deposit-%d", len(b.deposits)),
+		Reference: fmt.Sprintf("DEP%03d", len(b.deposits)),
+		Amount:    p.Amount,
 		Balance:   a.Available,
 		Available: a.Available,
 	}, nil
@@ -265,6 +332,7 @@ type fakes struct {
 	repo          *fakeRepository
 	keys          *fakeKeyCounter
 	objects       *fakeBondObjects
+	userSettings  *fakeUserSettings
 	balance       *fakeBalance
 	history       *fakeHistory
 	tx            *fakeTx
@@ -273,7 +341,7 @@ type fakes struct {
 	profiles      *fakeProfiles
 }
 
-// newFakes arma las dependencias con los bonos dados, sin cuentas ni productos.
+// newFakes arma las dependencias con los bonos dados, sin cuentas, productos ni settings.
 func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 	repo := &fakeRepository{bounds: map[string]*bondBound_domain.BondBound{}}
 	for _, b := range bounds {
@@ -284,6 +352,7 @@ func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 		repo:          repo,
 		keys:          &fakeKeyCounter{seq: map[string]int{}},
 		objects:       &fakeBondObjects{objects: map[string]*bondObject_domain.BondObject{}},
+		userSettings:  &fakeUserSettings{settings: map[string]*bondUserSetting_domain.BondUserSetting{}},
 		balance:       &fakeBalance{accounts: map[string]*shared_domain.BalanceAccount{}},
 		history:       &fakeHistory{},
 		tx:            &fakeTx{},
@@ -313,6 +382,7 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Repository:              f.repo,
 		KeyCounter:              f.keys,
 		BondObjects:             f.objects,
+		UserSettings:            f.userSettings,
 		Balance:                 f.balance,
 		History:                 f.history,
 		Tx:                      f.tx,
@@ -324,13 +394,14 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 	}
 }
 
-// assertNothingWritten verifica que la compra no abrió la transacción ni escribió nada.
+// assertNothingWritten verifica que el caso de uso no abrió la transacción ni escribió nada.
 func assertNothingWritten(t *testing.T, f *fakes) {
 	t.Helper()
-	if f.tx.runs != 0 || len(f.keys.reserved) != 0 || len(f.repo.inserted) != 0 ||
-		len(f.balance.withdrawals) != 0 || len(f.history.added) != 0 || len(f.notices.added) != 0 {
-		t.Errorf("la compra escribió: %d transacciones, reservas %v, %d bonos, retiros %+v, %d historiales y %d avisos",
-			f.tx.runs, f.keys.reserved, len(f.repo.inserted), f.balance.withdrawals, len(f.history.added), len(f.notices.added))
+	if f.tx.runs != 0 || len(f.keys.reserved) != 0 || len(f.repo.inserted) != 0 || len(f.repo.changes) != 0 ||
+		len(f.balance.withdrawals) != 0 || len(f.balance.deposits) != 0 || len(f.history.added) != 0 || len(f.notices.added) != 0 {
+		t.Errorf("se escribió: %d transacciones, reservas %v, %d bonos, cambios de estado %+v, retiros %+v, depósitos %+v, %d historiales y %d avisos",
+			f.tx.runs, f.keys.reserved, len(f.repo.inserted), f.repo.changes, f.balance.withdrawals, f.balance.deposits,
+			len(f.history.added), len(f.notices.added))
 	}
 }
 
@@ -375,6 +446,16 @@ func storedBound(id string) *bondBound_domain.BondBound {
 		CreatedAt:    boundCreatedAt,
 		UpdatedAt:    boundCreatedAt,
 	}
+}
+
+// boundOnDay es el bono guardado de boundID, del producto objectID, comprado hace days días a esta misma hora;
+// en cualquier zona de la sesión lleva days días.
+func boundOnDay(days int) *bondBound_domain.BondBound {
+	b := storedBound(boundID)
+	b.BondObjectID = objectID
+	b.InitialDate = time.Now().UTC().AddDate(0, 0, -days)
+	b.MaturityDate = b.InitialDate.AddDate(0, 0, b.MaturityTimeInDays)
+	return b
 }
 
 // ownAccount es una cuenta activa de ownerID en la agencia A con 5000 disponibles.
