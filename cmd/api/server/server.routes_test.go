@@ -16,7 +16,7 @@ func routesApp(t *testing.T, debug bool) http.Handler {
 	server.Group("/bonds", []nexus.Endpoint{
 		{Path: "GET /", HandlerFunc: func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }},
 	})
-	return newTestApp(t, server, nil).httpServer().Handler
+	return newTestApp(t, server).httpServer().Handler
 }
 
 // /_routes y /_routes/raw solo existen con API_DEBUG=true, y /_routes no pide x-secret. CA-00.43

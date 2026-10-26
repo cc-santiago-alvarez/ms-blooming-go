@@ -27,7 +27,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | Datos | Mismas colecciones y nombres de campos que el legado. Soft delete con `isRemove`. Meteor y Go comparten la base durante el corte. |
 | Bugs legacy | Se corrigen los **críticos** (dinero, seguridad, llamadas que nunca responden); el resto mantiene paridad. Cada spec documenta su decisión bug por bug. |
 | Saldo | `BalancePort` escribe directo en `balanceDetail`, `balanceHistory`, `balanceOperation` y `balanceAccount`, replicando `balanceAccount.withdraw` y `balanceDetail.insert`, **dentro de una transacción** Mongo. |
-| Maduración | Cron dentro del servicio (`robfig/cron`) con lock entre réplicas. Reemplaza al servicio externo `:8090` y al `SyncedCron` de Meteor. |
+| Maduración | La dispara ms-cronjob-go cada 5 minutos con `POST /internal/jobs/bond-maturity/run` (`x-secret`); el ms no usa librería de cron y toma un lock entre réplicas. Reemplaza al servicio externo `:8090` y al `SyncedCron` de Meteor. |
 | Notificaciones | `notice` y `activity` se insertan directo; los emails van por **ms-notification** (handlers nuevos `blooming-*`). |
 | Reportes | Por **ms-exporter**, con el mismo payload que hoy; el endpoint entrega el `.xlsx`. |
 
@@ -45,7 +45,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | 07 | [Reportes y KPIs](specs/07-reportes-y-kpis.spec.md) | `bondBound` | F6 |
 | 08 | [Historial](specs/08-bond-history.spec.md) | `bondHistory` | F2, F3, F5 |
 | 09 | [Preferencias del inversionista](specs/09-bond-user-setting.spec.md) | `bondUserSetting` | F4 |
-| 10 | [Maduración (cron)](specs/10-maduracion-cron.spec.md) | `bondBound`, `internal/cron` | F7 |
+| 10 | [Maduración (cron)](specs/10-maduracion-cron.spec.md) | `bondBound`, ms-cronjob-go | F7 |
 
 Todas las specs usan la misma plantilla:
 1. Resumen y alcance.
@@ -134,7 +134,7 @@ Todas las specs usan la misma plantilla:
 
 **Fuera de los 5 archivos**, también se migran:
 - `Model.bondHistory.add` → `BondHistoryPort.Add` (spec 08);
-- el cron `BondBoundCheckMaturity` y el servicio externo `:8090` → job `bond-maturity` y `POST /internal/jobs/bond-maturity/run` (spec 10);
+- el cron `BondBoundCheckMaturity` y el servicio externo `:8090` → `POST /internal/jobs/bond-maturity/run`, disparado por ms-cronjob-go (spec 10);
 - `balanceAccount.withdraw` y `balanceDetail.insert` (solo el camino de bonos) → `BalancePort` (spec 00).
 
 ## 4. Dependencias
@@ -183,7 +183,7 @@ Cada spec tiene la tabla completa (63 bugs). `tasks.md` §5 los mapea a sus tare
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
 3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
-4. **Maduración en un solo corte (BLM-0134).** Se apagan el `SyncedCron` y el servicio `:8090` y se enciende `BOND_MATURITY_CRON`.
+4. **Maduración en un solo corte (BLM-0134).** Se apagan el `SyncedCron` y el servicio `:8090` y se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`).
 5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec.
 6. **Retiro (BLM-0137).** Se borran `bond.*.js` de Meteor.
 7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.

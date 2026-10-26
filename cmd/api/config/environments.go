@@ -35,7 +35,4 @@ type ApiEnv struct {
 	BloomingAdminEmails     []string
 	DefaultUtcDiff          int
 	BulkPurchaseMaxQuantity int
-
-	// Cron de maduración de bonos; vacío = desactivado
-	BondMaturityCron string
 }

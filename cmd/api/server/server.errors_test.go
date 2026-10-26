@@ -21,7 +21,7 @@ func handlerApp(t *testing.T, handler http.HandlerFunc) http.Handler {
 	t.Helper()
 	server := newTestNexus(false, cors.Options{})
 	server.Group("/bonds", []nexus.Endpoint{{Path: "GET /", HandlerFunc: handler}})
-	return newTestApp(t, server, nil).httpServer().Handler
+	return newTestApp(t, server).httpServer().Handler
 }
 
 // assertErrorBody verifica el status y el código de error de una respuesta de nexus.

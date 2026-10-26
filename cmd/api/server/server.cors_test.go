@@ -20,7 +20,7 @@ func corsHandler(t *testing.T, corsOrigins ...string) http.Handler {
 	server.Group("/bonds", []nexus.Endpoint{
 		{Path: "GET /", HandlerFunc: func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }},
 	})
-	return newTestApp(t, server, nil).httpServer().Handler
+	return newTestApp(t, server).httpServer().Handler
 }
 
 // preflight manda el OPTIONS que haría un navegador antes de un GET con x-secret y x-token.

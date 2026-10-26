@@ -135,8 +135,6 @@ func newApiEnv(getenv func(string) string) (*ApiEnv, error) {
 		ExporterSecret:     get("MS_EXPORTER_SECRET"),
 
 		BloomingAdminEmails: splitList(get("BLOOMING_ADMIN_EMAILS")),
-
-		BondMaturityCron: get("BOND_MATURITY_CRON"),
 	}
 
 	// Un valor como "," no está vacío pero no declara ningún origen.

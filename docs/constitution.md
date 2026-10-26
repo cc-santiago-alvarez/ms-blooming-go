@@ -12,7 +12,7 @@ Pautas no negociables para escribir código en `ms-blooming-go`. Toda spec, tare
 | Regla | Justificación |
 |---|---|
 | **DEBE** usar Go `1.27` y módulo `github.com/futurapps/ms-blooming-go`. | Mismo toolchain y convención de nombres que petty-cash y cronjob-go. |
-| **DEBE** usar `codecraftkit/nexus` (HTTP), `codecraftkit/mongocc` (Mongo, driver v2), `joho/godotenv`, `rs/cors`, `robfig/cron/v3`, `google/uuid`. | Librerías ya operadas por el equipo. |
+| **DEBE** usar `codecraftkit/nexus` (HTTP), `codecraftkit/mongocc` (Mongo, driver v2), `joho/godotenv`, `rs/cors`, `google/uuid`. | Librerías ya operadas por el equipo. |
 | **NO DEBE** agregar dependencias nuevas sin justificarlas en el PR (qué resuelve y por qué no alcanza la stdlib). | Mantener el binario chico y el mantenimiento acotado. |
 | **NO DEBE** usar ORMs, frameworks de DI ni librerías de validación por reflexión. | Petty-cash valida a mano con `Validation()`; mismo criterio. |
 
@@ -25,7 +25,7 @@ cmd/
   api/
     config/                       -> package api_config (env)
     server/                       -> composition root
-      server.go                   -> InitServer: init de dominios en orden, cron, handlers
+      server.go                   -> InitServer: init de dominios en orden, handlers
       server.config.go            -> config, Mongo, nexus.Server, middlewares
       server.deps.go              -> struct serverDeps (contenedor de dependencias)
       server.<dominio>.go         -> init<Dominio>Domain(deps) + register<Dominio>Handlers(server, deps)
@@ -40,7 +40,6 @@ internal/
       infrastructure/mongocc/     -> repositorio: un archivo por método + ensureIndexes
     session/domain/               -> UserSession + claves de contexto
     shared/                       -> adapters, middlewares, ports y dominio compartidos
-  cron/                           -> scheduler y jobs
 ```
 
 | Regla | Justificación |
@@ -173,9 +172,9 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 | Regla | Justificación |
 |---|---|
 | **DEBE** existir `GET /_health` (de nexus) y el binario `cmd/healthcheck` (`package main`) que lo consulte por TCP en el puerto de `API_PORT`. | El healthcheck de Swarm usa el binario. |
-| **DEBE** el proceso hacer graceful shutdown con `signal.NotifyContext` (SIGINT/SIGTERM): deja de aceptar requests, espera los que están en curso, detiene el cron y desconecta Mongo. | Petty-cash no lo tiene; en deploys rolling corta requests de compra a la mitad. |
+| **DEBE** el proceso hacer graceful shutdown con `signal.NotifyContext` (SIGINT/SIGTERM): deja de aceptar requests, espera los que están en curso y desconecta Mongo. | Petty-cash no lo tiene; en deploys rolling corta requests de compra a la mitad. |
 | **DEBE** el log de requests incluir método, ruta, status y duración, y **NO DEBE** incluir headers ni body. | Diagnóstico sin datos sensibles. |
-| **DEBEN** los jobs de cron tomar un lock distribuido antes de ejecutarse. | El servicio corre con 3 réplicas. |
+| **NO DEBE** el servicio programar jobs propios: los programa ms-cronjob-go, que llama a endpoints internos con `x-secret`. Cada job **DEBE** tomar un lock distribuido antes de ejecutarse. | Menos dependencias y un solo lugar de programación en la plataforma; el disparo puede llegar a cualquiera de las 3 réplicas o repetirse. |
 
 ## 13. Ramas y commits
 

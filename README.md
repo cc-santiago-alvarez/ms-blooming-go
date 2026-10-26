@@ -24,7 +24,6 @@ cmd/
 internal/
   core/<dominio>/         -> domain/, ports/, application/, infrastructure/mongocc/
   core/shared/            -> adapters, middlewares, ports y dominio compartidos
-  cron/                   -> scheduler y jobs
 ```
 
 ## Comandos

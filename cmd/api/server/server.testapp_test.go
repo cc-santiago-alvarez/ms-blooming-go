@@ -52,7 +52,7 @@ func newTestNexus(debug bool, corsOptions cors.Options) *nexus.Server {
 }
 
 // newTestApp arma el App con un cliente de Mongo que nunca llega a conectarse.
-func newTestApp(t *testing.T, server *nexus.Server, cron scheduler) *App {
+func newTestApp(t *testing.T, server *nexus.Server) *App {
 	t.Helper()
 	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://127.0.0.1:1"))
 	if err != nil {
@@ -62,7 +62,6 @@ func newTestApp(t *testing.T, server *nexus.Server, cron scheduler) *App {
 	return &App{
 		server: server,
 		deps:   &serverDeps{mongoDB: mongocc.NewFromClient(client, "blooming_test", nil)},
-		cron:   cron,
 	}
 }
 

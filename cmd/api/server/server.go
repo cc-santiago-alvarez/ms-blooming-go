@@ -25,20 +25,13 @@ const (
 	indexesTimeout = 30 * time.Second
 )
 
-// scheduler es lo que el apagado necesita del cron: deja de programar jobs y cierra el context
-// devuelto cuando termina el que está en curso.
-type scheduler interface {
-	Stop() context.Context
-}
-
 // App es el servicio armado: el servidor nexus y lo que hay que cerrar al apagarlo.
 type App struct {
 	server *nexus.Server
 	deps   *serverDeps
-	cron   scheduler // nil si no hay jobs registrados
 }
 
-// InitServer arma el servidor, inicializa los dominios, registra los handlers y arranca el cron.
+// InitServer arma el servidor, inicializa los dominios y registra los handlers.
 func InitServer() *App {
 	server, deps := initServerConfig()
 
@@ -53,8 +46,6 @@ func InitServer() *App {
 	// bondType y bondObject se usan mutuamente: se conectan cuando los dos existen
 	linkBondObjectToBondType(deps)
 	initBondBoundDomain(deps)
-
-	// Init and start cron scheduler
 
 	// Register handlers
 	registerBondTypeHandlers(server, deps)
@@ -97,7 +88,7 @@ func (app *App) Run() {
 }
 
 // serve atiende en ln hasta que ctx se cancela o el servidor HTTP se detiene solo. Después cierra
-// el servidor HTTP, el cron y Mongo, en ese orden.
+// el servidor HTTP y Mongo, en ese orden.
 func (app *App) serve(ctx context.Context, ln net.Listener) error {
 	httpServer := app.httpServer()
 	served := make(chan error, 1)
@@ -113,7 +104,6 @@ func (app *App) serve(ctx context.Context, ln net.Listener) error {
 		err = shutdownHTTP(httpServer)
 	}
 
-	app.stopCron()
 	app.disconnectMongo()
 	if err == nil {
 		log.Printf("[server] apagado completo")
@@ -144,14 +134,6 @@ func shutdownHTTP(httpServer *http.Server) error {
 		return fmt.Errorf("apagado forzado del servidor HTTP: %w", err)
 	}
 	return nil
-}
-
-// stopCron detiene el scheduler y espera el job en curso.
-func (app *App) stopCron() {
-	if app.cron == nil {
-		return
-	}
-	<-app.cron.Stop().Done()
 }
 
 // disconnectMongo cierra las conexiones a Mongo. Un error solo se loguea: el proceso ya termina.

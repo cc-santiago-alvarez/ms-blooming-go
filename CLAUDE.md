@@ -61,7 +61,8 @@ Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bon
   `handlers_shared.ResponseWithError(w, r, status, err)`, which turns a 500 into `ERR_INTERNAL` and logs the detail.
 - `internal/core/<domain>/` — `domain/`, `ports/`, `application/` (one use case per file),
   `infrastructure/mongocc/` (one file per repository method + `EnsureIndexes`).
-- `internal/cron/` — scheduler and jobs (bond maturity, with a distributed lock).
+- Scheduled jobs are not run here: `ms-cronjob-go` triggers them through internal endpoints
+  (`POST /internal/jobs/...`, `x-secret`), and each job takes a distributed lock (bond maturity: `bondJobLock`).
 
 ## Conventions
 

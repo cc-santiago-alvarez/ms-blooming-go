@@ -18,32 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-// fakeScheduler simula un cron con un job en curso que tarda jobDuration en terminar.
-type fakeScheduler struct {
-	mu          sync.Mutex
-	stops       int
-	stoppedAt   time.Time
-	jobDoneAt   time.Time
-	jobDuration time.Duration
-}
-
-func (s *fakeScheduler) Stop() context.Context {
-	s.mu.Lock()
-	s.stops++
-	s.stoppedAt = time.Now()
-	s.mu.Unlock()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(s.jobDuration)
-		s.mu.Lock()
-		s.jobDoneAt = time.Now()
-		s.mu.Unlock()
-		cancel()
-	}()
-	return ctx
-}
-
 // freePort devuelve un puerto TCP libre de 127.0.0.1.
 func freePort(t *testing.T) string {
 	t.Helper()
@@ -79,7 +53,7 @@ type slowResult struct {
 }
 
 // Con un SIGTERM y un request de 2 s en curso, el request termina con 200, Run vuelve sin error (el
-// proceso termina con 0), el cron se detiene después del request y Mongo queda desconectado.
+// proceso termina con 0) después del request y Mongo queda desconectado.
 // CA-00.25
 func TestRunGracefulShutdown(t *testing.T) {
 	started := make(chan struct{})
@@ -96,8 +70,7 @@ func TestRunGracefulShutdown(t *testing.T) {
 			handlerDone <- time.Now()
 		}},
 	})
-	cron := &fakeScheduler{jobDuration: 300 * time.Millisecond}
-	app := newTestApp(t, server, cron)
+	app := newTestApp(t, server)
 	buf := captureLog(t)
 
 	runDone := make(chan time.Time, 1)
@@ -150,18 +123,8 @@ func TestRunGracefulShutdown(t *testing.T) {
 		t.Fatal("Run no volvió después del SIGTERM")
 	}
 	finishedAt := <-handlerDone
-
-	cron.mu.Lock()
-	stops, stoppedAt, jobDoneAt := cron.stops, cron.stoppedAt, cron.jobDoneAt
-	cron.mu.Unlock()
-	if stops != 1 {
-		t.Fatalf("Stop() del cron se llamó %d veces, se esperaba 1", stops)
-	}
-	if stoppedAt.Before(finishedAt) {
-		t.Fatal("el cron se detuvo antes de que terminara el request en curso")
-	}
-	if jobDoneAt.IsZero() || runEnded.Before(jobDoneAt) {
-		t.Fatal("Run no esperó a que terminara el job en curso del cron")
+	if runEnded.Before(finishedAt) {
+		t.Fatal("Run volvió antes de que terminara el request en curso")
 	}
 
 	client := app.deps.mongoDB.Database().Client()

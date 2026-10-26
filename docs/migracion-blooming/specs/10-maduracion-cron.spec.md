@@ -3,15 +3,15 @@
 | | |
 |---|---|
 | Estado | Borrador |
-| Dominio | `internal/core/bondBound` (caso de uso), `internal/cron` (scheduler) |
+| Dominio | `internal/core/bondBound` (caso de uso y endpoint interno); la programación vive en ms-cronjob-go |
 | Colecciones | `bondBound`, `bondJobLock` (nueva) |
-| Depende de | Spec 00 (notificaciones, shutdown), spec 04 (repositorio), spec 08 (`BondHistoryPort`) |
+| Depende de | Spec 00 (notificaciones, shutdown), spec 04 (repositorio), spec 08 (`BondHistoryPort`), ms-cronjob-go (disparo) |
 
 ## 1. Resumen y alcance
 
 Cuando un bono `initiated ('1')` llega a su `maturityDate`, pasa a `finalized ('2')`, es decir, madurado. Desde ese momento el inversionista lo puede canjear (spec 05). Además se le avisa con un aviso y un email por usuario que lista los bonos madurados.
 
-Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/bound/check-maturity`) cuyo código no está en el workspace. Lo dispara un `SyncedCron` de Meteor que corre cada 30 s. Esta spec lo **trae a ms-blooming-go** y reemplaza los dos.
+Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/bound/check-maturity`) cuyo código no está en el workspace. Lo dispara un `SyncedCron` de Meteor que corre cada 30 s. Esta spec **trae la regla a ms-blooming-go** (caso de uso y endpoint interno) y deja la programación en ms-cronjob-go, que llama al endpoint cada 5 minutos. Juntos reemplazan a los dos.
 
 ## 2. Origen legacy
 
@@ -24,9 +24,11 @@ Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/b
 
 ## 3. Requisitos funcionales
 
-- **RF-10.1** — Programación.
-  - Al arrancar se registra el job `bond-maturity` en el scheduler `robfig/cron/v3`, con la expresión de `BOND_MATURITY_CRON` (recomendada: `*/5 * * * *`). Si la variable está vacía, el job no se registra y queda un log informativo.
-  - El scheduler se detiene en el graceful shutdown y espera al job en curso (RF-00.16).
+- **RF-10.1** — Programación (en ms-cronjob-go).
+  - ms-blooming-go no programa jobs ni usa una librería de cron (constitución §12).
+  - ms-cronjob-go registra un `scheduler.Job` cada 300 s que hace `POST {MS_BLOOMING_URL}/internal/jobs/bond-maturity/run` con `x-secret` (RF-10.7), igual que el job de auditoría de Telegram de petty-cash (FA-359). Si falta `MS_BLOOMING_URL`, el adapter queda deshabilitado y lo avisa con un warning al arrancar.
+  - No reintenta: la corrida es idempotente y el próximo tick la repite. Un `409 ERR_JOB_LOCKED` se loguea como informativo; cualquier otro status, como error.
+  - Si ms-cronjob-go corta la conexión por timeout, la corrida sigue en ms-blooming-go hasta terminar.
 - **RF-10.2** — Exclusión entre réplicas.
   - Antes de procesar, el job toma un lock en `bondJobLock` con `updateOne({_id: "bond-maturity", lockedUntil: {$lt: now}}, {$set: {lockedUntil: now + 10min, owner: hostname}}, upsert)`. Si el upsert choca por clave duplicada, el lock está tomado.
   - Si no lo obtiene, termina sin hacer nada.
@@ -50,7 +52,8 @@ Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/b
   - Si falla un bono, se loguea con su `_id` y el lote sigue.
   - Al terminar se loguea `{matured, users, failed, durationMs}`.
   - Una corrida nunca deja el lock tomado más allá de su TTL.
-- **RF-10.7** — Ejecución manual. `POST /internal/jobs/bond-maturity/run` (`x-secret`, `NoRequiresAuthentication`) ejecuta la misma lógica con el lock y responde `{matured, users, failed}`. Sirve para operación y pruebas.
+- **RF-10.7** — Endpoint interno. `POST /internal/jobs/bond-maturity/run` (`x-secret`, `NoRequiresAuthentication`) ejecuta la corrida con el lock y responde `{matured, users, failed}`. Es la entrada de ms-cronjob-go y también sirve para operación y pruebas.
+  - Si llega SIGTERM durante una corrida, el shutdown espera al request en curso (RF-00.16, 20 s). Si se corta, los bonos ya madurados quedan completos (cada uno va en su transacción) y el lock vence por su TTL.
 
 ## 4. Contrato API
 
@@ -93,19 +96,19 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 - `JobLockPort`: `Acquire(ctx, name, ttl) (bool, error)` y `Release(ctx, name)`, en `shared_ports`.
 - `BondHistoryPort.Add` en modo sistema (spec 08).
 - `NoticePort`, `NotificationPort`, `ProfileReader` (spec 00) y lectura de los nombres de `bondType` y `bondObject` (specs 01 y 02).
-- `internal/cron`: scheduler, registro del job y parada en el shutdown.
+- ms-cronjob-go: adapter HTTP `blooming_api` y job `blooming-bond-maturity` (300 s), con `MS_BLOOMING_URL`, `MS_BLOOMING_SECRET` y `MS_BLOOMING_DEBUG`.
 
 ## 8. Bugs legacy
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
 | B22 | La regla legacy (`checkMaturity`) maduraba también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | Dinero (crítico). | BLM-0118 |
-| B32 | `SyncedCron.start()` solo corre en `Cron.init()`, que está comentado en `main.js`. La maduración solo arranca después de editar un cronjob, y depende de un servicio externo que no está versionado en el workspace. | Corregir | Los bonos podían no madurar nunca. | BLM-0121 |
+| B32 | `SyncedCron.start()` solo corre en `Cron.init()`, que está comentado en `main.js`. La maduración solo arranca después de editar un cronjob, y depende de un servicio externo que no está versionado en el workspace. | Corregir | Los bonos podían no madurar nunca. | BLM-0141 |
 | B33 | Con 3 réplicas sin lock, la maduración y los avisos se ejecutarían tres veces. | Corregir (prevención) | Avisos duplicados. | BLM-0119 |
 
 ## 9. Criterios de aceptación
 
-- **CA-10.1** (RF-10.1) — Con `BOND_MATURITY_CRON` vacío, el job no se registra y hay un log informativo. Con `*/5 * * * *` se registra. Si llega SIGTERM durante una corrida, el proceso espera a que termine.
+- **CA-10.1** (RF-10.1) — En ms-cronjob-go, con `MS_BLOOMING_URL` vacío el job no llama a nada y hay un warning al arrancar. Con la URL, cada tick hace `POST …/internal/jobs/bond-maturity/run` con `x-secret` y loguea `{matured, users, failed}`; un `409` se loguea como informativo y un `500`, como error.
 - **CA-10.2** (RF-10.2) — Dos ejecuciones concurrentes (que simulan dos réplicas) dan este resultado: una procesa y la otra termina con `ERR_JOB_LOCKED` sin modificar nada. Un lock vencido (`lockedUntil` en el pasado) se puede volver a tomar.
 - **CA-10.3** (RF-10.3) — Dados estos bonos:
   - A: `'1'`, vence ayer;
@@ -131,14 +134,16 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 | BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`) |
 | BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.ports.go` (`JobLockPort`), `internal/core/shared/infrastructure/mongocc/jobLock.mongocc.repository.go`, `jobLock.acquire.adapter.go`, `jobLock.release.adapter.go` |
 | BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go`, `bondBound.runMaturity.notify.go`, `bondBound.application.go` (`BondTypes` y `JobLock`), `bondBound.sale.notify.go` (`bondName` compartido), `internal/core/bondBound/ports/bondBound.ports.go` (`RunMaturity`), `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_JOB_LOCKED`), `cmd/api/server/server.bondBound.go`, `server.config.go` y `server.deps.go` (`JobLockPort` con el hostname) |
-| BLM-0121 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | F7 | RF-10.1 | BLM-0120, BLM-0019 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |
-| BLM-0122 | Endpoint interno de ejecución manual | impl | F7 | RF-10.7 | BLM-0120, BLM-0004 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |
+| BLM-0122 | Endpoint interno de ejecución de la maduración (lo llama ms-cronjob-go) | impl | F7 | RF-10.7 | BLM-0120, BLM-0004 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |
 | BLM-0123 | Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial | test | F7 | CA-10.3, CA-10.6, CA-10.7 | BLM-0120 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go` |
-| BLM-0124 | Tests de integración: idempotencia, lock concurrente, historial de sistema, registro del cron y endpoint | test | F7 | CA-10.1, CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 | BLM-0121, BLM-0122 | `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`, `internal/cron/infra/scheduler_test.go` |
+| BLM-0124 | Tests de integración: idempotencia, lock concurrente, historial de sistema y endpoint | test | F7 | CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 | BLM-0120, BLM-0122 | `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go` |
 | BLM-0140 | **(repo ms-notification)** Ruta interna de notificaciones que solo valida `x-secret`; `NotificationClient` la usa cuando el ctx no tiene sesión | impl | F7 | RF-10.5 | BLM-0014, BLM-0015 | `ms-notification/src/api/modules/notify/notify.routes.js`, `internal/core/shared/infrastructure/notification/notification.client.go` |
+| BLM-0141 | **(repo ms-cronjob-go)** Adapter `blooming_api` y job `blooming-bond-maturity` cada 300 s que llama al endpoint interno de maduración | impl | F7 | RF-10.1 | BLM-0122 | `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/`, `internal/core/application/bond_maturity/`, `internal/core/port/`, `internal/core/domain/`, `cmd/api/main.go`, `cmd/api/config/enviroments.config.go`, `.env.example`, `README.md`, `CLAUDE.md` |
+| BLM-0142 | **(repo ms-cronjob-go)** Tests del adapter (`httptest`) y del job: URL vacía, POST con `x-secret`, 409 informativo y error | test | F7 | CA-10.1 | BLM-0141 | `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/blooming_api_test.go`, `internal/core/application/bond_maturity/*_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
 - **Pregunta:** ¿qué hace hoy el servicio `:8090` (`MS_FINOBONDS_FEED_URL`)? ¿Escribe historial, o madura también estados `'5'`/`'4'`? Hay que revisarlo antes del corte, porque con los datos actuales puede haber bonos vendidos que pasaron a `'2'`. Se agrega una tarea de auditoría (BLM-0134).
 - **Decisión (Pregunta 4 de la spec 00):** el email de maduración sale sin sesión, y `POST /notify/:group/:notification` de ms-notification exige `x-token`. Se agrega a ms-notification una ruta interna que solo valida `x-secret`, y `NotificationClient` la usa cuando el ctx no tiene sesión (BLM-0140). El corte (BLM-0134) depende de esa tarea.
+- **Decisión (programación):** la maduración la programa ms-cronjob-go y no el ms, para no sumar una librería de cron (constitución §1 y §12). El scheduler interno con `robfig/cron/v3` (BLM-0121) se retiró sin llegar a commitearse; su ID no se reutiliza.
 - **Pregunta:** ¿la frecuencia de 5 minutos es suficiente? El legado corría cada 30 s, pero los avisos se pueden atrasar unos minutos sin impacto.

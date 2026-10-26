@@ -55,7 +55,7 @@ Ningún endpoint de negocio vive aquí.
   - Valida las variables requeridas de §5. Si falta una requerida o tiene un valor inválido, el proceso termina con código 1 y un mensaje que nombra la variable, sin mostrar valores.
   - Se conecta a Mongo con `mongocc.Connect`.
   - Construye `nexus.Server` con `PathPrefix: "/api/v1"`.
-  - Inicializa los dominios en orden: `bondHistory` → `bondUserSetting` → `bondType` → `bondObject` → `bondBound`. Después registra los handlers y arranca el cron (spec 10).
+  - Inicializa los dominios en orden: `bondHistory` → `bondUserSetting` → `bondType` → `bondObject` → `bondBound`. Después registra los handlers.
 - **RF-00.2** — `ValidateApiSecret`: compara el header `x-secret` con `API_SECRET` (en tiempo constante, tras quitar caracteres no imprimibles). Si falta o no coincide, responde `401 UNAUTHORIZED_INVALID_SECRET`. Los endpoints `IsPublic` (`/_health`, `/_routes`) se saltan esta validación.
 - **RF-00.3** — `VerifySession`: valida la sesión que **creó ms-oauth**. ms-blooming-go no crea ni renueva sesiones.
   - Lee `x-token`. Si falta, responde `401 TOKEN_IS_REQUIRED`.
@@ -156,7 +156,7 @@ Ningún endpoint de negocio vive aquí.
     - Lee `API_PORT` de `.env` + `.env.<ENV>` con el mismo cargador que el API (`api_config.LoadEnvFiles`), relativo al directorio de trabajo. En producción el entorno llega en esos archivos, no como variables del contenedor.
     - Timeouts: 2 s para conectar y 3 s en total.
     - Termina en 1 si faltan los archivos, si `API_PORT` está vacía, si no conecta o si el status no es 200.
-  - Graceful shutdown: `signal.NotifyContext(SIGINT, SIGTERM)` → `http.Server.Shutdown` con timeout de 20 s → detener el cron (esperando el job en curso) → `mongo.Client.Disconnect` con timeout de 5 s.
+  - Graceful shutdown: `signal.NotifyContext(SIGINT, SIGTERM)` → `http.Server.Shutdown` con timeout de 20 s → `mongo.Client.Disconnect` con timeout de 5 s.
     - Si `Shutdown` vence, se cierran las conexiones a la fuerza, se completan los pasos siguientes y el proceso termina en 1.
     - Una segunda señal corta el proceso sin esperar.
     - El stack de Swarm debe declarar `stop_grace_period` mayor a 20 s; con el default de 10 s, Swarm mata el proceso a la mitad del apagado.
@@ -238,7 +238,6 @@ Esta spec no define endpoints de negocio. Expone:
 | `BLOOMING_ADMIN_EMAILS` | no | vacío | Destinatarios del aviso de retiro al admin (legacy `Constant.ADMIN_BALANCE_EMAILS`) |
 | `DEFAULT_UTC_DIFF` | no | `-5` | Fallback de zona horaria (RF-00.4) |
 | `BULK_PURCHASE_MAX_QUANTITY` | no | `100` | Tope de la compra masiva (spec 04) |
-| `BOND_MATURITY_CRON` | no | vacío = desactivado | Expresión del cron de maduración (spec 10) |
 
 ## 6. Modelo de datos
 
@@ -367,7 +366,7 @@ Contrato de los params:
 - **CA-00.22** (RF-00.13) — Con un request que lleva `x-token: abc`, ninguna línea del log contiene `abc`.
 - **CA-00.23** (RF-00.14) — Si ms-exporter responde 201 con `{"type":"Buffer","data":[80,75]}`, `Excel` devuelve `[]byte{80,75}`. Con un 500 devuelve `ERR_EXPORT_FAILED`.
 - **CA-00.24** (RF-00.15) — `ProfileReader.GetPublic` nunca devuelve el campo `password`, aunque el documento lo tenga.
-- **CA-00.25** (RF-00.16) — Si llega SIGTERM con un request de 2 s en curso, el request se completa con 200, el proceso termina con código 0 y el cron queda detenido.
+- **CA-00.25** (RF-00.16) — Si llega SIGTERM con un request de 2 s en curso, el request se completa con 200, el proceso termina con código 0 y Mongo queda desconectado.
 - **CA-00.26** (RF-00.16) — El binario `healthcheck` termina en 0 si `/_health` responde 200, y en 1 si no hay proceso escuchando en `API_PORT`.
 - **CA-00.27** (RF-00.17) — Si `bondBound_domain` importa `bondObject_domain`, `go test ./internal/core/...` falla y nombra los dos paquetes.
 - **CA-00.28** (RF-00.18) — `Pagination{Page: 0, Limit: 500}` se normaliza a `{1, 100}`, y `{3, 10}` da `skip 20`.
