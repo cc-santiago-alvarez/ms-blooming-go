@@ -66,7 +66,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-06.9** — Línea de tiempo de compras.
   - Devuelve `[{_id, text: "<bondObject.name> (<key>)", start, end}]`, con `start == end == initialDate` en formato `%Y-%m-%d %H:%M`, en la zona `utcDiff`.
   - Sin `userId`, devuelve los del usuario de la sesión. Con un `userId` distinto exige admin.
-- **RF-06.10** — Baja lógica (admin). Marca `isRemove: true`; si no existe, `ERR_BOND_BOUND_NOT_FOUND`.
+- **RF-06.10** — Baja lógica (admin) de un bono del alcance de agencia de la sesión (`AgencyScope`). Marca `isRemove: true`; si no existe o es de otra agencia, `ERR_BOND_BOUND_NOT_FOUND`.
 - **RF-06.11** — Derivados (funciones puras), con `today = StartOfDay(now, u)` y `start = StartOfDay(initialDate, u)`:
   - `daysPassed = DaysBetween(start, today)`.
   - `acumulateAmount`: si `daysPassed <= M` y `statusId == '1'`, vale `Round2((amount × (1 + R/100)) / M × daysPassed)`; si no, `0` (paridad de fórmula).
@@ -133,7 +133,7 @@ Ver RF-06.11 y RF-06.12.
 
 ## 6. Modelo de datos
 
-Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineItem`, `BondBoundDetail` y `TimelineItem`, en `bondBound/ports`, porque combinan datos de otros dominios.
+Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundWithProfile` (RF-06.8), `BondBoundMineItem`, `BondBoundDetail` y `TimelineItem`, en `bondBound/ports`, porque combinan datos de otros dominios. El estado sale como `StatusRef` (`{_id, name}`), del dominio.
 
 El repositorio devuelve filas con el bono completo y lo que traen los lookups (`BondBoundAdminRow`, `BondBoundWithObject`, `BondBoundDetailRow`) y `TimelineItem` ya armado. La aplicación arma los DTOs de salida con los derivados de RF-06.11.
 
@@ -174,7 +174,7 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 - **CA-06.10** (RF-06.6, RF-06.7) — Para un no admin, `GET /bond-bounds/{id}` y `/details` de un bono ajeno responden `403`, y de un id inexistente `404`. El detalle propio no tiene `statusId`, `userId`, `bondObjectId`, `bondTypeId` ni `bondObject.authorizedUserIds`.
 - **CA-06.11** (RF-06.8) — `GET /bond-objects/X/bond-bounds` devuelve `profile` sin `password` y excluye los bonos borrados.
 - **CA-06.12** (RF-06.9) — Un bono con `initialDate 2026-12-31T20:00Z` y `utcDiff -5` da `start "2026-12-31 15:00"`. Un no admin que pide `?userId=otro` recibe `403`.
-- **CA-06.13** (RF-06.10) — `DELETE /bond-bounds/{id}` deja `isRemove: true` y el bono desaparece de RF-06.1 y RF-06.4.
+- **CA-06.13** (RF-06.10) — `DELETE /bond-bounds/{id}` deja `isRemove: true` y el bono desaparece de RF-06.1 y RF-06.4. Un admin de otra agencia, no principal, recibe `404`.
 - **CA-06.14** (RF-06.4, RF-06.7) — Con bonos propios legacy (17 caracteres) y nuevos (UUID), `GET /bond-bounds/me` los lista juntos, y `GET /bond-bounds/{idLegacy}/details` resuelve los lookups a un `bondObject` y un `bondType` legacy.
 
 ## 10. Tareas
@@ -184,7 +184,7 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 | BLM-0101 | Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` y el rango `DateFilter.Range` | impl | F6 | RF-06.1, RF-06.11, RF-06.12 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_DATE_FILTER`, `ERR_INVALID_STATUS`, `ERR_INVALID_SEARCH`) |
 | BLM-0102 | `$match` de rango de fecha `DateRangeStage(filter, field, u)` sobre `DateFilter.Range`, reutilizable por la spec 07 | impl | F6 | RF-06.12 | BLM-0101 | `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go` |
 | BLM-0103 | Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete` | impl | F6 | RF-06.1, RF-06.3, RF-06.4, RF-06.5, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0102, BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go`, `bondBound.mongocc.repository.go` (lookups, zona horaria y página con `$facet`), `bondBound.search.go` (búsqueda escapada, reutilizada por la spec 07), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas) |
-| BLM-0104 | Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove` | impl | F6 | RF-06.1, RF-06.3, RF-06.8, RF-06.10 | BLM-0103, BLM-0017 | `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go` |
+| BLM-0104 | Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove` | impl | F6 | RF-06.1, RF-06.3, RF-06.8, RF-06.10 | BLM-0103, BLM-0017 | `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`List`, `ListByUserAndObject`, `ListByObject`, `Remove`, `BondBoundAdminItem`, `BondBoundWithProfile`), `internal/core/bondBound/domain/bondBound.status.domain.go` (`StatusRef`) |
 | BLM-0105 | Casos de uso del inversionista: `Statuses`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails` y `Timeline`, con control de dueño | impl | F6 | RF-06.2, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.9, RF-06.11 | BLM-0103, BLM-0007 | `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go` |
 | BLM-0106 | Handlers y rutas, incluidas `/users/{userId}/bond-bounds` y `/bond-objects/{id}/bond-bounds` | impl | F6 | RF-06.1, RF-06.2, RF-06.3, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0104, BLM-0105, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go` |
 | BLM-0107 | Tests de tabla de los derivados y de los rangos de fecha | test | F6 | CA-06.3, CA-06.4, CA-06.5 | BLM-0101, BLM-0102 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |

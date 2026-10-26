@@ -12,6 +12,17 @@ const (
 	StatusTook      BondBoundStatus = "6" // Canjeado
 )
 
+// StatusRef es un estado como lo muestran las respuestas: su id y su nombre.
+type StatusRef struct {
+	ID   BondBoundStatus `json:"_id"`
+	Name string          `json:"name"`
+}
+
+// Ref devuelve el estado con su nombre.
+func (s BondBoundStatus) Ref() StatusRef {
+	return StatusRef{ID: s, Name: s.Name()}
+}
+
 // IsValid indica si el estado es uno de los conocidos.
 func (s BondBoundStatus) IsValid() bool {
 	return s.Name() != ""

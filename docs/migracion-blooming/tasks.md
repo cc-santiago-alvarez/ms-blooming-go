@@ -432,7 +432,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go`, `bondBound.mongocc.repository.go` (lookups, zona horaria y página con `$facet`), `bondBound.search.go` (búsqueda escapada, reutilizada por la spec 07), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas)
 - [ ] **BLM-0104** `impl` Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove`
   - cubre: RF-06.1, RF-06.3, RF-06.8, RF-06.10 · depende de: BLM-0103, BLM-0017
-  - archivos: `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go`
+  - archivos: `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`List`, `ListByUserAndObject`, `ListByObject`, `Remove`, `BondBoundAdminItem`, `BondBoundWithProfile`), `internal/core/bondBound/domain/bondBound.status.domain.go` (`StatusRef`)
 - [ ] **BLM-0105** `impl` Casos de uso del inversionista: `Statuses`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails` y `Timeline`, con control de dueño
   - cubre: RF-06.2, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.9, RF-06.11 · depende de: BLM-0103, BLM-0007
   - archivos: `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go`

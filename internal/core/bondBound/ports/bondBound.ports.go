@@ -71,6 +71,33 @@ type TimelineItem struct {
 	End   string `json:"end" bson:"end"`
 }
 
+// BondBoundAdminItem es un bono del listado de administración, con los días y el monto acumulados a hoy.
+// Profile no sale si el dueño no tiene perfil.
+type BondBoundAdminItem struct {
+	ID                        string                     `json:"_id"`
+	Key                       string                     `json:"key"`
+	Status                    bondBound_domain.StatusRef `json:"status"`
+	Amount                    float64                    `json:"amount"`
+	MaturityTimeInDays        int                        `json:"maturityTimeInDays"`
+	InitialDate               time.Time                  `json:"initialDate"`
+	MaturityRewardsPercentage float64                    `json:"maturityRewardsPercentage"`
+	Profile                   *ProfileName               `json:"profile,omitempty"`
+	BondType                  BondTypeRef                `json:"bondType"`
+	BondObject                BondObjectRef              `json:"bondObject"`
+	CreatedAt                 time.Time                  `json:"createdAt"`
+	Month                     int                        `json:"month"`
+	Year                      int                        `json:"year"`
+	DaysPassed                int                        `json:"daysPassed"`
+	AcumulateAmount           float64                    `json:"acumulateAmount"`
+}
+
+// BondBoundWithProfile es un bono con el perfil público de su dueño; Profile no sale si el dueño no tiene
+// perfil.
+type BondBoundWithProfile struct {
+	bondBound_domain.BondBound
+	Profile *shared_domain.PublicProfile `json:"profile,omitempty"`
+}
+
 // BondBoundApplicationPorts son los casos de uso de bondBound.
 type BondBoundApplicationPorts interface {
 	// Purchase compra un bono del producto con una cuenta del usuario de la sesión: valida y, en una
@@ -99,6 +126,20 @@ type BondBoundApplicationPorts interface {
 	// listo para mostrar. Si no existe es ErrBondBoundNotFound, y si no es del usuario ni es admin,
 	// ErrForbidden. Un id inválido es ErrInvalidID.
 	HistoryOf(ctx context.Context, id string) ([]bondHistory_domain.HistoryEntry, error)
+	// List devuelve la página p de los bonos no borrados del alcance de la sesión que pasan f, por createdAt
+	// descendente, con su dueño, su producto, su tipo y los días y el monto acumulados a hoy; las fechas usan
+	// la zona de la sesión. Un filtro inválido es el error de su Validation.
+	List(ctx context.Context, f bondBound_domain.ListFilters, p shared_domain.Pagination) (shared_domain.Paginated[BondBoundAdminItem], error)
+	// ListByUserAndObject devuelve los bonos iniciados, madurados, bloqueados o canjeados del usuario en el
+	// producto, en el alcance de la sesión. Sin bondObjectID es ErrBondObjectIDRequired, y un id inválido,
+	// ErrInvalidID.
+	ListByUserAndObject(ctx context.Context, userID, bondObjectID string) ([]*bondBound_domain.BondBound, error)
+	// ListByObject devuelve los bonos no borrados del producto en el alcance de la sesión, con el perfil
+	// público de cada dueño. Un id inválido es ErrInvalidID.
+	ListByObject(ctx context.Context, bondObjectID string) ([]BondBoundWithProfile, error)
+	// Remove borra el bono de forma lógica. Si no existe, ya estaba borrado o es de otra agencia que la de la
+	// sesión, que no es la principal, es ErrBondBoundNotFound. Un id inválido es ErrInvalidID.
+	Remove(ctx context.Context, id string) error
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así
