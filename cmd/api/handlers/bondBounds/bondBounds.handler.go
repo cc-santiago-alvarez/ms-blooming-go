@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/codecraftkit/nexus"
@@ -21,10 +22,10 @@ type BondBoundsHandler struct {
 }
 
 // NewBondBoundsHandler registra las rutas de /bond-bounds, los bonos de un usuario en /users y los compradores
-// de un producto en /bond-objects. Exigen adminBlooming el listado, la baja, los bonos de un usuario y los
-// compradores. La compra, los estados, mis bonos, los recientes y la línea de tiempo son del usuario de la
-// sesión. Un bono, su detalle, sus guías, su cotización y su historial los ve su dueño o un admin, y solo el
-// dueño lo vende; lo valida el caso de uso.
+// de un producto en /bond-objects. Exigen adminBlooming el listado, los reportes, la baja, los bonos de un
+// usuario y los compradores. La compra, los estados, mis bonos, los recientes y la línea de tiempo son del
+// usuario de la sesión. Un bono, su detalle, sus guías, su cotización y su historial los ve su dueño o un
+// admin, y solo el dueño lo vende; lo valida el caso de uso, igual que el alcance del KPI por estado.
 func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_ports.BondBoundApplicationPorts) {
 	handler := &BondBoundsHandler{bondBoundApplication: bondBoundApplication}
 	admin := middlewares_adapters.RequireBloomingAdmin
@@ -35,6 +36,9 @@ func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_p
 		{Path: "GET /me", HandlerFunc: handler.ListMine},
 		{Path: "GET /me/recent", HandlerFunc: handler.ListRecent},
 		{Path: "GET /timeline", HandlerFunc: handler.Timeline},
+		{Path: "GET /reports/purchased", HandlerFunc: admin(handler.ReportPurchased)},
+		{Path: "GET /reports/purchased-summary", HandlerFunc: admin(handler.ReportSummary)},
+		{Path: "GET /kpis/count-by-status", HandlerFunc: handler.CountByStatus},
 		{Path: "GET /{id}", HandlerFunc: handler.GetByID},
 		{Path: "GET /{id}/details", HandlerFunc: handler.GetDetails},
 		{Path: "DELETE /{id}", HandlerFunc: admin(handler.Remove)},
@@ -62,6 +66,18 @@ func respondError(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	handlers_shared.ResponseWithError(w, r, status, err)
+}
+
+// xlsxContentType es el tipo de los reportes de Excel.
+const xlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+// respondReport responde el reporte como descarga de Excel.
+func respondReport(w http.ResponseWriter, file bondBound_ports.ReportFile) {
+	w.Header().Set("Content-Type", xlsxContentType)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+file.Name+`"`)
+	w.Header().Set("Content-Length", strconv.Itoa(len(file.Content)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(file.Content)
 }
 
 // withdrawDateDetail es el mensaje de una venta antes del día mínimo de retiro, con la fecha de hoy en la

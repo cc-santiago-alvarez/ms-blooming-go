@@ -13,6 +13,9 @@ var allowedMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
 
 var allowedHeaders = []string{"Origin", "X-Requested-With", "Content-Type", "Accept", "X-Secret", "X-Token"}
 
+// exposedHeaders son los headers de respuesta que el front puede leer: el nombre de los reportes.
+var exposedHeaders = []string{"Content-Disposition"}
+
 // anyOrigin en CORS_ORIGINS acepta cualquier origen.
 const anyOrigin = "*"
 
@@ -58,6 +61,7 @@ func NewCorsOptions(origins []string) (cors.Options, error) {
 		AllowOriginFunc:  allowOrigin,
 		AllowedMethods:   allowedMethods,
 		AllowedHeaders:   allowedHeaders,
+		ExposedHeaders:   exposedHeaders,
 		AllowCredentials: true,
 	}, nil
 }

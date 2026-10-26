@@ -50,6 +50,7 @@ Del lado de ms-exporter: `ms-exporter/src/modules/bond/bond.routes.js` y `bond.p
 - **RF-07.4** — Entrega de archivos.
   - Los reportes responden el binario con `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` y `Content-Disposition: attachment; filename="<FILENAME_REPORT>.xlsx"`.
   - El nombre es `reporte-purchased-bonds_<YYYY-MM-DD_HHmmss>` o `reporte-summary-purchased-bonds_<…>`, con la hora en `utcDiff`.
+  - CORS expone `Content-Disposition` (spec 00, RF-00.6) para que el front lea el nombre.
   - Si ms-exporter falla, `502 ERR_EXPORT_FAILED`.
 
 ## 4. Contrato API
@@ -137,7 +138,7 @@ Esta spec no persiste nada.
 | BLM-0111 | Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada) | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0110, BLM-0102, BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go`, `bondBound.mongocc.repository.go` (`numericAmount`), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas `PurchasedReportRow`, `SummaryReportRow` y `StatusCount`) |
 | BLM-0112 | Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo) | impl | F6 | RF-07.1, RF-07.2, RF-07.4 | BLM-0111, BLM-0016, BLM-0017 | `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go`, `bondBound.exportReport.go` (moneda, payload y nombre del archivo), `bondBound.application.go` (dependencias `Agencies` y `Exporter`), `internal/core/bondBound/ports/bondBound.ports.go` (`ReportPurchased`, `ReportSummary` y `ReportFile`), `cmd/api/server/server.config.go`, `server.deps.go`, `server.bondBound.go` (cableado de `ExporterPort` y `AgencyReader`) |
 | BLM-0113 | Caso de uso `CountByStatus`, con el alcance por rol | impl | F6 | RF-07.3 | BLM-0111, BLM-0007 | `internal/core/bondBound/application/bondBound.countByStatus.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`CountByStatus`) |
-| BLM-0114 | Handlers de reportes (respuesta binaria y headers) y del KPI | impl | F6 | RF-07.1, RF-07.2, RF-07.3, RF-07.4 | BLM-0112, BLM-0113, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go` |
+| BLM-0114 | Handlers de reportes (respuesta binaria y headers) y del KPI | impl | F6 | RF-07.1, RF-07.2, RF-07.3, RF-07.4 | BLM-0112, BLM-0113, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go`, `bondBounds.handler.go` (rutas y `respondReport`), `internal/core/shared/middlewares/cors.go` (`Content-Disposition` expuesto) |
 | BLM-0115 | Tests unitarios: normalización, permisos, fallo de ms-exporter y headers | test | F6 | CA-07.1, CA-07.4, CA-07.6, CA-07.7 | BLM-0114 | `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go` |
 | BLM-0116 | Tests de integración de las agregaciones (rangos, búsqueda, agrupado) | test | F6 | CA-07.2, CA-07.3, CA-07.5, CA-07.8 | BLM-0111 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go` |
 

@@ -462,7 +462,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/application/bondBound.countByStatus.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`CountByStatus`)
 - [ ] **BLM-0114** `impl` Handlers de reportes (respuesta binaria y headers) y del KPI
   - cubre: RF-07.1, RF-07.2, RF-07.3, RF-07.4 · depende de: BLM-0112, BLM-0113, BLM-0084, BLM-0026
-  - archivos: `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go`
+  - archivos: `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go`, `bondBounds.handler.go` (rutas y `respondReport`), `internal/core/shared/middlewares/cors.go` (`Content-Disposition` expuesto)
 - [ ] **BLM-0115** `test` Tests unitarios: normalización, permisos, fallo de ms-exporter y headers
   - cubre: CA-07.1, CA-07.4, CA-07.6, CA-07.7 · depende de: BLM-0114
   - archivos: `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go`

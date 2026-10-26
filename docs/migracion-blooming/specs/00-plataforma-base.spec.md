@@ -81,6 +81,7 @@ Ningún endpoint de negocio vive aquí.
   - `CORS_ORIGINS=*` acepta cualquier origen. Está pensado para development y testing; en production se listan los dominios del front. El origen `null` nunca se acepta.
   - Una entrada mal formada (`*.com`, `a.*.com`, un esquema que no sea `http`/`https`, una ruta) detiene el arranque.
   - Headers permitidos: `Origin, X-Requested-With, Content-Type, Accept, X-Secret, X-Token`. Métodos: `GET, POST, PUT, PATCH, DELETE, OPTIONS`. `AllowCredentials: true`.
+  - Headers expuestos: `Content-Disposition`, para que el front lea el nombre de los reportes.
 - **RF-00.7** — Formato de respuestas.
   - Éxito: la entidad, el arreglo o el objeto resultado, sin envelope (`nexus.ResponseWithJSON`).
   - Error: `nexus.ResponseWithError(w, status, "ERR_X")`.
