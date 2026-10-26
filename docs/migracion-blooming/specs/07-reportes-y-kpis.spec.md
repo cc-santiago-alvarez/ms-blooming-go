@@ -83,12 +83,15 @@ Del lado de ms-exporter: `ms-exporter/src/modules/bond/bond.routes.js` y `bond.p
 - `ERR_INVALID_ID` (400): un id de path, query o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19).
 - `ERR_FORBIDDEN` (403).
 - `ERR_INVALID_DATE_FILTER` (400).
+- `ERR_INVALID_STATUS` (400): `statusId` de un reporte fuera del enum y distinto de `'0'`.
+- `ERR_INVALID_SEARCH` (400): `search` de más de 100 caracteres.
 - `ERR_EXPORT_FAILED` (502; el legado devolvía `code -1000` con status 200).
 
 ## 5. Reglas de negocio
 
 - **Normalización de `statusId` (reportes):** vacío → `'1'`; `'0'` → sin filtro de estado; otro valor → debe estar en el enum, si no `ERR_INVALID_STATUS`.
 - **Normalización de `statusId` (KPI):** vacío o fuera del enum → sin filtro de estado y `status: ""` (paridad).
+- **Búsqueda:** como en la spec 06, como máximo 100 caracteres; uno más largo responde `ERR_INVALID_SEARCH`.
 - Los rangos de fecha usan `DateRangeStage` (BLM-0102), siempre en la zona de la sesión.
 
 ## 6. Modelo de datos
@@ -130,7 +133,7 @@ Esta spec no persiste nada.
 
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
-| BLM-0110 | DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0101 | `internal/core/bondBound/domain/bondBound.reports.domain.go` |
+| BLM-0110 | DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0101 | `internal/core/bondBound/domain/bondBound.reports.domain.go`, `bondBound.filters.domain.go` (validación común de userId, búsqueda y fecha, compartida con `ListFilters`) |
 | BLM-0111 | Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada) | impl | F6 | RF-07.1, RF-07.2, RF-07.3 | BLM-0110, BLM-0102, BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go` |
 | BLM-0112 | Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo) | impl | F6 | RF-07.1, RF-07.2, RF-07.4 | BLM-0111, BLM-0016, BLM-0017 | `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go` |
 | BLM-0113 | Caso de uso `CountByStatus`, con el alcance por rol | impl | F6 | RF-07.3 | BLM-0111, BLM-0007 | `internal/core/bondBound/application/bondBound.countByStatus.go` |

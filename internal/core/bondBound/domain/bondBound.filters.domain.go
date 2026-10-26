@@ -117,15 +117,22 @@ func (f *ListFilters) Normalize() {
 // Validation exige un estado conocido, un userId válido, una búsqueda de hasta 100 caracteres y un filtro
 // de fecha válido. Los vacíos no se validan.
 func (f ListFilters) Validation() error {
-	switch {
-	case f.StatusID != "" && !f.StatusID.IsValid():
+	if f.StatusID != "" && !f.StatusID.IsValid() {
 		return ErrInvalidStatus
-	case f.UserID != "" && !shared_domain.IsValidID(f.UserID):
+	}
+	return validateQueryFilters(f.UserID, f.Search, f.Date)
+}
+
+// validateQueryFilters exige un userId válido si viene, una búsqueda de hasta 100 caracteres y un filtro de
+// fecha válido.
+func validateQueryFilters(userID, search string, date DateFilter) error {
+	switch {
+	case userID != "" && !shared_domain.IsValidID(userID):
 		return shared_domain.ErrInvalidID
-	case utf8.RuneCountInString(f.Search) > maxSearchLength:
+	case utf8.RuneCountInString(search) > maxSearchLength:
 		return ErrInvalidSearch
 	}
-	return f.Date.Validation()
+	return date.Validation()
 }
 
 // MineFilters son los filtros de los bonos del usuario de la sesión; sin estados no filtra por estado.

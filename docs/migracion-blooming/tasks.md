@@ -450,7 +450,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go`, `bondBound.timeline_integration_test.go`, `bondBound.findDetails_integration_test.go`, `bondBound.softDelete_integration_test.go`, `bondBound.testdb_integration_test.go` (colecciones de los lookups y fixtures de perfil, producto y tipo)
 - [ ] **BLM-0110** `impl` DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores
   - cubre: RF-07.1, RF-07.2, RF-07.3 · depende de: BLM-0101
-  - archivos: `internal/core/bondBound/domain/bondBound.reports.domain.go`
+  - archivos: `internal/core/bondBound/domain/bondBound.reports.domain.go`, `bondBound.filters.domain.go` (validación común de userId, búsqueda y fecha, compartida con `ListFilters`)
 - [ ] **BLM-0111** `impl` Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada)
   - cubre: RF-07.1, RF-07.2, RF-07.3 · depende de: BLM-0110, BLM-0102, BLM-0103
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go`
