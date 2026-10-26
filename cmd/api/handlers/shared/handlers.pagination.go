@@ -13,13 +13,13 @@ import (
 func QueryPagination(r *http.Request) shared_domain.Pagination {
 	q := r.URL.Query()
 	return shared_domain.Pagination{
-		Page:  queryInt(q.Get("page")),
-		Limit: queryInt(q.Get("limit")),
+		Page:  QueryInt(q.Get("page")),
+		Limit: QueryInt(q.Get("limit")),
 	}
 }
 
-// queryInt devuelve el entero de s, o 0 si no lo es.
-func queryInt(s string) int {
+// QueryInt devuelve el entero de s, o 0 si no lo es.
+func QueryInt(s string) int {
 	n, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil {
 		return 0

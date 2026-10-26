@@ -438,7 +438,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go`, `bondBound.application.go` (`inAgencyScope`, que también usa `bondBound.remove.go`), `internal/core/bondBound/ports/bondBound.ports.go` (métodos, `BondBoundMineItem`, `BondBoundDetail`, `BondObjectPublic`), `internal/core/bondBound/domain/bondBound.status.domain.go` (`StatusRefs`), `bondBound.filters.domain.go` (`MineFilters`)
 - [ ] **BLM-0106** `impl` Handlers y rutas, incluidas `/users/{userId}/bond-bounds` y `/bond-objects/{id}/bond-bounds`
   - cubre: RF-06.1, RF-06.2, RF-06.3, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.8, RF-06.9, RF-06.10 · depende de: BLM-0104, BLM-0105, BLM-0084, BLM-0026
-  - archivos: `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go`
+  - archivos: `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go`, `bondBounds.handler.go` (rutas), `bondBounds.query.go` (`queryDateFilter`, que reutiliza la spec 07), `cmd/api/handlers/shared/handlers.pagination.go` (`QueryInt` exportado)
 - [ ] **BLM-0107** `test` Tests de tabla de los derivados y de los rangos de fecha
   - cubre: CA-06.3, CA-06.4, CA-06.5 · depende de: BLM-0101, BLM-0102
   - archivos: `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go`

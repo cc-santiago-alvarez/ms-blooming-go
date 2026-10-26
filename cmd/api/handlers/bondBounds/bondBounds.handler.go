@@ -12,6 +12,7 @@ import (
 	bondBound_ports "github.com/futurapps/ms-blooming-go/internal/core/bondBound/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
+	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
 )
 
 // BondBoundsHandler atiende las rutas de los bonos comprados.
@@ -19,19 +20,36 @@ type BondBoundsHandler struct {
 	bondBoundApplication bondBound_ports.BondBoundApplicationPorts
 }
 
-// NewBondBoundsHandler registra las rutas de /bond-bounds. La compra y la compra masiva son del usuario de la
-// sesión, que paga con una de sus cuentas. Las guías, la cotización y el historial de un bono los ve su dueño o
-// un admin, y solo el dueño lo vende; lo valida el caso de uso.
+// NewBondBoundsHandler registra las rutas de /bond-bounds, los bonos de un usuario en /users y los compradores
+// de un producto en /bond-objects. Exigen adminBlooming el listado, la baja, los bonos de un usuario y los
+// compradores. La compra, los estados, mis bonos, los recientes y la línea de tiempo son del usuario de la
+// sesión. Un bono, su detalle, sus guías, su cotización y su historial los ve su dueño o un admin, y solo el
+// dueño lo vende; lo valida el caso de uso.
 func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_ports.BondBoundApplicationPorts) {
 	handler := &BondBoundsHandler{bondBoundApplication: bondBoundApplication}
+	admin := middlewares_adapters.RequireBloomingAdmin
 
 	server.Group("/bond-bounds", []nexus.Endpoint{
+		{Path: "GET /", HandlerFunc: admin(handler.List)},
+		{Path: "GET /statuses", HandlerFunc: handler.Statuses},
+		{Path: "GET /me", HandlerFunc: handler.ListMine},
+		{Path: "GET /me/recent", HandlerFunc: handler.ListRecent},
+		{Path: "GET /timeline", HandlerFunc: handler.Timeline},
+		{Path: "GET /{id}", HandlerFunc: handler.GetByID},
+		{Path: "GET /{id}/details", HandlerFunc: handler.GetDetails},
+		{Path: "DELETE /{id}", HandlerFunc: admin(handler.Remove)},
 		{Path: "GET /{id}/chart-guides", HandlerFunc: handler.ChartGuides},
 		{Path: "GET /{id}/pre-sale", HandlerFunc: handler.PreSale},
 		{Path: "POST /{id}/sale", HandlerFunc: handler.Sale},
 		{Path: "GET /{id}/history", HandlerFunc: handler.History},
 		{Path: "POST /purchase", HandlerFunc: handler.Purchase},
 		{Path: "POST /bulk-purchase", HandlerFunc: handler.BulkPurchase},
+	})
+	server.Group("/users", []nexus.Endpoint{
+		{Path: "GET /{userId}/bond-bounds", HandlerFunc: admin(handler.ListByUserAndObject)},
+	})
+	server.Group("/bond-objects", []nexus.Endpoint{
+		{Path: "GET /{id}/bond-bounds", HandlerFunc: admin(handler.ListByObject)},
 	})
 }
 
