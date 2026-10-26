@@ -124,7 +124,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
 | BLM-0117 | Dominio: `MaturityResult` y función pura `BuildMaturityTable(rows)` (HTML del legado) | impl | F7 | RF-10.3, RF-10.5 | BLM-0075 | `internal/core/bondBound/domain/bondBound.maturity.go` |
-| BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go` |
+| BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`) |
 | BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go` |
 | BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go` |
 | BLM-0121 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | F7 | RF-10.1 | BLM-0120, BLM-0019 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |

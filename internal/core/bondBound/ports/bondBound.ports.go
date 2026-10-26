@@ -295,6 +295,10 @@ type BondBoundMongoccRepositoryPorts interface {
 	// UpdateStatusIf aplica c y actualiza updatedAt solo si el bono no está borrado, sigue en c.From y no
 	// tiene soldDate ni tookDate; devuelve false si no modificó nada.
 	UpdateStatusIf(ctx context.Context, id string, c StatusChange) (bool, error)
+	// FindMaturable devuelve hasta limit bonos no borrados e iniciados, sin soldDate ni tookDate, cuya
+	// maturityDate es hasta now, por _id ascendente y con _id mayor que afterID. afterID vacío empieza por el
+	// primero y limit 0 no limita.
+	FindMaturable(ctx context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error)
 	// ListAdmin devuelve la página p, ya normalizada, de los bonos no borrados que pasan f, por createdAt
 	// descendente, con su dueño, su producto y su tipo; los bonos sin producto o sin tipo no aparecen. El
 	// filtro de fecha, el mes y el año usan la zona utcDiff. agencyID nil no filtra por agencia.

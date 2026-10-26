@@ -483,7 +483,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `internal/core/bondBound/domain/bondBound.maturity.go`
 - [ ] **BLM-0118** [P] `impl` Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'`
   - cubre: RF-10.3 · depende de: BLM-0077
-  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`
+  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`)
 - [ ] **BLM-0119** [P] `impl` `JobLockPort` y su adapter mongocc (`bondJobLock`)
   - cubre: RF-10.2 · depende de: BLM-0010
   - archivos: `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go`
