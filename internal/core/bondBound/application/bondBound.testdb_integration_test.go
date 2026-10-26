@@ -30,6 +30,8 @@ import (
 	bondHistory_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/infrastructure/mongocc"
 	bondObject_application "github.com/futurapps/ms-blooming-go/internal/core/bondObject/application"
 	bondObject_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondObject/infrastructure/mongocc"
+	bondUserSetting_application "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/application"
+	bondUserSetting_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/infrastructure/mongocc"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
@@ -43,12 +45,13 @@ import (
 // testDBName es la base de estos tests; nunca la de FA_MONGO_DBNAME.
 const testDBName = "blooming_it_bondbound_application"
 
-// Colecciones que lee o escribe la compra.
+// Colecciones que leen o escriben la compra y la venta.
 const (
 	boundCollection   = "bondBound"
 	counterCollection = "bondKeyCounter"
 	historyCollection = "bondHistory"
 	objectCollection  = "bondObject"
+	settingCollection = "bondUserSetting"
 	accountCollection = "balanceAccount"
 	detailCollection  = "balanceDetail"
 	noticeCollection  = "notice"
@@ -59,7 +62,7 @@ var movementCollections = []string{detailCollection, "balanceHistory", "balanceO
 
 // collections se crean antes de los tests para que ninguna transacción tenga que crearlas.
 var collections = []string{
-	boundCollection, counterCollection, historyCollection, objectCollection, accountCollection,
+	boundCollection, counterCollection, historyCollection, objectCollection, settingCollection, accountCollection,
 	detailCollection, "balanceHistory", "balanceOperation", noticeCollection, "profile",
 }
 
@@ -247,6 +250,9 @@ func integrationApp(balance shared_ports.BalancePort, keys bondBound_ports.KeyCo
 		BondObjects: &bondObject_application.BondObjectApplication{
 			Repository: &bondObject_mongocc_repository.BondObjectMongoccRepository{DB: testDB},
 		},
+		UserSettings: &bondUserSetting_application.BondUserSettingApplication{
+			Repository: &bondUserSetting_mongocc_repository.BondUserSettingMongoccRepository{DB: testDB},
+		},
 		Balance: balance,
 		History: &bondHistory_application.BondHistoryApplication{
 			Repository: &bondHistory_mongocc_repository.BondHistoryMongoccRepository{DB: testDB},
@@ -369,6 +375,22 @@ func insertObject(t *testing.T, id, bondTypeID string) {
 		"createdAt": fixtureAt,
 		"updatedAt": fixtureAt,
 		"isRemove":  false,
+	})
+}
+
+// insertSetting guarda el setting de userID con la cuenta seleccionada, con la forma de bondUserSetting.
+func insertSetting(t *testing.T, userID, selectedAccountID string) {
+	t.Helper()
+	insert(t, settingCollection, bson.M{
+		"_id":                 shared_domain.NewID(),
+		"userId":              userID,
+		"agencyId":            agencyA,
+		"language":            "es",
+		"selectedAccountId":   selectedAccountID,
+		"selectedBondBoundId": nil,
+		"createdAt":           fixtureAt,
+		"updatedAt":           fixtureAt,
+		"isRemove":            false,
 	})
 }
 

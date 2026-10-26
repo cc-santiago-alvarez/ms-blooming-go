@@ -405,7 +405,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go`, `bondBound.fakes_test.go` (`UpdateStatusIf`, `Deposit`, `GetByIDIncludingRemoved` y `UserSettings` en memoria), `cmd/api/handlers/bondBounds/bondBounds.preSale.get_test.go`, `bondBounds.sale.post_test.go`, `bondBounds.testServer_test.go` (`PreSale` y `Sale` en `fakeApp`)
 - [ ] **BLM-0098** `test` Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones
   - cubre: CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 · depende de: BLM-0095, BLM-0094
-  - archivos: `internal/core/bondBound/application/bondBound.sale_integration_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.sale_integration_test.go`, `bondBound.testdb_integration_test.go` (`bondUserSetting` y `UserSettings` con el adapter real)
 - [ ] **BLM-0099** `impl` Caso de uso `HistoryOf` en bondBound (control de dueño y delegación) y handler `GET /bond-bounds/{id}/history`
   - cubre: RF-08.3 · depende de: BLM-0037, BLM-0077, BLM-0084, BLM-0026
   - archivos: `internal/core/bondBound/application/bondBound.history.go`, `cmd/api/handlers/bondBounds/bondBounds.history.get.go`
