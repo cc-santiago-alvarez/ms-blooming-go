@@ -10,8 +10,8 @@ import (
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
-// legacyObjectID es un _id Meteor de 17 caracteres de un producto.
-const legacyObjectID = "Bd9Xc4Vn7Mz2Lk5Jh"
+// legacyProductID es un _id Meteor de 17 caracteres de un producto.
+const legacyProductID = "Bd9Xc4Vn7Mz2Lk5Jh"
 
 // Consulta los bonos del usuario en el producto dentro del alcance de la sesión: su agencia, o todas si es
 // la principal. El bondObjectId se recorta y se aceptan ids legacy. CA-06.7
@@ -27,7 +27,7 @@ func TestListByUserAndObject(t *testing.T) {
 		{name: "admin de la agencia A", ctx: withAdmin(), userID: ownerID, objectID: objectID, wantObject: objectID, wantScope: agency(agencyA)},
 		{name: "admin de la agencia principal", ctx: withMainAdmin(), userID: ownerID, objectID: objectID, wantObject: objectID},
 		{name: "bondObjectId con espacios", ctx: withAdmin(), userID: ownerID, objectID: " " + objectID + " ", wantObject: objectID, wantScope: agency(agencyA)},
-		{name: "producto legacy", ctx: withAdmin(), userID: ownerID, objectID: legacyObjectID, wantObject: legacyObjectID, wantScope: agency(agencyA)},
+		{name: "producto legacy", ctx: withAdmin(), userID: ownerID, objectID: legacyProductID, wantObject: legacyProductID, wantScope: agency(agencyA)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
