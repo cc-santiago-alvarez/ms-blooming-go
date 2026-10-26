@@ -429,7 +429,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go`
 - [ ] **BLM-0103** `impl` Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete`
   - cubre: RF-06.1, RF-06.3, RF-06.4, RF-06.5, RF-06.7, RF-06.8, RF-06.9, RF-06.10 · depende de: BLM-0102, BLM-0077
-  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go`
+  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go`, `bondBound.mongocc.repository.go` (lookups, zona horaria y página con `$facet`), `bondBound.search.go` (búsqueda escapada, reutilizada por la spec 07), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas)
 - [ ] **BLM-0104** `impl` Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove`
   - cubre: RF-06.1, RF-06.3, RF-06.8, RF-06.10 · depende de: BLM-0103, BLM-0017
   - archivos: `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go`

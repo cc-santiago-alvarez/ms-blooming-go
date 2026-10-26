@@ -6,6 +6,9 @@ import (
 
 	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
 	bondHistory_domain "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/domain"
+	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
+	bondType_domain "github.com/futurapps/ms-blooming-go/internal/core/bondType/domain"
+	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
 // StatusChange pasa un bono de From a To. Las fechas nil no se escriben; MaturedAt también escribe
@@ -16,6 +19,56 @@ type StatusChange struct {
 	SoldDate  *time.Time
 	TookDate  *time.Time
 	MaturedAt *time.Time
+}
+
+// ProfileName es el nombre del dueño de un bono.
+type ProfileName struct {
+	FirstName string `json:"first_name" bson:"first_name"`
+	LastName  string `json:"last_name" bson:"last_name"`
+}
+
+// BondObjectRef es el producto de un bono: su nombre y, si la consulta los trae, sus términos de retiro.
+type BondObjectRef struct {
+	Name          string                       `json:"name" bson:"name"`
+	EarlyCashTerm *shared_domain.EarlyCashTerm `json:"earlyCashTerm,omitempty" bson:"earlyCashTerm"`
+}
+
+// BondTypeRef es el tipo de un bono: su nombre.
+type BondTypeRef struct {
+	Name string `json:"name" bson:"name"`
+}
+
+// BondBoundAdminRow es un bono del listado de administración con su dueño, su producto y su tipo, y el mes
+// y el año de su compra en la zona de la sesión. Profile es nil si el dueño no tiene perfil.
+type BondBoundAdminRow struct {
+	Bound      bondBound_domain.BondBound `bson:"bound"`
+	Profile    *ProfileName               `bson:"profile"`
+	BondObject BondObjectRef              `bson:"bondObject"`
+	BondType   BondTypeRef                `bson:"bondType"`
+	Month      int                        `bson:"month"`
+	Year       int                        `bson:"year"`
+}
+
+// BondBoundWithObject es un bono con su producto; BondObject es nil si el producto no existe.
+type BondBoundWithObject struct {
+	Bound      bondBound_domain.BondBound `bson:"bound"`
+	BondObject *BondObjectRef             `bson:"bondObject"`
+}
+
+// BondBoundDetailRow es un bono con su producto, sin los usuarios autorizados, y su tipo.
+type BondBoundDetailRow struct {
+	Bound      bondBound_domain.BondBound   `bson:"bound"`
+	BondObject bondObject_domain.BondObject `bson:"bondObject"`
+	BondType   bondType_domain.BondType     `bson:"bondType"`
+}
+
+// TimelineItem es una compra en la línea de tiempo: el producto con la clave del bono, y su fecha inicial en
+// la zona de la sesión como inicio y fin.
+type TimelineItem struct {
+	ID    string `json:"_id" bson:"_id"`
+	Text  string `json:"text" bson:"text"`
+	Start string `json:"start" bson:"start"`
+	End   string `json:"end" bson:"end"`
 }
 
 // BondBoundApplicationPorts son los casos de uso de bondBound.
@@ -57,6 +110,32 @@ type BondBoundMongoccRepositoryPorts interface {
 	// UpdateStatusIf aplica c y actualiza updatedAt solo si el bono no está borrado, sigue en c.From y no
 	// tiene soldDate ni tookDate; devuelve false si no modificó nada.
 	UpdateStatusIf(ctx context.Context, id string, c StatusChange) (bool, error)
+	// ListAdmin devuelve la página p, ya normalizada, de los bonos no borrados que pasan f, por createdAt
+	// descendente, con su dueño, su producto y su tipo; los bonos sin producto o sin tipo no aparecen. El
+	// filtro de fecha, el mes y el año usan la zona utcDiff. agencyID nil no filtra por agencia.
+	ListAdmin(ctx context.Context, agencyID *string, f bondBound_domain.ListFilters, p shared_domain.Pagination, utcDiff int) (shared_domain.Paginated[BondBoundAdminRow], error)
+	// ListByUserAndObject devuelve los bonos no borrados del usuario y el producto que están iniciados,
+	// madurados, bloqueados o canjeados, por createdAt descendente. agencyID nil no filtra por agencia.
+	ListByUserAndObject(ctx context.Context, userID, bondObjectID string, agencyID *string) ([]*bondBound_domain.BondBound, error)
+	// ListMine devuelve la página p, ya normalizada, de los bonos no borrados del usuario en la agencia, por
+	// createdAt descendente, con su producto; los bonos sin producto no aparecen. statusIDs vacío no filtra
+	// por estado.
+	ListMine(ctx context.Context, userID, agencyID string, statusIDs []bondBound_domain.BondBoundStatus, p shared_domain.Pagination) (shared_domain.Paginated[BondBoundWithObject], error)
+	// ListRecent devuelve los limit bonos no borrados más recientes del usuario que están iniciados o
+	// madurados, de cualquier agencia, con su producto y sus términos de retiro. limit 0 no limita.
+	ListRecent(ctx context.Context, userID string, limit int) ([]BondBoundWithObject, error)
+	// ListByObject devuelve los bonos no borrados del producto, por createdAt descendente. agencyID nil no
+	// filtra por agencia.
+	ListByObject(ctx context.Context, bondObjectID string, agencyID *string) ([]*bondBound_domain.BondBound, error)
+	// FindDetails devuelve el bono con su producto y su tipo, o nil, nil si no existe, está borrado o le
+	// falta el producto o el tipo. No filtra por dueño ni por agencia.
+	FindDetails(ctx context.Context, id string) (*BondBoundDetailRow, error)
+	// Timeline devuelve las compras no borradas del usuario por fecha inicial, con las fechas en la zona
+	// utcDiff.
+	Timeline(ctx context.Context, userID string, utcDiff int) ([]TimelineItem, error)
+	// SoftDelete marca el bono con isRemove true y actualiza updatedAt; devuelve false si no existe o ya
+	// estaba borrado.
+	SoftDelete(ctx context.Context, id string) (bool, error)
 	// EnsureIndexes crea los índices de la colección; es idempotente.
 	EnsureIndexes(ctx context.Context) error
 }
