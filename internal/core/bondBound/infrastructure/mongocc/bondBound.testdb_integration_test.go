@@ -11,6 +11,7 @@ package bondBound_mongocc_repository_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -388,6 +389,50 @@ func boundIDs(bounds []*bondBound_domain.BondBound) []string {
 		out[i] = b.ID
 	}
 	return out
+}
+
+// keys devuelve la clave de cada documento, en el orden recibido.
+func keys(docs ...bson.M) []string {
+	out := make([]string, len(docs))
+	for i, doc := range docs {
+		out[i] = doc["key"].(string)
+	}
+	return out
+}
+
+// reportKeys devuelve la clave del bono de cada fila del reporte de comprados, que no trae _id.
+func reportKeys(rows []bondBound_ports.PurchasedReportRow) []string {
+	out := make([]string, len(rows))
+	for i, row := range rows {
+		out[i] = row.Key
+	}
+	return out
+}
+
+// assertJSON verifica que got y want dan el mismo JSON, que es lo que recibe ms-exporter.
+func assertJSON(t *testing.T, got, want any) {
+	t.Helper()
+	gotJSON, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("json.Marshal(got): %v", err)
+	}
+	wantJSON, err := json.Marshal(want)
+	if err != nil {
+		t.Fatalf("json.Marshal(want): %v", err)
+	}
+	if string(gotJSON) != string(wantJSON) {
+		t.Errorf("JSON\n%s\nse esperaba\n%s", gotJSON, wantJSON)
+	}
+}
+
+// createdAt parsea una fecha RFC 3339 de un fixture.
+func createdAt(t *testing.T, s string) time.Time {
+	t.Helper()
+	v, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		t.Fatalf("fecha de prueba inválida %q: %v", s, err)
+	}
+	return v
 }
 
 // insert guarda los documentos crudos en collection.

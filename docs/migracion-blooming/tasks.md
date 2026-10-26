@@ -467,8 +467,8 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - cubre: CA-07.1, CA-07.3, CA-07.4, CA-07.6, CA-07.7 · depende de: BLM-0114
   - archivos: `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go`, `bondBound.fakes_test.go` (repositorio de reportes, `AgencyReader` y `ExporterPort`), `cmd/api/handlers/bondBounds/bondBounds.report*.get_test.go`, `bondBounds.countByStatus.get_test.go`, `bondBounds.testServer_test.go` (`fakeApp` de reportes y KPI), `cmd/api/server/server.cors_test.go` (`Content-Disposition` expuesto)
 - [ ] **BLM-0116** `test` Tests de integración de las agregaciones (rangos, búsqueda, agrupado)
-  - cubre: CA-07.2, CA-07.3, CA-07.5, CA-07.8 · depende de: BLM-0111
-  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go`
+  - cubre: CA-07.1, CA-07.2, CA-07.3, CA-07.5, CA-07.6, CA-07.8 · depende de: BLM-0111
+  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go`, `bondBound.countByStatus_integration_test.go`, `bondBound.testdb_integration_test.go` (helpers de los reportes)
 
 **Criterio de salida F6:** Todas las lecturas de bonos, reportes Excel y KPI responden con permisos y filtros de fecha correctos.
 
@@ -641,8 +641,8 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 06 | RF-06.12 | BLM-0101, BLM-0102 | BLM-0107, BLM-0108, BLM-0109 | CA-06.3 | — |
 | 07 | RF-07.1 | BLM-0110, BLM-0111, BLM-0112, BLM-0114 | BLM-0115, BLM-0116, BLM-0126 | CA-07.1, CA-07.2, CA-07.7, CA-07.8 | — |
 | 07 | RF-07.2 | BLM-0110, BLM-0111, BLM-0112, BLM-0114 | BLM-0115, BLM-0116 | CA-07.3, CA-07.7 | — |
-| 07 | RF-07.3 | BLM-0110, BLM-0111, BLM-0113, BLM-0114 | BLM-0115, BLM-0116 | CA-07.5, CA-07.6, CA-07.8 | — |
-| 07 | RF-07.4 | BLM-0112, BLM-0114 | BLM-0115 | CA-07.1, CA-07.4 | — |
+| 07 | RF-07.3 | BLM-0110, BLM-0111, BLM-0113, BLM-0114 | BLM-0115, BLM-0116 | CA-07.2, CA-07.5, CA-07.6, CA-07.8 | — |
+| 07 | RF-07.4 | BLM-0112, BLM-0114 | BLM-0115, BLM-0116 | CA-07.1, CA-07.4 | — |
 | 08 | RF-08.1 | BLM-0032, BLM-0033, BLM-0034, BLM-0035 | BLM-0100 | CA-08.1, CA-08.2 | — |
 | 08 | RF-08.2 | BLM-0033, BLM-0034, BLM-0037, BLM-0063 | BLM-0100 | CA-08.3, CA-08.9 | — |
 | 08 | RF-08.3 | BLM-0033, BLM-0034, BLM-0037, BLM-0099 | BLM-0100 | CA-08.4, CA-08.9 | — |
