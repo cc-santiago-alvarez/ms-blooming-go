@@ -278,6 +278,12 @@ type BondBoundApplicationPorts interface {
 	// hora del nombre usa la zona de la sesión. Un filtro inválido es el error de su Validation, y si
 	// ms-exporter falla, ErrExportFailed.
 	ReportSummary(ctx context.Context, f bondBound_domain.ReportFilters) (ReportFile, error)
+	// CountByStatus devuelve la suma de los montos y la cantidad de los bonos no borrados del alcance de la
+	// sesión que pasan f, con el nombre del estado por el que se filtró, o "" si no se filtró; el filtro de
+	// fecha usa la zona de la sesión. Un admin cuenta los de f.UserID o, sin él, los de todo el alcance; un no
+	// admin solo los suyos, y pedir los de otro usuario es ErrForbidden. Un filtro inválido es el error de su
+	// Validation.
+	CountByStatus(ctx context.Context, f bondBound_domain.KpiFilters) (StatusCount, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así

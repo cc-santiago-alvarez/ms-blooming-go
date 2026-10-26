@@ -459,7 +459,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go`, `bondBound.exportReport.go` (moneda, payload y nombre del archivo), `bondBound.application.go` (dependencias `Agencies` y `Exporter`), `internal/core/bondBound/ports/bondBound.ports.go` (`ReportPurchased`, `ReportSummary` y `ReportFile`), `cmd/api/server/server.config.go`, `server.deps.go`, `server.bondBound.go` (cableado de `ExporterPort` y `AgencyReader`)
 - [ ] **BLM-0113** `impl` Caso de uso `CountByStatus`, con el alcance por rol
   - cubre: RF-07.3 · depende de: BLM-0111, BLM-0007
-  - archivos: `internal/core/bondBound/application/bondBound.countByStatus.go`
+  - archivos: `internal/core/bondBound/application/bondBound.countByStatus.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`CountByStatus`)
 - [ ] **BLM-0114** `impl` Handlers de reportes (respuesta binaria y headers) y del KPI
   - cubre: RF-07.1, RF-07.2, RF-07.3, RF-07.4 · depende de: BLM-0112, BLM-0113, BLM-0084, BLM-0026
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go`
