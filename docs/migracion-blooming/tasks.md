@@ -456,7 +456,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go`, `bondBound.mongocc.repository.go` (`numericAmount`), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas `PurchasedReportRow`, `SummaryReportRow` y `StatusCount`)
 - [ ] **BLM-0112** `impl` Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo)
   - cubre: RF-07.1, RF-07.2, RF-07.4 · depende de: BLM-0111, BLM-0016, BLM-0017
-  - archivos: `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go`
+  - archivos: `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go`, `bondBound.exportReport.go` (moneda, payload y nombre del archivo), `bondBound.application.go` (dependencias `Agencies` y `Exporter`), `internal/core/bondBound/ports/bondBound.ports.go` (`ReportPurchased`, `ReportSummary` y `ReportFile`), `cmd/api/server/server.config.go`, `server.deps.go`, `server.bondBound.go` (cableado de `ExporterPort` y `AgencyReader`)
 - [ ] **BLM-0113** `impl` Caso de uso `CountByStatus`, con el alcance por rol
   - cubre: RF-07.3 · depende de: BLM-0111, BLM-0007
   - archivos: `internal/core/bondBound/application/bondBound.countByStatus.go`

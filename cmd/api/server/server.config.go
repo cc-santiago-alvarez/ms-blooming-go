@@ -14,6 +14,7 @@ import (
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
+	shared_exporter "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/exporter"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
 	shared_notification "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/notification"
 	middlewares_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/middlewares"
@@ -31,6 +32,8 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 	// 2. Adaptadores compartidos
 	deps.sessionVerifier = oauth_adapters.NewSessionClient(cfg.Env.OAuthURL, cfg.Env.OAuthSecret)
 	deps.profileReader = &shared_mongocc_repository.ProfileMongoccRepository{DB: deps.mongoDB}
+	deps.agencyReader = &shared_mongocc_repository.AgencyMongoccRepository{DB: deps.mongoDB}
+	deps.exporterPort = shared_exporter.NewExporterClient(cfg.Env.ExporterServiceURL, cfg.Env.ExporterSecret)
 	deps.activityPort = &shared_mongocc_repository.ActivityMongoccRepository{DB: deps.mongoDB}
 	deps.noticePort = &shared_mongocc_repository.NoticeMongoccRepository{DB: deps.mongoDB}
 	deps.notificationPort = shared_notification.NewNotificationClient(cfg.Env.NotificationServiceURL, cfg.Env.NotificationSecret)

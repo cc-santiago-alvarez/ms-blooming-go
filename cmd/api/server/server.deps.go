@@ -25,6 +25,8 @@ type serverDeps struct {
 	// ====================== Adapters ======================
 	sessionVerifier  shared_ports.SessionVerifier
 	profileReader    shared_ports.ProfileReader
+	agencyReader     shared_ports.AgencyReader
+	exporterPort     shared_ports.ExporterPort
 	activityPort     shared_ports.ActivityPort
 	noticePort       shared_ports.NoticePort
 	notificationPort shared_ports.NotificationPort

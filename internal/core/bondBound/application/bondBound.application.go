@@ -20,8 +20,9 @@ var errNoSession = errors.New("bondBound: el contexto no tiene sesión de usuari
 
 // BondBoundApplication implementa los casos de uso de bondBound. Tx es el mismo que usa Balance, para que
 // el cobro y el depósito se sumen a la transacción de la compra y de la venta. UserSettings da la cuenta
-// destino de las ventas. BulkPurchaseMaxQuantity es el tope de bonos de una compra masiva y AdminEmails, los
-// destinatarios del aviso de retiro al área administrativa.
+// destino de las ventas. Agencies da la moneda de los reportes y Exporter los genera. BulkPurchaseMaxQuantity
+// es el tope de bonos de una compra masiva y AdminEmails, los destinatarios del aviso de retiro al área
+// administrativa.
 type BondBoundApplication struct {
 	Repository              bondBound_ports.BondBoundMongoccRepositoryPorts
 	KeyCounter              bondBound_ports.KeyCounterPort
@@ -34,6 +35,8 @@ type BondBoundApplication struct {
 	Notices                 shared_ports.NoticePort
 	Notifications           shared_ports.NotificationPort
 	Profiles                shared_ports.ProfileReader
+	Agencies                shared_ports.AgencyReader
+	Exporter                shared_ports.ExporterPort
 	BulkPurchaseMaxQuantity int
 	AdminEmails             []string
 }

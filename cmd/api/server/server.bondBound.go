@@ -26,6 +26,8 @@ func initBondBoundDomain(deps *serverDeps) {
 		Notices:                 deps.noticePort,
 		Notifications:           deps.notificationPort,
 		Profiles:                deps.profileReader,
+		Agencies:                deps.agencyReader,
+		Exporter:                deps.exporterPort,
 		BulkPurchaseMaxQuantity: deps.env.BulkPurchaseMaxQuantity,
 		AdminEmails:             deps.env.BloomingAdminEmails,
 	}

@@ -95,6 +95,12 @@ type SummaryReportRow struct {
 	Profile *ProfileName `json:"profile,omitempty" bson:"profile"`
 }
 
+// ReportFile es un reporte generado: el nombre del archivo, con su extensión, y su contenido.
+type ReportFile struct {
+	Name    string
+	Content []byte
+}
+
 // StatusCount es el KPI de bonos por estado: la suma de los montos, la cantidad y el nombre del estado por el
 // que se filtró, o "" si no se filtró.
 type StatusCount struct {
@@ -263,6 +269,15 @@ type BondBoundApplicationPorts interface {
 	// la zona de la sesión. Las de otro usuario exigen admin; si no, ErrForbidden. Un id inválido es
 	// ErrInvalidID.
 	Timeline(ctx context.Context, userID string) ([]TimelineItem, error)
+	// ReportPurchased genera el Excel de los bonos no borrados de la agencia de la sesión que pasan f, por
+	// createdAt descendente, con la moneda de la agencia; el filtro de fecha y la hora del nombre usan la zona
+	// de la sesión. Un filtro inválido es el error de su Validation, y si ms-exporter falla, ErrExportFailed.
+	ReportPurchased(ctx context.Context, f bondBound_domain.ReportFilters) (ReportFile, error)
+	// ReportSummary genera el Excel del total comprado por cada inversionista en los bonos no borrados de la
+	// agencia de la sesión, del mayor al menor, con la moneda de la agencia; de f solo filtra el estado, y la
+	// hora del nombre usa la zona de la sesión. Un filtro inválido es el error de su Validation, y si
+	// ms-exporter falla, ErrExportFailed.
+	ReportSummary(ctx context.Context, f bondBound_domain.ReportFilters) (ReportFile, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así
