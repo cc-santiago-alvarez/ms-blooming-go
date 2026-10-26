@@ -464,8 +464,8 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - cubre: RF-07.1, RF-07.2, RF-07.3, RF-07.4 · depende de: BLM-0112, BLM-0113, BLM-0084, BLM-0026
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.reportPurchased.get.go`, `bondBounds.reportSummary.get.go`, `bondBounds.countByStatus.get.go`, `bondBounds.handler.go` (rutas y `respondReport`), `internal/core/shared/middlewares/cors.go` (`Content-Disposition` expuesto)
 - [ ] **BLM-0115** `test` Tests unitarios: normalización, permisos, fallo de ms-exporter y headers
-  - cubre: CA-07.1, CA-07.4, CA-07.6, CA-07.7 · depende de: BLM-0114
-  - archivos: `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go`
+  - cubre: CA-07.1, CA-07.3, CA-07.4, CA-07.6, CA-07.7 · depende de: BLM-0114
+  - archivos: `internal/core/bondBound/application/bondBound.report*_test.go`, `bondBound.countByStatus_test.go`, `bondBound.fakes_test.go` (repositorio de reportes, `AgencyReader` y `ExporterPort`), `cmd/api/handlers/bondBounds/bondBounds.report*.get_test.go`, `bondBounds.countByStatus.get_test.go`, `bondBounds.testServer_test.go` (`fakeApp` de reportes y KPI), `cmd/api/server/server.cors_test.go` (`Content-Disposition` expuesto)
 - [ ] **BLM-0116** `test` Tests de integración de las agregaciones (rangos, búsqueda, agrupado)
   - cubre: CA-07.2, CA-07.3, CA-07.5, CA-07.8 · depende de: BLM-0111
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go`

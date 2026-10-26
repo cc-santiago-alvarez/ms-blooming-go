@@ -2,6 +2,7 @@ package bondBound_application_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -55,16 +56,18 @@ type statusChange struct {
 
 // repoQuery es una consulta al repositorio: el método y los argumentos con que se llamó.
 type repoQuery struct {
-	method       string
-	id           string
-	agencyID     *string
-	userID       string
-	bondObjectID string
-	filters      bondBound_domain.ListFilters
-	statusIDs    []bondBound_domain.BondBoundStatus
-	page         shared_domain.Pagination
-	utcDiff      int
-	limit        int
+	method        string
+	id            string
+	agencyID      *string
+	userID        string
+	bondObjectID  string
+	filters       bondBound_domain.ListFilters
+	reportFilters bondBound_domain.ReportFilters
+	kpiFilters    bondBound_domain.KpiFilters
+	statusIDs     []bondBound_domain.BondBoundStatus
+	page          shared_domain.Pagination
+	utcDiff       int
+	limit         int
 }
 
 // fakeRepository guarda los bonos en memoria y registra las lecturas, los inserts, los cambios de estado, las
@@ -75,13 +78,16 @@ type fakeRepository struct {
 	bounds map[string]*bondBound_domain.BondBound
 	err    error
 
-	adminPage    shared_domain.Paginated[bondBound_ports.BondBoundAdminRow]
-	minePage     shared_domain.Paginated[bondBound_ports.BondBoundWithObject]
-	recent       []bondBound_ports.BondBoundWithObject
-	listed       []*bondBound_domain.BondBound
-	timeline     []bondBound_ports.TimelineItem
-	detailObject bondObject_domain.BondObject
-	detailType   bondType_domain.BondType
+	adminPage     shared_domain.Paginated[bondBound_ports.BondBoundAdminRow]
+	minePage      shared_domain.Paginated[bondBound_ports.BondBoundWithObject]
+	recent        []bondBound_ports.BondBoundWithObject
+	listed        []*bondBound_domain.BondBound
+	timeline      []bondBound_ports.TimelineItem
+	detailObject  bondObject_domain.BondObject
+	detailType    bondType_domain.BondType
+	purchasedRows []bondBound_ports.PurchasedReportRow
+	summaryRows   []bondBound_ports.SummaryReportRow
+	statusCount   bondBound_ports.StatusCount
 	// deleteLost simula que otra baja borró el bono entre la lectura y la escritura.
 	deleteLost bool
 
@@ -186,6 +192,30 @@ func (r *fakeRepository) Timeline(_ context.Context, userID string, utcDiff int)
 		return nil, r.err
 	}
 	return r.timeline, nil
+}
+
+func (r *fakeRepository) ReportPurchasedRows(_ context.Context, agencyID string, f bondBound_domain.ReportFilters, utcDiff int) ([]bondBound_ports.PurchasedReportRow, error) {
+	r.queries = append(r.queries, repoQuery{method: "ReportPurchasedRows", agencyID: &agencyID, reportFilters: f, utcDiff: utcDiff})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.purchasedRows, nil
+}
+
+func (r *fakeRepository) ReportSummaryRows(_ context.Context, agencyID string, f bondBound_domain.ReportFilters) ([]bondBound_ports.SummaryReportRow, error) {
+	r.queries = append(r.queries, repoQuery{method: "ReportSummaryRows", agencyID: &agencyID, reportFilters: f})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.summaryRows, nil
+}
+
+func (r *fakeRepository) CountByStatus(_ context.Context, agencyID *string, f bondBound_domain.KpiFilters, utcDiff int) (bondBound_ports.StatusCount, error) {
+	r.queries = append(r.queries, repoQuery{method: "CountByStatus", agencyID: agencyID, kpiFilters: f, utcDiff: utcDiff})
+	if r.err != nil {
+		return bondBound_ports.StatusCount{}, r.err
+	}
+	return r.statusCount, nil
 }
 
 // SoftDelete marca el bono como borrado; devuelve false si no existe, ya estaba borrado o deleteLost está
@@ -447,6 +477,49 @@ func (p *fakeProfiles) GetPublic(_ context.Context, ids ...string) ([]shared_dom
 	return out, nil
 }
 
+// fakeAgencies responde el símbolo de moneda configurado, o err, y registra las agencias que se leyeron.
+type fakeAgencies struct {
+	symbol string
+	err    error
+
+	read []string
+}
+
+func (a *fakeAgencies) SymbolCurrency(_ context.Context, agencyID string) (string, error) {
+	a.read = append(a.read, agencyID)
+	if a.err != nil {
+		return "", a.err
+	}
+	return a.symbol, nil
+}
+
+// exportCall es un reporte pedido a ms-exporter, con el payload como JSON.
+type exportCall struct {
+	report  string
+	payload []byte
+}
+
+// fakeExporter responde el archivo configurado, o err, y registra cada reporte pedido con el payload tal como
+// lo enviaría el cliente real.
+type fakeExporter struct {
+	file []byte
+	err  error
+
+	calls []exportCall
+}
+
+func (e *fakeExporter) Excel(_ context.Context, report string, payload any) ([]byte, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	e.calls = append(e.calls, exportCall{report: report, payload: body})
+	if e.err != nil {
+		return nil, e.err
+	}
+	return e.file, nil
+}
+
 // fakes son las dependencias de la aplicación.
 type fakes struct {
 	repo          *fakeRepository
@@ -459,9 +532,12 @@ type fakes struct {
 	notices       *fakeNotices
 	notifications *fakeNotifications
 	profiles      *fakeProfiles
+	agencies      *fakeAgencies
+	exporter      *fakeExporter
 }
 
-// newFakes arma las dependencias con los bonos dados, sin cuentas, productos ni settings.
+// newFakes arma las dependencias con los bonos dados, sin cuentas, productos ni settings. La moneda de las
+// agencias es "Pesos $" y ms-exporter responde un archivo de dos bytes.
 func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 	repo := &fakeRepository{bounds: map[string]*bondBound_domain.BondBound{}}
 	for _, b := range bounds {
@@ -479,6 +555,8 @@ func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 		notices:       &fakeNotices{},
 		notifications: &fakeNotifications{},
 		profiles:      &fakeProfiles{profiles: map[string]shared_domain.PublicProfile{}},
+		agencies:      &fakeAgencies{symbol: "Pesos $"},
+		exporter:      &fakeExporter{file: []byte{80, 75}},
 	}
 }
 
@@ -510,6 +588,8 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Notices:                 f.notices,
 		Notifications:           f.notifications,
 		Profiles:                f.profiles,
+		Agencies:                f.agencies,
+		Exporter:                f.exporter,
 		BulkPurchaseMaxQuantity: maxQuantity,
 	}
 }
@@ -567,6 +647,51 @@ func assertNoQueries(t *testing.T, f *fakes) {
 	if len(f.repo.reads) != 0 || len(f.repo.queries) != 0 || len(f.repo.deleted) != 0 {
 		t.Errorf("el repositorio recibió lecturas %v, consultas %+v y bajas %v, se esperaba ninguna",
 			f.repo.reads, f.repo.queries, f.repo.deleted)
+	}
+}
+
+// assertExported verifica que se leyó una vez la moneda de la agencia A y se pidió una vez report a
+// ms-exporter, con el body {currency, bondBounds} del legado: la moneda y rows.
+func assertExported(t *testing.T, f *fakes, report string, rows any) {
+	t.Helper()
+	if !slices.Equal(f.agencies.read, []string{agencyA}) {
+		t.Errorf("se leyó la moneda de %v, se esperaba [%s]", f.agencies.read, agencyA)
+	}
+	if len(f.exporter.calls) != 1 || f.exporter.calls[0].report != report {
+		t.Fatalf("ms-exporter recibió %+v, se esperaba una llamada a %s", f.exporter.calls, report)
+	}
+
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(f.exporter.calls[0].payload, &body); err != nil {
+		t.Fatalf("el payload no es un objeto JSON: %v", err)
+	}
+	wantRows, err := json.Marshal(rows)
+	if err != nil {
+		t.Fatalf("json.Marshal(rows): %v", err)
+	}
+	if len(body) != 2 || string(body["currency"]) != `"Pesos $"` || string(body["bondBounds"]) != string(wantRows) {
+		t.Errorf("payload %s, se esperaba {\"currency\":\"Pesos $\",\"bondBounds\":%s}", f.exporter.calls[0].payload, wantRows)
+	}
+}
+
+// assertNotExported verifica que no se leyó la moneda ni se pidió nada a ms-exporter.
+func assertNotExported(t *testing.T, f *fakes) {
+	t.Helper()
+	if len(f.agencies.read) != 0 || len(f.exporter.calls) != 0 {
+		t.Errorf("se leyó la moneda de %v y ms-exporter recibió %+v, se esperaba nada", f.agencies.read, f.exporter.calls)
+	}
+}
+
+// assertReportName verifica que name es prefix, una hora YYYY-MM-DD_HHmmss entre before y after en la zona
+// utcDiff, y .xlsx.
+func assertReportName(t *testing.T, name, prefix string, utcDiff int, before, after time.Time) {
+	t.Helper()
+	stamp, hasPrefix := strings.CutPrefix(name, prefix)
+	stamp, hasExt := strings.CutSuffix(stamp, ".xlsx")
+	at, err := time.ParseInLocation("2006-01-02_150405", stamp, time.FixedZone("", utcDiff*3600))
+	if !hasPrefix || !hasExt || err != nil || at.Before(before.Truncate(time.Second)) || at.After(after) {
+		t.Errorf("nombre %q, se esperaba %s<hora entre %s y %s en UTC%+d>.xlsx", name, prefix,
+			before.Format(time.RFC3339), after.Format(time.RFC3339), utcDiff)
 	}
 }
 

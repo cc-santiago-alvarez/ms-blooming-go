@@ -33,6 +33,31 @@ func preflight(h http.Handler, origin string) (int, http.Header) {
 	return rec.Code, rec.Header()
 }
 
+// Un origen de CORS_ORIGINS puede leer Content-Disposition, el nombre de los reportes; uno no permitido no
+// recibe Access-Control-Expose-Headers. CA-07.1
+func TestCORSExposesContentDisposition(t *testing.T) {
+	handler := corsHandler(t, "https://app.futurapps.com")
+
+	tests := []struct {
+		origin string
+		want   string
+	}{
+		{origin: "https://app.futurapps.com", want: "Content-Disposition"},
+		{origin: "https://evil.com", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.origin, func(t *testing.T) {
+			rec := serve(handler, http.MethodGet, "/api/v1/bonds", map[string]string{
+				"Origin": tt.origin, "x-secret": testSecret, "x-token": testToken,
+			})
+
+			if got := rec.Header().Get("Access-Control-Expose-Headers"); got != tt.want {
+				t.Fatalf("Access-Control-Expose-Headers = %q, se esperaba %q", got, tt.want)
+			}
+		})
+	}
+}
+
 // Solo los orígenes de CORS_ORIGINS reciben Access-Control-Allow-Origin, y el preflight se responde
 // antes de exigir x-secret. CA-00.9
 func TestCORS(t *testing.T) {

@@ -1,10 +1,12 @@
 package bondBounds_handlers_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -34,6 +36,13 @@ const (
 	bulkPurchasePath = boundsPath + "/bulk-purchase"
 	preSalePath      = boundPath + "/pre-sale"
 	salePath         = boundPath + "/sale"
+
+	reportPurchasedPath = boundsPath + "/reports/purchased"
+	reportSummaryPath   = boundsPath + "/reports/purchased-summary"
+	countByStatusPath   = boundsPath + "/kpis/count-by-status"
+
+	// xlsxContentType es el Content-Type de los reportes.
+	xlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 	// purchaseBody es la compra de un bono del producto con la cuenta.
 	purchaseBody = `{"accountId":"` + accountID + `","bondObjectId":"` + objectID + `"}`
@@ -73,17 +82,21 @@ type fakeApp struct {
 	bound          *bondBound_domain.BondBound
 	detail         *bondBound_ports.BondBoundDetail
 	timeline       []bondBound_ports.TimelineItem
+	reportFile     bondBound_ports.ReportFile
+	statusCount    bondBound_ports.StatusCount
 	err            error
 
-	calls        []string
-	id           string
-	purchase     bondBound_domain.PurchaseParams
-	bulk         bondBound_domain.BulkPurchaseParams
-	userID       string
-	bondObjectID string
-	listFilters  bondBound_domain.ListFilters
-	mineFilters  bondBound_domain.MineFilters
-	page         shared_domain.Pagination
+	calls         []string
+	id            string
+	purchase      bondBound_domain.PurchaseParams
+	bulk          bondBound_domain.BulkPurchaseParams
+	userID        string
+	bondObjectID  string
+	listFilters   bondBound_domain.ListFilters
+	mineFilters   bondBound_domain.MineFilters
+	reportFilters bondBound_domain.ReportFilters
+	kpiFilters    bondBound_domain.KpiFilters
+	page          shared_domain.Pagination
 }
 
 func (a *fakeApp) Purchase(_ context.Context, p bondBound_domain.PurchaseParams) (bondBound_domain.PurchaseResult, error) {
@@ -181,6 +194,24 @@ func (a *fakeApp) Timeline(_ context.Context, userID string) ([]bondBound_ports.
 	return a.timeline, a.err
 }
 
+func (a *fakeApp) ReportPurchased(_ context.Context, f bondBound_domain.ReportFilters) (bondBound_ports.ReportFile, error) {
+	a.calls = append(a.calls, "ReportPurchased")
+	a.reportFilters = f
+	return a.reportFile, a.err
+}
+
+func (a *fakeApp) ReportSummary(_ context.Context, f bondBound_domain.ReportFilters) (bondBound_ports.ReportFile, error) {
+	a.calls = append(a.calls, "ReportSummary")
+	a.reportFilters = f
+	return a.reportFile, a.err
+}
+
+func (a *fakeApp) CountByStatus(_ context.Context, f bondBound_domain.KpiFilters) (bondBound_ports.StatusCount, error) {
+	a.calls = append(a.calls, "CountByStatus")
+	a.kpiFilters = f
+	return a.statusCount, a.err
+}
+
 // newTestAPI registra las rutas de /bond-bounds sobre app y atiende cada request con la sesión dada.
 func newTestAPI(app *fakeApp, session *session_domain.UserSession) http.Handler {
 	server := &nexus.Server{
@@ -222,6 +253,48 @@ func assertError(t *testing.T, rec *httptest.ResponseRecorder, status int, code 
 	}
 	if body.Message != code {
 		t.Fatalf("código %q, se esperaba %q", body.Message, code)
+	}
+}
+
+// reportFile es un reporte de comprados como lo devuelve la aplicación.
+func reportFile(name string) bondBound_ports.ReportFile {
+	return bondBound_ports.ReportFile{Name: name, Content: []byte{80, 75, 3, 4}}
+}
+
+// assertReportResponse verifica un 200 con file como descarga de Excel: su tipo, su nombre, su largo y sus
+// bytes.
+func assertReportResponse(t *testing.T, rec *httptest.ResponseRecorder, file bondBound_ports.ReportFile) {
+	t.Helper()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d, se esperaba 200 (body %s)", rec.Code, rec.Body)
+	}
+	header := rec.Header()
+	if got := header.Get("Content-Type"); got != xlsxContentType {
+		t.Errorf("Content-Type %q, se esperaba %q", got, xlsxContentType)
+	}
+	if got, want := header.Get("Content-Disposition"), `attachment; filename="`+file.Name+`"`; got != want {
+		t.Errorf("Content-Disposition %q, se esperaba %q", got, want)
+	}
+	if got := header.Get("Content-Length"); got != strconv.Itoa(len(file.Content)) {
+		t.Errorf("Content-Length %q, se esperaba %d", got, len(file.Content))
+	}
+	if !bytes.Equal(rec.Body.Bytes(), file.Content) {
+		t.Errorf("body %v, se esperaba %v", rec.Body.Bytes(), file.Content)
+	}
+}
+
+// assertExportFailed verifica un 502 ERR_EXPORT_FAILED en JSON, sin más detalle que el código y sin los
+// headers de una descarga.
+func assertExportFailed(t *testing.T, rec *httptest.ResponseRecorder) {
+	t.Helper()
+	assertError(t, rec, http.StatusBadGateway, "ERR_EXPORT_FAILED")
+	var body nexus.ErrorResponse
+	_ = json.Unmarshal(rec.Body.Bytes(), &body)
+	if len(body.Errors) != 1 || body.Errors["error"] != "ERR_EXPORT_FAILED" {
+		t.Errorf("errors %v, se esperaba solo {error: ERR_EXPORT_FAILED}", body.Errors)
+	}
+	if header := rec.Header(); header.Get("Content-Disposition") != "" || header.Get("Content-Type") == xlsxContentType {
+		t.Errorf("headers %v, se esperaba una respuesta JSON sin descarga", header)
 	}
 }
 
