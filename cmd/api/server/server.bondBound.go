@@ -8,7 +8,8 @@ import (
 )
 
 // initBondBoundDomain crea los índices de los bonos comprados y arma su aplicación. Usa el mismo
-// transactionRunner que el saldo, para que el cobro se sume a la transacción de la compra.
+// transactionRunner que el saldo, para que el cobro y el depósito se sumen a la transacción de la compra y
+// de la venta. Va después de bondUserSetting, que da la cuenta destino de las ventas.
 func initBondBoundDomain(deps *serverDeps) {
 	repository := &bondBound_mongocc_repository.BondBoundMongoccRepository{DB: deps.mongoDB}
 	ensureIndexes("bondBound", repository)
@@ -17,6 +18,7 @@ func initBondBoundDomain(deps *serverDeps) {
 		Repository:              repository,
 		KeyCounter:              &bondBound_mongocc_repository.KeyCounterMongoccRepository{DB: deps.mongoDB},
 		BondObjects:             deps.bondObjectApplication,
+		UserSettings:            deps.bondUserSettingApplication,
 		Balance:                 deps.balancePort,
 		History:                 deps.bondHistoryApplication,
 		Tx:                      deps.transactionRunner,

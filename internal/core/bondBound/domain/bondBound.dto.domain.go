@@ -70,6 +70,17 @@ type BulkPurchaseResult struct {
 	AccountAvailable float64            `json:"accountAvailable"`
 }
 
+// SaleResult es la respuesta de la venta o el canje: el bono, su nuevo estado, lo acreditado, la ganancia
+// y la cuenta destino con su saldo disponible.
+type SaleResult struct {
+	BondBoundID string          `json:"bondBoundId"`
+	StatusID    BondBoundStatus `json:"statusId"`
+	Amount      float64         `json:"amount"`
+	Profit      float64         `json:"profit"`
+	AccountID   string          `json:"accountId"`
+	Available   float64         `json:"available"`
+}
+
 // BondBoundChart son las guías de la gráfica de un bono comprado.
 type BondBoundChart struct {
 	Guides []shared_domain.ChartGuide `json:"guides"`

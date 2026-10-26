@@ -390,7 +390,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.preSale.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`PreSale`)
 - [ ] **BLM-0093** `impl` Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial
   - cubre: RF-05.3, RF-05.4, RF-05.5, RF-05.6 · depende de: BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035
-  - archivos: `internal/core/bondBound/application/bondBound.sale.go`
+  - archivos: `internal/core/bondBound/application/bondBound.sale.go`, `bondBound.application.go` (`UserSettings`), `internal/core/bondBound/ports/bondBound.ports.go` (`Sale`), `internal/core/bondBound/domain/bondBound.dto.domain.go` (`SaleResult`), `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_USER_SETTING_ACCOUNT_REQUIRED`), `cmd/api/server/server.bondBound.go` (`UserSettings`)
 - [ ] **BLM-0094** `impl` Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas)
   - cubre: RF-05.7 · depende de: BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018
   - archivos: `internal/core/bondBound/application/bondBound.sale.notify.go`

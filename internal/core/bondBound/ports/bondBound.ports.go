@@ -34,6 +34,13 @@ type BondBoundApplicationPorts interface {
 	// el error de SaleTransitionFor, y si la cotización falla, el de QuoteSale. Un id inválido es
 	// ErrInvalidID.
 	PreSale(ctx context.Context, id string) (bondBound_domain.SaleProjection, error)
+	// Sale vende el bono iniciado o canjea el madurado del usuario de la sesión: en una transacción cambia
+	// su estado, acredita la cotización en la cuenta destino y registra el historial. Si no existe es
+	// ErrBondBoundNotFound y si es ajeno, ErrForbidden, aunque la sesión sea admin. Si su estado no se puede
+	// vender es el error de SaleTransitionFor, y si la cotización falla, el de QuoteSale. Sin cuenta destino
+	// es ErrUserSettingAccountRequired, y si no existe o no es suya, ErrAccountNotFound. Si otra venta lo
+	// cambió antes, ErrBondAlreadySold. Un id inválido es ErrInvalidID.
+	Sale(ctx context.Context, id string) (bondBound_domain.SaleResult, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así
