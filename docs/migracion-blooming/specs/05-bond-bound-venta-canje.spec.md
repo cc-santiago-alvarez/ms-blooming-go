@@ -162,6 +162,7 @@ Aquí, en el vencimiento, `profit` es el interés completo. Solo cambia el valor
 | `'6'` | — | — | — | — | `ERR_BOND_ALREADY_TOOK` |
 
 Un bono con `soldDate` o `tookDate` ya seteado se trata como vendido o canjeado, sin importar su `statusId`.
+Un estado desconocido también es `ERR_BOND_STATUS_NOT_SELLABLE`.
 
 ### 5.4 Parámetros del mensaje (11, en orden)
 
@@ -241,7 +242,7 @@ type SaleProjection struct {
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
 | BLM-0090 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | F5 | RF-05.2 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.quoteSale.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_WITHDRAW_DATE`, `ERR_BOND_INVALID_TERMS`) |
-| BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` |
+| BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_BOND_ALREADY_SOLD`, `ERR_BOND_ALREADY_TOOK`, `ERR_BOND_STATUS_NOT_SELLABLE`) |
 | BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go` |
 | BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go` |
 | BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go` |
