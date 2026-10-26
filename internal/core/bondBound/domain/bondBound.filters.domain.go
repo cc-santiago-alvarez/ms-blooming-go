@@ -127,3 +127,33 @@ func (f ListFilters) Validation() error {
 	}
 	return f.Date.Validation()
 }
+
+// MineFilters son los filtros de los bonos del usuario de la sesión; sin estados no filtra por estado.
+type MineFilters struct {
+	StatusIDs []BondBoundStatus
+}
+
+// Normalize recorta los estados y quita los vacíos y los repetidos; si no queda ninguno, deja nil.
+func (f *MineFilters) Normalize() {
+	var statuses []BondBoundStatus
+	seen := make(map[BondBoundStatus]bool, len(f.StatusIDs))
+	for _, s := range f.StatusIDs {
+		s = BondBoundStatus(strings.TrimSpace(string(s)))
+		if s == "" || seen[s] {
+			continue
+		}
+		seen[s] = true
+		statuses = append(statuses, s)
+	}
+	f.StatusIDs = statuses
+}
+
+// Validation exige que cada estado sea uno de los conocidos.
+func (f MineFilters) Validation() error {
+	for _, s := range f.StatusIDs {
+		if !s.IsValid() {
+			return ErrInvalidStatus
+		}
+	}
+	return nil
+}

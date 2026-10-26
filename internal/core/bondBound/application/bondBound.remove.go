@@ -4,7 +4,6 @@ import (
 	"context"
 
 	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
-	shared_application "github.com/futurapps/ms-blooming-go/internal/core/shared/application"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
@@ -19,7 +18,7 @@ func (app *BondBoundApplication) Remove(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	if scope := shared_application.AgencyScope(ctx); b == nil || (scope != nil && *scope != b.AgencyID) {
+	if b == nil || !inAgencyScope(ctx, b.AgencyID) {
 		return bondBound_domain.ErrBondBoundNotFound
 	}
 

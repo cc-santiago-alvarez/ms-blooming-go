@@ -23,6 +23,16 @@ func (s BondBoundStatus) Ref() StatusRef {
 	return StatusRef{ID: s, Name: s.Name()}
 }
 
+// StatusRefs devuelve los seis estados en orden, con su nombre.
+func StatusRefs() []StatusRef {
+	statuses := []BondBoundStatus{StatusInitiated, StatusFinalized, StatusBlocked, StatusUnbound, StatusSold, StatusTook}
+	refs := make([]StatusRef, len(statuses))
+	for i, s := range statuses {
+		refs[i] = s.Ref()
+	}
+	return refs
+}
+
 // IsValid indica si el estado es uno de los conocidos.
 func (s BondBoundStatus) IsValid() bool {
 	return s.Name() != ""

@@ -98,6 +98,77 @@ type BondBoundWithProfile struct {
 	Profile *shared_domain.PublicProfile `json:"profile,omitempty"`
 }
 
+// BondBoundMineItem es un bono del usuario de la sesión, con los días y el monto acumulados, si está
+// creciendo o ya creció, y sus fechas inicial y de vencimiento como "D MMM YYYY". BondObject no sale si el
+// producto no existe, y una fecha formateada no sale si la fecha falta.
+type BondBoundMineItem struct {
+	ID                        string                           `json:"_id"`
+	Key                       string                           `json:"key"`
+	StatusID                  bondBound_domain.BondBoundStatus `json:"statusId"`
+	BondObjectID              string                           `json:"bondObjectId"`
+	Amount                    float64                          `json:"amount"`
+	InitialDate               time.Time                        `json:"initialDate"`
+	MaturityDate              time.Time                        `json:"maturityDate"`
+	MaturityRewardsPercentage float64                          `json:"maturityRewardsPercentage"`
+	MaturityTimeInDays        int                              `json:"maturityTimeInDays"`
+	EarlyCashTerm             shared_domain.EarlyCashTerm      `json:"earlyCashTerm"`
+	BondObject                *BondObjectRef                   `json:"bondObject,omitempty"`
+	DaysPassed                int                              `json:"daysPassed"`
+	AcumulateAmount           float64                          `json:"acumulateAmount"`
+	Growing                   bool                             `json:"growing"`
+	Grew                      bool                             `json:"grew"`
+	InitialDateFormatted      string                           `json:"initialDateFormatted,omitempty"`
+	MaturityDateFormatted     string                           `json:"maturityDateFormatted,omitempty"`
+}
+
+// BondObjectPublic es el producto de un bono sin sus usuarios autorizados.
+type BondObjectPublic struct {
+	ID                        string                      `json:"_id"`
+	Name                      string                      `json:"name"`
+	Description               string                      `json:"description"`
+	AgencyID                  shared_domain.AgencyIDs     `json:"agencyId"`
+	Key                       string                      `json:"key"`
+	BondTypeID                string                      `json:"bondTypeId"`
+	Amount                    float64                     `json:"amount"`
+	IsPrivateBond             bool                        `json:"isPrivateBond"`
+	MaturityTimeInDays        int                         `json:"maturityTimeInDays"`
+	MaturityRewardsPercentage float64                     `json:"maturityRewardsPercentage"`
+	Active                    bool                        `json:"active"`
+	Available                 bool                        `json:"available"`
+	SaleInitDate              *time.Time                  `json:"saleInitDate"`
+	SaleEndDate               *time.Time                  `json:"saleEndDate"`
+	EarlyCashTerm             shared_domain.EarlyCashTerm `json:"earlyCashTerm"`
+	CreatedAt                 time.Time                   `json:"createdAt"`
+	UpdatedAt                 time.Time                   `json:"updatedAt"`
+	IsRemove                  bool                        `json:"isRemove"`
+}
+
+// BondBoundDetail es el detalle de un bono: el bono sin sus ids de estado, dueño, producto y tipo, más el
+// producto público, el tipo, el estado con su nombre y los días y el monto acumulados a hoy.
+type BondBoundDetail struct {
+	ID                        string                      `json:"_id"`
+	Key                       string                      `json:"key"`
+	Token                     string                      `json:"token"`
+	AgencyID                  string                      `json:"agencyId"`
+	Amount                    float64                     `json:"amount"`
+	MaturityTimeInDays        int                         `json:"maturityTimeInDays"`
+	MaturityRewardsPercentage float64                     `json:"maturityRewardsPercentage"`
+	EarlyCashTerm             shared_domain.EarlyCashTerm `json:"earlyCashTerm"`
+	InitialDate               time.Time                   `json:"initialDate"`
+	MaturityDate              time.Time                   `json:"maturityDate"`
+	SoldDate                  *time.Time                  `json:"soldDate,omitempty"`
+	TookDate                  *time.Time                  `json:"tookDate,omitempty"`
+	Matured                   bool                        `json:"matured,omitempty"`
+	CreatedAt                 time.Time                   `json:"createdAt"`
+	UpdatedAt                 time.Time                   `json:"updatedAt"`
+	IsRemove                  bool                        `json:"isRemove"`
+	BondObject                BondObjectPublic            `json:"bondObject"`
+	BondType                  bondType_domain.BondType    `json:"bondType"`
+	Status                    bondBound_domain.StatusRef  `json:"status"`
+	DaysPassed                int                         `json:"daysPassed"`
+	AcumulateAmount           float64                     `json:"acumulateAmount"`
+}
+
 // BondBoundApplicationPorts son los casos de uso de bondBound.
 type BondBoundApplicationPorts interface {
 	// Purchase compra un bono del producto con una cuenta del usuario de la sesión: valida y, en una
@@ -140,6 +211,26 @@ type BondBoundApplicationPorts interface {
 	// Remove borra el bono de forma lógica. Si no existe, ya estaba borrado o es de otra agencia que la de la
 	// sesión, que no es la principal, es ErrBondBoundNotFound. Un id inválido es ErrInvalidID.
 	Remove(ctx context.Context, id string) error
+	// Statuses devuelve los seis estados de un bono en orden, con su nombre.
+	Statuses() []bondBound_domain.StatusRef
+	// ListMine devuelve la página p de los bonos no borrados del usuario de la sesión en su agencia, por
+	// createdAt descendente, con su producto y los derivados a hoy en la zona de la sesión. Un estado
+	// desconocido es ErrInvalidStatus.
+	ListMine(ctx context.Context, f bondBound_domain.MineFilters, p shared_domain.Pagination) (shared_domain.Paginated[BondBoundMineItem], error)
+	// ListRecent devuelve los cinco bonos iniciados o madurados más recientes del usuario de la sesión, de
+	// cualquier agencia, con su producto y los derivados a hoy en la zona de la sesión.
+	ListRecent(ctx context.Context) ([]BondBoundMineItem, error)
+	// GetByID devuelve el bono no borrado si es del usuario de la sesión o la sesión es admin. Si no existe
+	// es ErrBondBoundNotFound, y si es ajeno, ErrForbidden. Un id inválido es ErrInvalidID.
+	GetByID(ctx context.Context, id string) (*bondBound_domain.BondBound, error)
+	// GetDetails devuelve el detalle del bono con lo acumulado a hoy en la zona de la sesión. Si no existe,
+	// le falta el producto o el tipo, o está fuera del alcance de agencia de la sesión, es
+	// ErrBondBoundNotFound; si es ajeno y la sesión no es admin, ErrForbidden. Un id inválido es ErrInvalidID.
+	GetDetails(ctx context.Context, id string) (*BondBoundDetail, error)
+	// Timeline devuelve las compras de userID, o del usuario de la sesión si viene vacío, con las fechas en
+	// la zona de la sesión. Las de otro usuario exigen admin; si no, ErrForbidden. Un id inválido es
+	// ErrInvalidID.
+	Timeline(ctx context.Context, userID string) ([]TimelineItem, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así
