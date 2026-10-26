@@ -34,6 +34,10 @@ var nestBound = bson.M{"$replaceWith": bson.M{"bound": "$$ROOT"}}
 // newestFirst es el orden de los listados: del más reciente al más antiguo.
 var newestFirst = bson.D{{Key: "createdAt", Value: -1}, {Key: "_id", Value: 1}}
 
+// numericAmount es el monto del bono como número para sumarlo: los legacy pueden guardarlo como string, y uno
+// que no es número cuenta 0.
+var numericAmount = bson.M{"$convert": bson.M{"input": "$amount", "to": "double", "onError": 0, "onNull": 0}}
+
 // lookupOne trae en as el documento de from cuyo _id es localField, con la proyección project si no es nil.
 // Con required, el documento sin coincidencia no sigue; si no, sigue sin as.
 func lookupOne(from, localField, as string, project bson.M, required bool) bson.A {

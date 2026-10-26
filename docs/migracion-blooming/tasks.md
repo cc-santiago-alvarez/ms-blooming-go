@@ -453,7 +453,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `internal/core/bondBound/domain/bondBound.reports.domain.go`, `bondBound.filters.domain.go` (validación común de userId, búsqueda y fecha, compartida con `ListFilters`)
 - [ ] **BLM-0111** `impl` Adapters `ReportPurchasedRows`, `ReportSummaryRows` y `CountByStatus` (con `DateRangeStage` y búsqueda escapada)
   - cubre: RF-07.1, RF-07.2, RF-07.3 · depende de: BLM-0110, BLM-0102, BLM-0103
-  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go`
+  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*.adapter.go`, `bondBound.countByStatus.adapter.go`, `bondBound.mongocc.repository.go` (`numericAmount`), `internal/core/bondBound/ports/bondBound.ports.go` (métodos del repositorio y filas `PurchasedReportRow`, `SummaryReportRow` y `StatusCount`)
 - [ ] **BLM-0112** `impl` Casos de uso `ReportPurchased` y `ReportSummary` (moneda, `ExporterPort` y nombre de archivo)
   - cubre: RF-07.1, RF-07.2, RF-07.4 · depende de: BLM-0111, BLM-0016, BLM-0017
   - archivos: `internal/core/bondBound/application/bondBound.reportPurchased.go`, `bondBound.reportSummary.go`

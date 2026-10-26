@@ -71,6 +71,38 @@ type TimelineItem struct {
 	End   string `json:"end" bson:"end"`
 }
 
+// PurchasedReportRow es un bono del reporte de comprados como lo recibe ms-exporter, con el nombre de su
+// estado. Profile no sale si el dueño no tiene perfil.
+type PurchasedReportRow struct {
+	Key                       string        `json:"key"`
+	Status                    string        `json:"status"`
+	Amount                    float64       `json:"amount"`
+	MaturityTimeInDays        int           `json:"maturityTimeInDays"`
+	InitialDate               time.Time     `json:"initialDate"`
+	MaturityDate              time.Time     `json:"maturityDate"`
+	MaturityRewardsPercentage float64       `json:"maturityRewardsPercentage"`
+	Profile                   *ProfileName  `json:"profile,omitempty"`
+	BondType                  BondTypeRef   `json:"bondType"`
+	BondObject                BondObjectRef `json:"bondObject"`
+	CreatedAt                 time.Time     `json:"createdAt"`
+}
+
+// SummaryReportRow es el total comprado por un inversionista como lo recibe ms-exporter; Profile no sale si
+// no tiene perfil.
+type SummaryReportRow struct {
+	UserID  string       `json:"_id" bson:"_id"`
+	Total   float64      `json:"total" bson:"total"`
+	Profile *ProfileName `json:"profile,omitempty" bson:"profile"`
+}
+
+// StatusCount es el KPI de bonos por estado: la suma de los montos, la cantidad y el nombre del estado por el
+// que se filtró, o "" si no se filtró.
+type StatusCount struct {
+	Total  float64 `json:"total" bson:"total"`
+	Count  int64   `json:"count" bson:"count"`
+	Status string  `json:"status" bson:"-"`
+}
+
 // BondBoundAdminItem es un bono del listado de administración, con los días y el monto acumulados a hoy.
 // Profile no sale si el dueño no tiene perfil.
 type BondBoundAdminItem struct {
@@ -268,6 +300,16 @@ type BondBoundMongoccRepositoryPorts interface {
 	// SoftDelete marca el bono con isRemove true y actualiza updatedAt; devuelve false si no existe o ya
 	// estaba borrado.
 	SoftDelete(ctx context.Context, id string) (bool, error)
+	// ReportPurchasedRows devuelve los bonos no borrados de la agencia que pasan f, por createdAt descendente,
+	// con su dueño, su producto, su tipo y el nombre de su estado; los bonos sin producto o sin tipo no
+	// aparecen. El filtro de fecha usa la zona utcDiff.
+	ReportPurchasedRows(ctx context.Context, agencyID string, f bondBound_domain.ReportFilters, utcDiff int) ([]PurchasedReportRow, error)
+	// ReportSummaryRows devuelve el total comprado por cada usuario en los bonos no borrados de la agencia,
+	// del mayor al menor, con su perfil. De f solo usa el estado.
+	ReportSummaryRows(ctx context.Context, agencyID string, f bondBound_domain.ReportFilters) ([]SummaryReportRow, error)
+	// CountByStatus devuelve la suma de los montos y la cantidad de los bonos no borrados que pasan f; Status
+	// queda vacío. El filtro de fecha usa la zona utcDiff, y agencyID nil no filtra por agencia.
+	CountByStatus(ctx context.Context, agencyID *string, f bondBound_domain.KpiFilters, utcDiff int) (StatusCount, error)
 	// EnsureIndexes crea los índices de la colección; es idempotente.
 	EnsureIndexes(ctx context.Context) error
 }
