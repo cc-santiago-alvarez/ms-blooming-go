@@ -52,6 +52,7 @@ func InitServer() *App {
 	registerBondObjectHandlers(server, deps)
 	registerBondUserSettingHandlers(server, deps)
 	registerBondBoundHandlers(server, deps)
+	registerJobHandlers(server, deps)
 
 	return &App{server: server, deps: deps}
 }

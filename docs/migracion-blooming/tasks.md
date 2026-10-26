@@ -492,7 +492,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `bondBound.runMaturity.notify.go`, `bondBound.application.go` (`BondTypes` y `JobLock`), `bondBound.sale.notify.go` (`bondName` compartido), `internal/core/bondBound/ports/bondBound.ports.go` (`RunMaturity`), `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_JOB_LOCKED`), `cmd/api/server/server.bondBound.go`, `server.config.go` y `server.deps.go` (`JobLockPort` con el hostname)
 - [ ] **BLM-0122** `impl` Endpoint interno de ejecución de la maduración (lo llama ms-cronjob-go)
   - cubre: RF-10.7 · depende de: BLM-0120, BLM-0004
-  - archivos: `cmd/api/handlers/jobs/jobs.bondMaturity.post.go`
+  - archivos: `cmd/api/handlers/jobs/jobs.bondMaturity.post.go`, `jobs.handler.go`, `cmd/api/server/server.jobs.go` y `server.go` (registro de las rutas)
 - [ ] **BLM-0123** `test` Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial
   - cubre: CA-10.3, CA-10.6, CA-10.7 · depende de: BLM-0120
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go`
