@@ -5,6 +5,7 @@ import (
 	"time"
 
 	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
+	bondHistory_domain "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/domain"
 )
 
 // StatusChange pasa un bono de From a To. Las fechas nil no se escriben; MaturedAt también escribe
@@ -41,6 +42,10 @@ type BondBoundApplicationPorts interface {
 	// es ErrUserSettingAccountRequired, y si no existe o no es suya, ErrAccountNotFound. Si otra venta lo
 	// cambió antes, ErrBondAlreadySold. Un id inválido es ErrInvalidID.
 	Sale(ctx context.Context, id string) (bondBound_domain.SaleResult, error)
+	// HistoryOf devuelve el historial del bono en la agencia de la sesión, del más reciente al más antiguo y
+	// listo para mostrar. Si no existe es ErrBondBoundNotFound, y si no es del usuario ni es admin,
+	// ErrForbidden. Un id inválido es ErrInvalidID.
+	HistoryOf(ctx context.Context, id string) ([]bondHistory_domain.HistoryEntry, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así

@@ -20,8 +20,8 @@ type BondBoundsHandler struct {
 }
 
 // NewBondBoundsHandler registra las rutas de /bond-bounds. La compra y la compra masiva son del usuario de la
-// sesión, que paga con una de sus cuentas. Las guías y la cotización de un bono las ve su dueño o un admin, y
-// solo el dueño lo vende; lo valida el caso de uso.
+// sesión, que paga con una de sus cuentas. Las guías, la cotización y el historial de un bono los ve su dueño o
+// un admin, y solo el dueño lo vende; lo valida el caso de uso.
 func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_ports.BondBoundApplicationPorts) {
 	handler := &BondBoundsHandler{bondBoundApplication: bondBoundApplication}
 
@@ -29,6 +29,7 @@ func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_p
 		{Path: "GET /{id}/chart-guides", HandlerFunc: handler.ChartGuides},
 		{Path: "GET /{id}/pre-sale", HandlerFunc: handler.PreSale},
 		{Path: "POST /{id}/sale", HandlerFunc: handler.Sale},
+		{Path: "GET /{id}/history", HandlerFunc: handler.History},
 		{Path: "POST /purchase", HandlerFunc: handler.Purchase},
 		{Path: "POST /bulk-purchase", HandlerFunc: handler.BulkPurchase},
 	})

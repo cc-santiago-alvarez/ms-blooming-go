@@ -408,7 +408,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.sale_integration_test.go`, `bondBound.testdb_integration_test.go` (`bondUserSetting` y `UserSettings` con el adapter real)
 - [ ] **BLM-0099** `impl` Caso de uso `HistoryOf` en bondBound (control de dueño y delegación) y handler `GET /bond-bounds/{id}/history`
   - cubre: RF-08.3 · depende de: BLM-0037, BLM-0077, BLM-0084, BLM-0026
-  - archivos: `internal/core/bondBound/application/bondBound.history.go`, `cmd/api/handlers/bondBounds/bondBounds.history.get.go`
+  - archivos: `internal/core/bondBound/application/bondBound.history.go`, `bondBound.application.go` (dependencia `History` con `ListByRelated`), `bondBound.fakes_test.go` (`fakeHistory`), `internal/core/bondBound/ports/bondBound.ports.go` (`HistoryOf`), `cmd/api/handlers/bondBounds/bondBounds.history.get.go`, `bondBounds.handler.go` (ruta)
 - [ ] **BLM-0100** `test` Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote
   - cubre: CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 · depende de: BLM-0063, BLM-0099
   - archivos: `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/*/*.history_test.go`

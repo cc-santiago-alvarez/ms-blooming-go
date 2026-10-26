@@ -221,7 +221,7 @@ func (b *fakeBalance) Deposit(_ context.Context, p shared_domain.DepositParams) 
 
 // fakeHistory registra los eventos.
 type fakeHistory struct {
-	bondHistory_ports.BondHistoryPort
+	bondHistory_ports.BondHistoryApplicationPorts
 
 	added []bondHistory_domain.AddParams
 }

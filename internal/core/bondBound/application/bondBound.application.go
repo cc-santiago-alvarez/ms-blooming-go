@@ -27,7 +27,7 @@ type BondBoundApplication struct {
 	BondObjects             bondObject_ports.BondObjectApplicationPorts
 	UserSettings            bondUserSetting_ports.BondUserSettingApplicationPorts
 	Balance                 shared_ports.BalancePort
-	History                 bondHistory_ports.BondHistoryPort
+	History                 bondHistory_ports.BondHistoryApplicationPorts
 	Tx                      shared_ports.TransactionRunnerPort
 	Utils                   utils_adapters.UtilsPorts
 	Notices                 shared_ports.NoticePort
