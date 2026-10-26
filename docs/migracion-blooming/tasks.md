@@ -495,7 +495,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `cmd/api/handlers/jobs/jobs.bondMaturity.post.go`, `jobs.handler.go`, `cmd/api/server/server.jobs.go` y `server.go` (registro de las rutas)
 - [ ] **BLM-0123** `test` Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial
   - cubre: CA-10.3, CA-10.6, CA-10.7 · depende de: BLM-0120
-  - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go`
+  - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable`, fallo por bono de `UpdateStatusIf`, `BondTypes`, `JobLock` y `captureLog`), `internal/core/bondBound/domain/bondBound.maturity_test.go`
 - [ ] **BLM-0124** `test` Tests de integración: idempotencia, lock concurrente, historial de sistema y endpoint
   - cubre: CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 · depende de: BLM-0120, BLM-0122
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`

@@ -1,9 +1,11 @@
 package bondBound_application_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
 	"sync"
@@ -18,6 +20,7 @@ import (
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
 	bondObject_ports "github.com/futurapps/ms-blooming-go/internal/core/bondObject/ports"
 	bondType_domain "github.com/futurapps/ms-blooming-go/internal/core/bondType/domain"
+	bondType_ports "github.com/futurapps/ms-blooming-go/internal/core/bondType/ports"
 	bondUserSetting_domain "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/domain"
 	bondUserSetting_ports "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
@@ -68,6 +71,8 @@ type repoQuery struct {
 	page          shared_domain.Pagination
 	utcDiff       int
 	limit         int
+	now           time.Time
+	afterID       string
 }
 
 // fakeRepository guarda los bonos en memoria y registra las lecturas, los inserts, los cambios de estado, las
@@ -90,6 +95,8 @@ type fakeRepository struct {
 	statusCount   bondBound_ports.StatusCount
 	// deleteLost simula que otra baja borró el bono entre la lectura y la escritura.
 	deleteLost bool
+	// statusErrs es el error que UpdateStatusIf devuelve para cada bono, sin cambiarlo.
+	statusErrs map[string]error
 
 	reads    []string
 	inserted []bondBound_domain.BondBound
@@ -119,17 +126,47 @@ func (r *fakeRepository) InsertMany(_ context.Context, bounds []*bondBound_domai
 	return nil
 }
 
-// UpdateStatusIf aplica c solo si el bono existe, no está borrado, sigue en c.From y no tiene soldDate ni
-// tookDate; devuelve si lo cambió.
+// UpdateStatusIf devuelve el error de statusErrs del bono, si tiene; si no, aplica c solo si el bono existe,
+// no está borrado, sigue en c.From y no tiene soldDate ni tookDate, y devuelve si lo cambió. Con maturedAt
+// marca el bono como madurado.
 func (r *fakeRepository) UpdateStatusIf(_ context.Context, id string, c bondBound_ports.StatusChange) (bool, error) {
 	r.changes = append(r.changes, statusChange{id: id, change: c})
+	if err := r.statusErrs[id]; err != nil {
+		return false, err
+	}
 	b, ok := r.bounds[id]
 	if !ok || b.IsRemove || b.StatusID != c.From || b.SoldDate != nil || b.TookDate != nil {
 		return false, nil
 	}
 	b.StatusID = c.To
 	b.SoldDate, b.TookDate = c.SoldDate, c.TookDate
+	if c.MaturedAt != nil {
+		b.Matured = true
+	}
 	return true, nil
+}
+
+// FindMaturable filtra los bonos en memoria igual que el adapter: no borrados, iniciados, sin soldDate ni
+// tookDate y vencidos hasta now, con _id mayor que afterID, por _id ascendente y hasta limit; devuelve copias.
+func (r *fakeRepository) FindMaturable(_ context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
+	r.queries = append(r.queries, repoQuery{method: "FindMaturable", now: now, limit: limit, afterID: afterID})
+	if r.err != nil {
+		return nil, r.err
+	}
+	var found []*bondBound_domain.BondBound
+	for _, b := range r.bounds {
+		if b.IsRemove || b.StatusID != bondBound_domain.StatusInitiated || b.SoldDate != nil || b.TookDate != nil ||
+			b.MaturityDate.After(now) || b.ID <= afterID {
+			continue
+		}
+		copied := *b
+		found = append(found, &copied)
+	}
+	slices.SortFunc(found, func(a, b *bondBound_domain.BondBound) int { return strings.Compare(a.ID, b.ID) })
+	if limit > 0 && len(found) > limit {
+		found = found[:limit]
+	}
+	return found, nil
 }
 
 func (r *fakeRepository) ListAdmin(_ context.Context, agencyID *string, f bondBound_domain.ListFilters, p shared_domain.Pagination, utcDiff int) (shared_domain.Paginated[bondBound_ports.BondBoundAdminRow], error) {
@@ -276,6 +313,28 @@ func (o *fakeBondObjects) GetByIDIncludingRemoved(_ context.Context, id string) 
 	return &found, nil
 }
 
+// fakeBondTypes conoce los tipos de types y registra los ids de cada consulta.
+type fakeBondTypes struct {
+	bondType_ports.BondTypeApplicationPorts
+
+	types map[string]*bondType_domain.BondType
+
+	requested [][]string
+}
+
+// GetManyByIDs devuelve, en el orden pedido, copias de los tipos que conoce.
+func (bt *fakeBondTypes) GetManyByIDs(_ context.Context, ids []string) ([]*bondType_domain.BondType, error) {
+	bt.requested = append(bt.requested, ids)
+	var found []*bondType_domain.BondType
+	for _, id := range ids {
+		if t, ok := bt.types[id]; ok {
+			copied := *t
+			found = append(found, &copied)
+		}
+	}
+	return found, nil
+}
+
 // fakeUserSettings guarda los settings por usuario en memoria y registra las lecturas.
 type fakeUserSettings struct {
 	bondUserSetting_ports.BondUserSettingApplicationPorts
@@ -387,6 +446,29 @@ type fakeTx struct {
 func (tx *fakeTx) RunInTransaction(ctx context.Context, fn func(txCtx context.Context) error) error {
 	tx.runs++
 	return fn(ctx)
+}
+
+// lockCall es una toma del lock: el nombre y la duración pedidos.
+type lockCall struct {
+	name string
+	ttl  time.Duration
+}
+
+// fakeJobLock siempre da el lock y registra las tomas y las liberaciones.
+type fakeJobLock struct {
+	shared_ports.JobLockPort
+
+	acquired []lockCall
+	released []string
+}
+
+func (l *fakeJobLock) Acquire(_ context.Context, name string, ttl time.Duration) (bool, error) {
+	l.acquired = append(l.acquired, lockCall{name: name, ttl: ttl})
+	return true, nil
+}
+
+func (l *fakeJobLock) Release(_ context.Context, name string) {
+	l.released = append(l.released, name)
 }
 
 // fakeUtils genera siempre el mismo texto.
@@ -525,6 +607,7 @@ type fakes struct {
 	repo          *fakeRepository
 	keys          *fakeKeyCounter
 	objects       *fakeBondObjects
+	types         *fakeBondTypes
 	userSettings  *fakeUserSettings
 	balance       *fakeBalance
 	history       *fakeHistory
@@ -534,10 +617,11 @@ type fakes struct {
 	profiles      *fakeProfiles
 	agencies      *fakeAgencies
 	exporter      *fakeExporter
+	lock          *fakeJobLock
 }
 
-// newFakes arma las dependencias con los bonos dados, sin cuentas, productos ni settings. La moneda de las
-// agencias es "Pesos $" y ms-exporter responde un archivo de dos bytes.
+// newFakes arma las dependencias con los bonos dados, sin cuentas, productos, tipos ni settings. La moneda de
+// las agencias es "Pesos $" y ms-exporter responde un archivo de dos bytes.
 func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 	repo := &fakeRepository{bounds: map[string]*bondBound_domain.BondBound{}}
 	for _, b := range bounds {
@@ -548,6 +632,7 @@ func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 		repo:          repo,
 		keys:          &fakeKeyCounter{seq: map[string]int{}},
 		objects:       &fakeBondObjects{objects: map[string]*bondObject_domain.BondObject{}},
+		types:         &fakeBondTypes{types: map[string]*bondType_domain.BondType{}},
 		userSettings:  &fakeUserSettings{settings: map[string]*bondUserSetting_domain.BondUserSetting{}},
 		balance:       &fakeBalance{accounts: map[string]*shared_domain.BalanceAccount{}},
 		history:       &fakeHistory{},
@@ -557,6 +642,7 @@ func newFakes(bounds ...*bondBound_domain.BondBound) *fakes {
 		profiles:      &fakeProfiles{profiles: map[string]shared_domain.PublicProfile{}},
 		agencies:      &fakeAgencies{symbol: "Pesos $"},
 		exporter:      &fakeExporter{file: []byte{80, 75}},
+		lock:          &fakeJobLock{},
 	}
 }
 
@@ -580,6 +666,7 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Repository:              f.repo,
 		KeyCounter:              f.keys,
 		BondObjects:             f.objects,
+		BondTypes:               f.types,
 		UserSettings:            f.userSettings,
 		Balance:                 f.balance,
 		History:                 f.history,
@@ -590,8 +677,19 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Profiles:                f.profiles,
 		Agencies:                f.agencies,
 		Exporter:                f.exporter,
+		JobLock:                 f.lock,
 		BulkPurchaseMaxQuantity: maxQuantity,
 	}
+}
+
+// captureLog redirige el log estándar a un buffer mientras dura el test.
+func captureLog(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&buf)
+	t.Cleanup(func() { log.SetOutput(previous) })
+	return &buf
 }
 
 // assertNothingWritten verifica que el caso de uso no abrió la transacción ni escribió nada.
