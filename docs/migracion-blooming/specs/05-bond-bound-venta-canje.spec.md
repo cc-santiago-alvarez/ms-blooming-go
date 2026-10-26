@@ -166,7 +166,7 @@ Un estado desconocido también es `ERR_BOND_STATUS_NOT_SELLABLE`.
 
 ### 5.4 Parámetros del mensaje (11, en orden)
 
-1. `bondObject.name`, leído con `BondObjectApplicationPorts.GetByID`, aunque esté borrado.
+1. `bondObject.name`, leído con `BondObjectApplicationPorts.GetByIDIncludingRemoved`, aunque esté borrado.
 2. `bound.key`.
 3. `FormatCurrency(bound.amount)`.
 4. `bound.maturityRewardsPercentage`, del **snapshot**. El legado usaba el valor actual del producto.
@@ -245,7 +245,7 @@ type SaleProjection struct {
 | BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_BOND_ALREADY_SOLD`, `ERR_BOND_ALREADY_TOOK`, `ERR_BOND_STATUS_NOT_SELLABLE`) |
 | BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`PreSale`) |
 | BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go`, `bondBound.application.go` (`UserSettings`), `internal/core/bondBound/ports/bondBound.ports.go` (`Sale`), `internal/core/bondBound/domain/bondBound.dto.domain.go` (`SaleResult`), `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_USER_SETTING_ACCOUNT_REQUIRED`), `cmd/api/server/server.bondBound.go` (`UserSettings`) |
-| BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go` |
+| BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go`, `bondBound.sale.go` (llamada después del commit) |
 | BLM-0095 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | F5 | RF-05.1, RF-05.3 | BLM-0092, BLM-0093, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go` |
 | BLM-0096 | Tests de tabla de `QuoteSale` contra casos calculados con el código legacy | test | F5 | CA-05.1, CA-05.2, CA-05.3, CA-05.4 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
 | BLM-0097 | Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) | test | F5 | CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 | BLM-0095 | `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go` |

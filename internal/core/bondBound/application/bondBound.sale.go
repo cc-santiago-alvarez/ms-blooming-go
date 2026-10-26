@@ -13,7 +13,7 @@ import (
 
 // Sale vende el bono iniciado o canjea el madurado del usuario de la sesión: valida y cotiza sin escribir
 // nada y, en una transacción, cambia su estado, acredita la cotización en la cuenta destino y registra el
-// historial. Devuelve lo acreditado y el saldo que queda en la cuenta.
+// historial; después avisa al dueño. Devuelve lo acreditado y el saldo que queda en la cuenta.
 func (app *BondBoundApplication) Sale(ctx context.Context, id string) (bondBound_domain.SaleResult, error) {
 	if !shared_domain.IsValidID(id) {
 		return bondBound_domain.SaleResult{}, shared_domain.ErrInvalidID
@@ -53,6 +53,7 @@ func (app *BondBoundApplication) Sale(ctx context.Context, id string) (bondBound
 	if err != nil {
 		return bondBound_domain.SaleResult{}, err
 	}
+	app.notifySale(ctx, session, b, transition, quote, account, mov)
 
 	return bondBound_domain.SaleResult{
 		BondBoundID: b.ID,

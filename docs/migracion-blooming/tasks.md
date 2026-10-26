@@ -393,7 +393,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.sale.go`, `bondBound.application.go` (`UserSettings`), `internal/core/bondBound/ports/bondBound.ports.go` (`Sale`), `internal/core/bondBound/domain/bondBound.dto.domain.go` (`SaleResult`), `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_USER_SETTING_ACCOUNT_REQUIRED`), `cmd/api/server/server.bondBound.go` (`UserSettings`)
 - [ ] **BLM-0094** `impl` Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas)
   - cubre: RF-05.7 · depende de: BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018
-  - archivos: `internal/core/bondBound/application/bondBound.sale.notify.go`
+  - archivos: `internal/core/bondBound/application/bondBound.sale.notify.go`, `bondBound.sale.go` (llamada después del commit)
 - [ ] **BLM-0095** `impl` Handlers `pre-sale` (GET) y `sale` (POST)
   - cubre: RF-05.1, RF-05.3 · depende de: BLM-0092, BLM-0093, BLM-0084, BLM-0026
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go`
