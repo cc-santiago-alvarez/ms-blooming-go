@@ -443,11 +443,11 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - cubre: CA-06.3, CA-06.4, CA-06.5 · depende de: BLM-0101, BLM-0102
   - archivos: `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go`
 - [ ] **BLM-0108** `test` Tests unitarios de casos de uso y handlers (permisos, dueño, 404)
-  - cubre: CA-06.6, CA-06.7, CA-06.10, CA-06.12 · depende de: BLM-0106
-  - archivos: `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go`
-- [ ] **BLM-0109** `test` Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones)
-  - cubre: CA-06.1, CA-06.2, CA-06.8, CA-06.9, CA-06.11, CA-06.13, CA-06.14 · depende de: BLM-0103
-  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go`
+  - cubre: CA-06.1, CA-06.2, CA-06.3, CA-06.6, CA-06.7, CA-06.8, CA-06.9, CA-06.10, CA-06.11, CA-06.12, CA-06.13 · depende de: BLM-0106
+  - archivos: `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go`, `bondBound.statuses_test.go`, `bondBound.timeline_test.go`, `bondBound.remove_test.go`, `bondBound.fakes_test.go` (consultas del repositorio, `FindDetails`, `SoftDelete` y perfiles registrados), `cmd/api/handlers/bondBounds/bondBounds.list*.get_test.go`, `bondBounds.get*.get_test.go`, `bondBounds.statuses.get_test.go`, `bondBounds.timeline.get_test.go`, `bondBounds.remove.delete_test.go`, `bondBounds.testServer_test.go` (consultas en `fakeApp` y sesión admin)
+- [ ] **BLM-0109** `test` Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones, estados por producto y formato de la línea de tiempo)
+  - cubre: CA-06.1, CA-06.2, CA-06.7, CA-06.8, CA-06.9, CA-06.11, CA-06.12, CA-06.13, CA-06.14 · depende de: BLM-0103
+  - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go`, `bondBound.timeline_integration_test.go`
 - [ ] **BLM-0110** `impl` DTOs `ReportFilters` y `KpiFilters`, con la normalización de `statusId` de §5 y sus errores
   - cubre: RF-07.1, RF-07.2, RF-07.3 · depende de: BLM-0101
   - archivos: `internal/core/bondBound/domain/bondBound.reports.domain.go`
@@ -627,18 +627,18 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 05 | RF-05.5 | BLM-0093 | BLM-0098 | CA-05.7, CA-05.8, CA-05.13, CA-05.16 | BLM-0138 |
 | 05 | RF-05.6 | BLM-0093 | BLM-0098 | CA-05.14, CA-05.16 | — |
 | 05 | RF-05.7 | BLM-0094 | BLM-0098 | CA-05.15 | — |
-| 06 | RF-06.1 | BLM-0101, BLM-0103, BLM-0104, BLM-0106 | BLM-0109, BLM-0128 | CA-06.1, CA-06.2 | — |
+| 06 | RF-06.1 | BLM-0101, BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109, BLM-0128 | CA-06.1, CA-06.2 | — |
 | 06 | RF-06.2 | BLM-0105, BLM-0106 | BLM-0108 | CA-06.6 | — |
-| 06 | RF-06.3 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108 | CA-06.7 | — |
-| 06 | RF-06.4 | BLM-0103, BLM-0105, BLM-0106 | BLM-0109 | CA-06.8, CA-06.14 | BLM-0136 |
-| 06 | RF-06.5 | BLM-0103, BLM-0105, BLM-0106 | BLM-0109 | CA-06.9 | — |
+| 06 | RF-06.3 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.7 | — |
+| 06 | RF-06.4 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.8, CA-06.14 | BLM-0136 |
+| 06 | RF-06.5 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.9 | — |
 | 06 | RF-06.6 | BLM-0105, BLM-0106 | BLM-0108, BLM-0127 | CA-06.10 | — |
 | 06 | RF-06.7 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.10, CA-06.14 | — |
-| 06 | RF-06.8 | BLM-0103, BLM-0104, BLM-0106 | BLM-0109 | CA-06.11 | — |
-| 06 | RF-06.9 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108 | CA-06.12 | — |
-| 06 | RF-06.10 | BLM-0103, BLM-0104, BLM-0106 | BLM-0109 | CA-06.13 | — |
+| 06 | RF-06.8 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.11 | — |
+| 06 | RF-06.9 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.12 | — |
+| 06 | RF-06.10 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.13 | — |
 | 06 | RF-06.11 | BLM-0101, BLM-0105 | BLM-0107, BLM-0125 | CA-06.4, CA-06.5 | — |
-| 06 | RF-06.12 | BLM-0101, BLM-0102 | BLM-0107 | CA-06.3 | — |
+| 06 | RF-06.12 | BLM-0101, BLM-0102 | BLM-0107, BLM-0108 | CA-06.3 | — |
 | 07 | RF-07.1 | BLM-0110, BLM-0111, BLM-0112, BLM-0114 | BLM-0115, BLM-0116, BLM-0126 | CA-07.1, CA-07.2, CA-07.7, CA-07.8 | — |
 | 07 | RF-07.2 | BLM-0110, BLM-0111, BLM-0112, BLM-0114 | BLM-0115, BLM-0116 | CA-07.3, CA-07.7 | — |
 | 07 | RF-07.3 | BLM-0110, BLM-0111, BLM-0113, BLM-0114 | BLM-0115, BLM-0116 | CA-07.5, CA-07.6, CA-07.8 | — |

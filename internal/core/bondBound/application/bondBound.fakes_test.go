@@ -16,6 +16,7 @@ import (
 	bondHistory_ports "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/ports"
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
 	bondObject_ports "github.com/futurapps/ms-blooming-go/internal/core/bondObject/ports"
+	bondType_domain "github.com/futurapps/ms-blooming-go/internal/core/bondType/domain"
 	bondUserSetting_domain "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/domain"
 	bondUserSetting_ports "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
@@ -52,16 +53,43 @@ type statusChange struct {
 	change bondBound_ports.StatusChange
 }
 
-// fakeRepository guarda los bonos en memoria y registra las lecturas, los inserts y los cambios de estado.
+// repoQuery es una consulta al repositorio: el método y los argumentos con que se llamó.
+type repoQuery struct {
+	method       string
+	id           string
+	agencyID     *string
+	userID       string
+	bondObjectID string
+	filters      bondBound_domain.ListFilters
+	statusIDs    []bondBound_domain.BondBoundStatus
+	page         shared_domain.Pagination
+	utcDiff      int
+	limit        int
+}
+
+// fakeRepository guarda los bonos en memoria y registra las lecturas, los inserts, los cambios de estado, las
+// consultas y las bajas. Los listados responden lo configurado; el filtro de cada consulta es del adapter.
 type fakeRepository struct {
 	bondBound_ports.BondBoundMongoccRepositoryPorts
 
 	bounds map[string]*bondBound_domain.BondBound
 	err    error
 
+	adminPage    shared_domain.Paginated[bondBound_ports.BondBoundAdminRow]
+	minePage     shared_domain.Paginated[bondBound_ports.BondBoundWithObject]
+	recent       []bondBound_ports.BondBoundWithObject
+	listed       []*bondBound_domain.BondBound
+	timeline     []bondBound_ports.TimelineItem
+	detailObject bondObject_domain.BondObject
+	detailType   bondType_domain.BondType
+	// deleteLost simula que otra baja borró el bono entre la lectura y la escritura.
+	deleteLost bool
+
 	reads    []string
 	inserted []bondBound_domain.BondBound
 	changes  []statusChange
+	queries  []repoQuery
+	deleted  []string
 }
 
 // FindOneByID devuelve err si está puesto, nil si el bono no existe o está borrado, y si no una copia.
@@ -95,6 +123,80 @@ func (r *fakeRepository) UpdateStatusIf(_ context.Context, id string, c bondBoun
 	}
 	b.StatusID = c.To
 	b.SoldDate, b.TookDate = c.SoldDate, c.TookDate
+	return true, nil
+}
+
+func (r *fakeRepository) ListAdmin(_ context.Context, agencyID *string, f bondBound_domain.ListFilters, p shared_domain.Pagination, utcDiff int) (shared_domain.Paginated[bondBound_ports.BondBoundAdminRow], error) {
+	r.queries = append(r.queries, repoQuery{method: "ListAdmin", agencyID: agencyID, filters: f, page: p, utcDiff: utcDiff})
+	if r.err != nil {
+		return shared_domain.Paginated[bondBound_ports.BondBoundAdminRow]{}, r.err
+	}
+	return r.adminPage, nil
+}
+
+func (r *fakeRepository) ListByUserAndObject(_ context.Context, userID, bondObjectID string, agencyID *string) ([]*bondBound_domain.BondBound, error) {
+	r.queries = append(r.queries, repoQuery{method: "ListByUserAndObject", userID: userID, bondObjectID: bondObjectID, agencyID: agencyID})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.listed, nil
+}
+
+func (r *fakeRepository) ListMine(_ context.Context, userID, agencyID string, statusIDs []bondBound_domain.BondBoundStatus, p shared_domain.Pagination) (shared_domain.Paginated[bondBound_ports.BondBoundWithObject], error) {
+	r.queries = append(r.queries, repoQuery{method: "ListMine", userID: userID, agencyID: &agencyID, statusIDs: statusIDs, page: p})
+	if r.err != nil {
+		return shared_domain.Paginated[bondBound_ports.BondBoundWithObject]{}, r.err
+	}
+	return r.minePage, nil
+}
+
+func (r *fakeRepository) ListRecent(_ context.Context, userID string, limit int) ([]bondBound_ports.BondBoundWithObject, error) {
+	r.queries = append(r.queries, repoQuery{method: "ListRecent", userID: userID, limit: limit})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.recent, nil
+}
+
+func (r *fakeRepository) ListByObject(_ context.Context, bondObjectID string, agencyID *string) ([]*bondBound_domain.BondBound, error) {
+	r.queries = append(r.queries, repoQuery{method: "ListByObject", bondObjectID: bondObjectID, agencyID: agencyID})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.listed, nil
+}
+
+// FindDetails devuelve err si está puesto, nil si el bono no existe o está borrado, y si no una copia con el
+// producto y el tipo configurados.
+func (r *fakeRepository) FindDetails(_ context.Context, id string) (*bondBound_ports.BondBoundDetailRow, error) {
+	r.queries = append(r.queries, repoQuery{method: "FindDetails", id: id})
+	if r.err != nil {
+		return nil, r.err
+	}
+	b, ok := r.bounds[id]
+	if !ok || b.IsRemove {
+		return nil, nil
+	}
+	return &bondBound_ports.BondBoundDetailRow{Bound: *b, BondObject: r.detailObject, BondType: r.detailType}, nil
+}
+
+func (r *fakeRepository) Timeline(_ context.Context, userID string, utcDiff int) ([]bondBound_ports.TimelineItem, error) {
+	r.queries = append(r.queries, repoQuery{method: "Timeline", userID: userID, utcDiff: utcDiff})
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.timeline, nil
+}
+
+// SoftDelete marca el bono como borrado; devuelve false si no existe, ya estaba borrado o deleteLost está
+// puesto.
+func (r *fakeRepository) SoftDelete(_ context.Context, id string) (bool, error) {
+	r.deleted = append(r.deleted, id)
+	b, ok := r.bounds[id]
+	if !ok || b.IsRemove || r.deleteLost {
+		return false, nil
+	}
+	b.IsRemove = true
 	return true, nil
 }
 
@@ -319,16 +421,20 @@ func (n *fakeNotifications) wait(t *testing.T, count int) []sentNotification {
 	}
 }
 
-// fakeProfiles responde los perfiles conocidos, o err; sin perfiles los avisos usan el nombre de la sesión.
+// fakeProfiles responde los perfiles conocidos, o err, y registra los ids de cada consulta; sin perfiles los
+// avisos usan el nombre de la sesión.
 type fakeProfiles struct {
 	shared_ports.ProfileReader
 
 	profiles map[string]shared_domain.PublicProfile
 	err      error
+
+	requested [][]string
 }
 
 // GetPublic devuelve, en el orden pedido, los perfiles que conoce.
 func (p *fakeProfiles) GetPublic(_ context.Context, ids ...string) ([]shared_domain.PublicProfile, error) {
+	p.requested = append(p.requested, ids)
 	if p.err != nil {
 		return nil, p.err
 	}
@@ -436,6 +542,32 @@ func withAdmin() context.Context {
 		AdminBlooming: true,
 		UtcDiff:       session_domain.OptionalUtcDiff{Hours: -5, Valid: true},
 	})
+}
+
+// withMainAdmin es un context con la sesión de un admin de Blooming en la agencia principal A, que ve todas
+// las agencias, en UTC-5.
+func withMainAdmin() context.Context {
+	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
+		UserID:        adminID,
+		AgencyID:      agencyA,
+		Agency:        session_domain.SessionAgency{ID: agencyA, IsMain: true},
+		AdminBlooming: true,
+		UtcDiff:       session_domain.OptionalUtcDiff{Hours: -5, Valid: true},
+	})
+}
+
+// agency es el alcance de agencia que recibe el repositorio.
+func agency(id string) *string {
+	return &id
+}
+
+// assertNoQueries verifica que el caso de uso no leyó, consultó ni borró nada en el repositorio.
+func assertNoQueries(t *testing.T, f *fakes) {
+	t.Helper()
+	if len(f.repo.reads) != 0 || len(f.repo.queries) != 0 || len(f.repo.deleted) != 0 {
+		t.Errorf("el repositorio recibió lecturas %v, consultas %+v y bajas %v, se esperaba ninguna",
+			f.repo.reads, f.repo.queries, f.repo.deleted)
+	}
 }
 
 // storedBound es un bono iniciado de ownerID, comprado el 1 de enero a las 15:00 UTC.

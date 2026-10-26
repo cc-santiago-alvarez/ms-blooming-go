@@ -41,7 +41,10 @@ const (
 	bulkBody = `{"accountId":"` + accountID + `","bondObjectId":"` + objectID + `","quantity":3}`
 )
 
-var investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
+var (
+	investor = &session_domain.UserSession{UserID: userID, AgencyID: agencyA}
+	admin    = &session_domain.UserSession{UserID: "adminAAAAAAAAAAAA", AgencyID: agencyA, AdminBlooming: true}
+)
 
 // investorIn es la sesión del inversionista en la zona utcDiff.
 func investorIn(utcDiff int) *session_domain.UserSession {
@@ -62,12 +65,25 @@ type fakeApp struct {
 	projection     bondBound_domain.SaleProjection
 	saleResult     bondBound_domain.SaleResult
 	history        []bondHistory_domain.HistoryEntry
+	adminPage      shared_domain.Paginated[bondBound_ports.BondBoundAdminItem]
+	minePage       shared_domain.Paginated[bondBound_ports.BondBoundMineItem]
+	recent         []bondBound_ports.BondBoundMineItem
+	bounds         []*bondBound_domain.BondBound
+	buyers         []bondBound_ports.BondBoundWithProfile
+	bound          *bondBound_domain.BondBound
+	detail         *bondBound_ports.BondBoundDetail
+	timeline       []bondBound_ports.TimelineItem
 	err            error
 
-	calls    []string
-	id       string
-	purchase bondBound_domain.PurchaseParams
-	bulk     bondBound_domain.BulkPurchaseParams
+	calls        []string
+	id           string
+	purchase     bondBound_domain.PurchaseParams
+	bulk         bondBound_domain.BulkPurchaseParams
+	userID       string
+	bondObjectID string
+	listFilters  bondBound_domain.ListFilters
+	mineFilters  bondBound_domain.MineFilters
+	page         shared_domain.Pagination
 }
 
 func (a *fakeApp) Purchase(_ context.Context, p bondBound_domain.PurchaseParams) (bondBound_domain.PurchaseResult, error) {
@@ -104,6 +120,65 @@ func (a *fakeApp) HistoryOf(_ context.Context, id string) ([]bondHistory_domain.
 	a.calls = append(a.calls, "HistoryOf")
 	a.id = id
 	return a.history, a.err
+}
+
+func (a *fakeApp) List(_ context.Context, f bondBound_domain.ListFilters, p shared_domain.Pagination) (shared_domain.Paginated[bondBound_ports.BondBoundAdminItem], error) {
+	a.calls = append(a.calls, "List")
+	a.listFilters, a.page = f, p
+	return a.adminPage, a.err
+}
+
+func (a *fakeApp) ListByUserAndObject(_ context.Context, userID, bondObjectID string) ([]*bondBound_domain.BondBound, error) {
+	a.calls = append(a.calls, "ListByUserAndObject")
+	a.userID, a.bondObjectID = userID, bondObjectID
+	return a.bounds, a.err
+}
+
+func (a *fakeApp) ListByObject(_ context.Context, bondObjectID string) ([]bondBound_ports.BondBoundWithProfile, error) {
+	a.calls = append(a.calls, "ListByObject")
+	a.bondObjectID = bondObjectID
+	return a.buyers, a.err
+}
+
+func (a *fakeApp) Remove(_ context.Context, id string) error {
+	a.calls = append(a.calls, "Remove")
+	a.id = id
+	return a.err
+}
+
+// Statuses devuelve los estados del dominio.
+func (a *fakeApp) Statuses() []bondBound_domain.StatusRef {
+	a.calls = append(a.calls, "Statuses")
+	return bondBound_domain.StatusRefs()
+}
+
+func (a *fakeApp) ListMine(_ context.Context, f bondBound_domain.MineFilters, p shared_domain.Pagination) (shared_domain.Paginated[bondBound_ports.BondBoundMineItem], error) {
+	a.calls = append(a.calls, "ListMine")
+	a.mineFilters, a.page = f, p
+	return a.minePage, a.err
+}
+
+func (a *fakeApp) ListRecent(_ context.Context) ([]bondBound_ports.BondBoundMineItem, error) {
+	a.calls = append(a.calls, "ListRecent")
+	return a.recent, a.err
+}
+
+func (a *fakeApp) GetByID(_ context.Context, id string) (*bondBound_domain.BondBound, error) {
+	a.calls = append(a.calls, "GetByID")
+	a.id = id
+	return a.bound, a.err
+}
+
+func (a *fakeApp) GetDetails(_ context.Context, id string) (*bondBound_ports.BondBoundDetail, error) {
+	a.calls = append(a.calls, "GetDetails")
+	a.id = id
+	return a.detail, a.err
+}
+
+func (a *fakeApp) Timeline(_ context.Context, userID string) ([]bondBound_ports.TimelineItem, error) {
+	a.calls = append(a.calls, "Timeline")
+	a.userID = userID
+	return a.timeline, a.err
 }
 
 // newTestAPI registra las rutas de /bond-bounds sobre app y atiende cada request con la sesión dada.
@@ -147,6 +222,15 @@ func assertError(t *testing.T, rec *httptest.ResponseRecorder, status int, code 
 	}
 	if body.Message != code {
 		t.Fatalf("código %q, se esperaba %q", body.Message, code)
+	}
+}
+
+// assertForbiddenAdmin verifica un 403 ERR_FORBIDDEN de una ruta de admin que no llegó a la aplicación.
+func assertForbiddenAdmin(t *testing.T, rec *httptest.ResponseRecorder, app *fakeApp) {
+	t.Helper()
+	assertError(t, rec, http.StatusForbidden, "ERR_FORBIDDEN")
+	if len(app.calls) != 0 {
+		t.Fatalf("la aplicación recibió %v sin sesión admin", app.calls)
 	}
 }
 
