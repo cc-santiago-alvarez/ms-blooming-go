@@ -2,6 +2,7 @@ package shared_ports
 
 import (
 	"context"
+	"time"
 
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
@@ -59,4 +60,13 @@ type AgencyReader interface {
 type ExporterPort interface {
 	// Excel devuelve el archivo del reporte; cualquier falla es ErrExportFailed.
 	Excel(ctx context.Context, report string, payload any) ([]byte, error)
+}
+
+// JobLockPort evita que un job corra a la vez en varias réplicas.
+type JobLockPort interface {
+	// Acquire toma el lock name por ttl si está libre o vencido; devuelve false si otro lo tiene vigente.
+	Acquire(ctx context.Context, name string, ttl time.Duration) (bool, error)
+	// Release libera el lock name si lo tomó esta réplica. Es best-effort: un fallo se loguea y el lock vence
+	// solo con su ttl.
+	Release(ctx context.Context, name string)
 }

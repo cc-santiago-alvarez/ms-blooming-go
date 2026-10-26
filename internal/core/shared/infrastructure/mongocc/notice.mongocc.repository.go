@@ -10,7 +10,7 @@ import (
 // Colección de avisos del módulo legado. No se crean índices.
 const noticeCollection = "notice"
 
-// bestEffortTimeout es lo máximo que espera un insert best-effort.
+// bestEffortTimeout es lo máximo que espera una escritura best-effort.
 const bestEffortTimeout = 5 * time.Second
 
 // NoticeMongoccRepository implementa NoticePort sobre notice.

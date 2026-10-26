@@ -28,7 +28,7 @@ Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/b
   - Al arrancar se registra el job `bond-maturity` en el scheduler `robfig/cron/v3`, con la expresión de `BOND_MATURITY_CRON` (recomendada: `*/5 * * * *`). Si la variable está vacía, el job no se registra y queda un log informativo.
   - El scheduler se detiene en el graceful shutdown y espera al job en curso (RF-00.16).
 - **RF-10.2** — Exclusión entre réplicas.
-  - Antes de procesar, el job toma un lock en `bondJobLock` con `findOneAndUpdate({_id: "bond-maturity", lockedUntil: {$lt: now}}, {$set: {lockedUntil: now + 10min, owner: hostname}}, upsert)`. Si el upsert choca por clave duplicada, el lock está tomado.
+  - Antes de procesar, el job toma un lock en `bondJobLock` con `updateOne({_id: "bond-maturity", lockedUntil: {$lt: now}}, {$set: {lockedUntil: now + 10min, owner: hostname}}, upsert)`. Si el upsert choca por clave duplicada, el lock está tomado.
   - Si no lo obtiene, termina sin hacer nada.
   - Al final libera el lock: `lockedUntil = now`, solo si `owner` coincide.
 - **RF-10.3** — Selección y transición.
@@ -125,7 +125,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 |---|---|---|---|---|---|---|
 | BLM-0117 | Dominio: `MaturityResult` y función pura `BuildMaturityTable(rows)` (HTML del legado) | impl | F7 | RF-10.3, RF-10.5 | BLM-0075 | `internal/core/bondBound/domain/bondBound.maturity.go` |
 | BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`) |
-| BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go` |
+| BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.ports.go` (`JobLockPort`), `internal/core/shared/infrastructure/mongocc/jobLock.mongocc.repository.go`, `jobLock.acquire.adapter.go`, `jobLock.release.adapter.go` |
 | BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go` |
 | BLM-0121 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | F7 | RF-10.1 | BLM-0120, BLM-0019 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |
 | BLM-0122 | Endpoint interno de ejecución manual | impl | F7 | RF-10.7 | BLM-0120, BLM-0004 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |

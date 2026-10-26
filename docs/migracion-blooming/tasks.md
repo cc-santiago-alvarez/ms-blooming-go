@@ -486,7 +486,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`)
 - [ ] **BLM-0119** [P] `impl` `JobLockPort` y su adapter mongocc (`bondJobLock`)
   - cubre: RF-10.2 · depende de: BLM-0010
-  - archivos: `internal/core/shared/ports/shared.jobLock.ports.go`, `internal/core/shared/infrastructure/mongocc/shared.jobLock.adapter.go`
+  - archivos: `internal/core/shared/ports/shared.ports.go` (`JobLockPort`), `internal/core/shared/infrastructure/mongocc/jobLock.mongocc.repository.go`, `jobLock.acquire.adapter.go`, `jobLock.release.adapter.go`
 - [ ] **BLM-0120** `impl` Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones
   - cubre: RF-10.3, RF-10.4, RF-10.5, RF-10.6 · depende de: BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`
