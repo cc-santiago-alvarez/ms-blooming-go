@@ -78,6 +78,7 @@ internal/
 | **DEBE** todo error nuevo registrarse en los dos archivos en el mismo PR. | Sin errores que caigan a 500 por olvido. |
 | **DEBE** cada sentinel que reemplaza un código legacy documentar ese código en la spec (`-2010 → ERR_ACCOUNT_WITHOUT_FUNDS`). | El front migra desde los códigos numéricos de Meteor. |
 | **DEBE** responderse con `nexus.ResponseWithError(w, status, err.Error())`. | Formato de error uniforme: `{code, message, code_name, errors}`. |
+| **PUEDE** un error llevar un dato para el front en `errors.detail`, con `handlers_shared.ResponseWithErrorDetail`, si su spec lo pide. El resto del cuerpo es el de `nexus.ResponseWithError`. | El front muestra el dato sin parsear `message`, que sigue siendo el código. |
 | **NO DEBE** exponerse al cliente el texto de un error interno (Mongo, HTTP): se loguea y se responde `ERR_INTERNAL`. | No filtrar detalles de infraestructura. |
 
 ## 5. Validación

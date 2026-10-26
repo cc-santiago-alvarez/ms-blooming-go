@@ -21,3 +21,20 @@ func ResponseWithError(w http.ResponseWriter, r *http.Request, status int, err e
 
 	_ = nexus.ResponseWithError(w, status, err.Error())
 }
+
+// ResponseWithErrorDetail responde como ResponseWithError y agrega detail en errors.detail. Un 500 sale sin
+// el detalle.
+func ResponseWithErrorDetail(w http.ResponseWriter, r *http.Request, status int, err error, detail string) {
+	if err == nil || status == 0 || status == http.StatusInternalServerError {
+		ResponseWithError(w, r, status, err)
+		return
+	}
+
+	// el mismo cuerpo que arma nexus.ResponseWithError, con el detalle
+	_ = nexus.ResponseJsonWithError(w, status, &nexus.ErrorResponse{
+		Code:     status,
+		Message:  err.Error(),
+		CodeName: "internal_server_error",
+		Errors:   map[string]string{"error": err.Error(), "detail": detail},
+	})
+}

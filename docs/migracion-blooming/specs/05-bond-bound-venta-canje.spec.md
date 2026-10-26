@@ -101,7 +101,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 | `ERR_USER_SETTING_ACCOUNT_REQUIRED` | 422 | — | Sin cuenta seleccionada |
 | `ERR_ACCOUNT_NOT_FOUND` | 404 | -700 | La cuenta seleccionada no existe o no es del usuario |
 
-El mensaje de `ERR_INVALID_WITHDRAW_DATE` se arma con `BOUND_INVALID_WITHDRAW_DATE[hoy DD/MM/YYYY]` y va en `errors.detail`, así el front puede mostrarlo.
+El mensaje de `ERR_INVALID_WITHDRAW_DATE` se arma con `BOUND_INVALID_WITHDRAW_DATE[hoy DD/MM/YYYY, en el utcDiff de la sesión]` y va en `errors.detail` (`handlers_shared.ResponseWithErrorDetail`), así el front puede mostrarlo.
 
 ## 5. Reglas de negocio
 
@@ -246,7 +246,7 @@ type SaleProjection struct {
 | BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`PreSale`) |
 | BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go`, `bondBound.application.go` (`UserSettings`), `internal/core/bondBound/ports/bondBound.ports.go` (`Sale`), `internal/core/bondBound/domain/bondBound.dto.domain.go` (`SaleResult`), `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_USER_SETTING_ACCOUNT_REQUIRED`), `cmd/api/server/server.bondBound.go` (`UserSettings`) |
 | BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go`, `bondBound.sale.go` (llamada después del commit) |
-| BLM-0095 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | F5 | RF-05.1, RF-05.3 | BLM-0092, BLM-0093, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go` |
+| BLM-0095 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | F5 | RF-05.1, RF-05.3 | BLM-0092, BLM-0093, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go`, `bondBounds.handler.go` (rutas y detalle de `ERR_INVALID_WITHDRAW_DATE`), `cmd/api/handlers/shared/handlers.response.go` (`ResponseWithErrorDetail`), `internal/core/shared/domain/shared.text.go` (`BOUND_INVALID_WITHDRAW_DATE`) |
 | BLM-0096 | Tests de tabla de `QuoteSale` contra casos calculados con el código legacy | test | F5 | CA-05.1, CA-05.2, CA-05.3, CA-05.4 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
 | BLM-0097 | Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) | test | F5 | CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 | BLM-0095 | `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go` |
 | BLM-0098 | Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones | test | F5 | CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 | BLM-0095, BLM-0094 | `internal/core/bondBound/application/bondBound.sale_integration_test.go` |

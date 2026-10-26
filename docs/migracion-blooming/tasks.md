@@ -396,7 +396,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/application/bondBound.sale.notify.go`, `bondBound.sale.go` (llamada después del commit)
 - [ ] **BLM-0095** `impl` Handlers `pre-sale` (GET) y `sale` (POST)
   - cubre: RF-05.1, RF-05.3 · depende de: BLM-0092, BLM-0093, BLM-0084, BLM-0026
-  - archivos: `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go`
+  - archivos: `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go`, `bondBounds.handler.go` (rutas y detalle de `ERR_INVALID_WITHDRAW_DATE`), `cmd/api/handlers/shared/handlers.response.go` (`ResponseWithErrorDetail`), `internal/core/shared/domain/shared.text.go` (`BOUND_INVALID_WITHDRAW_DATE`)
 - [ ] **BLM-0096** `test` Tests de tabla de `QuoteSale` contra casos calculados con el código legacy
   - cubre: CA-05.1, CA-05.2, CA-05.3, CA-05.4 · depende de: BLM-0090
   - archivos: `internal/core/bondBound/domain/bondBound.quoteSale_test.go`

@@ -26,6 +26,7 @@ const (
 	TextNewWithdrawal                    = "NEW_WITHDRAWAL"
 	TextNotExist                         = "NOT_EXIST"
 	TextFilenameReport                   = "FILENAME_REPORT"
+	TextBoundInvalidWithdrawDate         = "BOUND_INVALID_WITHDRAW_DATE"
 )
 
 // texts son las plantillas del legado, con placeholders {0}, {1}, … para Format.
@@ -100,6 +101,7 @@ El sistema automaticamente le descontara el dinero de la cuenta <strong>{4}</str
 	TextNewWithdrawal:                  "Nuevo Retiro",
 	TextNotExist:                       "Disculpe, {0} no existe.",
 	TextFilenameReport:                 "reporte-{0}_{1}",
+	TextBoundInvalidWithdrawDate:       "El bono no puede ser vendido en la fecha actual ({0})",
 
 	// textos nuevos: el legado guardaba estas claves sin haberlas definido
 	TextBondSold:               "Bono adquirido por un inversionista ({0})",
