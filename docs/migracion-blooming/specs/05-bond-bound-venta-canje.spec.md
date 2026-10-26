@@ -35,7 +35,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-05.1** — Cotización.
   - Carga el bono; si no existe, `ERR_BOND_BOUND_NOT_FOUND`. Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`.
   - Si el bono no se puede vender por su estado (§5.3), devuelve el error correspondiente.
-  - Si no, calcula `QuoteSale` (RF-05.2) con el `utcDiff` del **dueño** del bono, que es el de la sesión cuando quien consulta es el dueño.
+  - Si no, calcula `QuoteSale` (RF-05.2) con el `utcDiff` de la sesión, como el legado: cuando consulta el dueño es su zona, y un admin cotiza en la suya.
   - Responde la proyección.
 - **RF-05.2** — `QuoteSale(bound, now, utcDiff) (SaleProjection, error)`, función pura con la fórmula de §5.1.
   - Si hoy es anterior a la fecha mínima de retiro, devuelve `ERR_INVALID_WITHDRAW_DATE`.
@@ -243,7 +243,7 @@ type SaleProjection struct {
 |---|---|---|---|---|---|---|
 | BLM-0090 | Función pura `QuoteSale` y `SaleProjection`, con la corrección de B1 y sin truncados | impl | F5 | RF-05.2 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.quoteSale.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_WITHDRAW_DATE`, `ERR_BOND_INVALID_TERMS`) |
 | BLM-0091 | Función pura `SaleTransitionFor(bound)` (tabla de §5.3) y sus errores | impl | F5 | RF-05.3 | BLM-0075 | `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_BOND_ALREADY_SOLD`, `ERR_BOND_ALREADY_TOOK`, `ERR_BOND_STATUS_NOT_SELLABLE`) |
-| BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go` |
+| BLM-0092 | Caso de uso `PreSale`, con control de dueño o admin | impl | F5 | RF-05.1 | BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007 | `internal/core/bondBound/application/bondBound.preSale.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`PreSale`) |
 | BLM-0093 | Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial | impl | F5 | RF-05.3, RF-05.4, RF-05.5, RF-05.6 | BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035 | `internal/core/bondBound/application/bondBound.sale.go` |
 | BLM-0094 | Notificaciones post-commit de venta y canje (11 parámetros, snapshot y fechas) | impl | F5 | RF-05.7 | BLM-0093, BLM-0013, BLM-0014, BLM-0015, BLM-0018 | `internal/core/bondBound/application/bondBound.sale.notify.go` |
 | BLM-0095 | Handlers `pre-sale` (GET) y `sale` (POST) | impl | F5 | RF-05.1, RF-05.3 | BLM-0092, BLM-0093, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.preSale.get.go`, `bondBounds.sale.post.go` |

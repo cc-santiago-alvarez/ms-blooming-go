@@ -387,7 +387,7 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
   - archivos: `internal/core/bondBound/domain/bondBound.saleTransition.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_BOND_ALREADY_SOLD`, `ERR_BOND_ALREADY_TOOK`, `ERR_BOND_STATUS_NOT_SELLABLE`)
 - [ ] **BLM-0092** `impl` Caso de uso `PreSale`, con control de dueño o admin
   - cubre: RF-05.1 · depende de: BLM-0090, BLM-0091, BLM-0077, BLM-0006, BLM-0007
-  - archivos: `internal/core/bondBound/application/bondBound.preSale.go`
+  - archivos: `internal/core/bondBound/application/bondBound.preSale.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`PreSale`)
 - [ ] **BLM-0093** `impl` Caso de uso `Sale`: dueño, transición, cotización, cuenta destino y transacción con `UpdateStatusIf`, `Deposit` y el historial
   - cubre: RF-05.3, RF-05.4, RF-05.5, RF-05.6 · depende de: BLM-0092, BLM-0067, BLM-0010, BLM-0012, BLM-0035
   - archivos: `internal/core/bondBound/application/bondBound.sale.go`
