@@ -219,16 +219,30 @@ func (b *fakeBalance) Deposit(_ context.Context, p shared_domain.DepositParams) 
 	}, nil
 }
 
-// fakeHistory registra los eventos.
+// historyQuery es una consulta del historial: el tipo y el relatedId.
+type historyQuery struct {
+	typeID    bondHistory_domain.HistoryType
+	relatedID string
+}
+
+// fakeHistory registra los eventos y las consultas, y responde entries a cada consulta.
 type fakeHistory struct {
 	bondHistory_ports.BondHistoryApplicationPorts
 
-	added []bondHistory_domain.AddParams
+	entries []bondHistory_domain.HistoryEntry
+
+	added  []bondHistory_domain.AddParams
+	listed []historyQuery
 }
 
 func (h *fakeHistory) Add(_ context.Context, p bondHistory_domain.AddParams) error {
 	h.added = append(h.added, p)
 	return nil
+}
+
+func (h *fakeHistory) ListByRelated(_ context.Context, typeID bondHistory_domain.HistoryType, relatedID string) ([]bondHistory_domain.HistoryEntry, error) {
+	h.listed = append(h.listed, historyQuery{typeID: typeID, relatedID: relatedID})
+	return h.entries, nil
 }
 
 // fakeTx corre fn con el mismo ctx y cuenta las transacciones.

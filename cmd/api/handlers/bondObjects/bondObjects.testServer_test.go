@@ -11,6 +11,8 @@ import (
 
 	"github.com/codecraftkit/nexus"
 	bondObjects_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondObjects"
+	bondHistory_domain "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/domain"
+	bondHistory_ports "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/ports"
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
 	bondObject_ports "github.com/futurapps/ms-blooming-go/internal/core/bondObject/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
@@ -102,14 +104,42 @@ func (a *fakeApp) Remove(_ context.Context, id string) error {
 	return a.err
 }
 
+// fakeHistory responde el historial configurado y registra con qué lo pidió el handler.
+type fakeHistory struct {
+	bondHistory_ports.BondHistoryApplicationPorts
+
+	entries []bondHistory_domain.HistoryEntry
+	err     error
+
+	calls     []string
+	typeID    bondHistory_domain.HistoryType
+	relatedID string
+}
+
+func (h *fakeHistory) ListByRelated(_ context.Context, typeID bondHistory_domain.HistoryType, relatedID string) ([]bondHistory_domain.HistoryEntry, error) {
+	h.calls = append(h.calls, "ListByRelated")
+	h.typeID, h.relatedID = typeID, relatedID
+	return h.entries, h.err
+}
+
 // newTestAPI registra las rutas de /bond-objects sobre app, sin historial, y atiende cada request con la
 // sesión dada.
 func newTestAPI(app *fakeApp, session *session_domain.UserSession) http.Handler {
+	return newTestAPIWithHistory(app, nil, session)
+}
+
+// newTestAPIWithHistory registra las rutas de /bond-objects sobre app y el historial, y atiende cada request
+// con la sesión dada. history nil deja la ruta del historial sin aplicación.
+func newTestAPIWithHistory(app *fakeApp, history *fakeHistory, session *session_domain.UserSession) http.Handler {
 	server := &nexus.Server{
 		ServerName: "blooming-test",
 		Settings:   &nexus.Settings{PathPrefix: "/api/v1"},
 	}
-	bondObjects_handlers.NewBondObjectsHandler(server, app, nil)
+	var historyApp bondHistory_ports.BondHistoryApplicationPorts
+	if history != nil {
+		historyApp = history
+	}
+	bondObjects_handlers.NewBondObjectsHandler(server, app, historyApp)
 	mux := server.PrepareEndpoints()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

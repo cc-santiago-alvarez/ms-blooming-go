@@ -13,6 +13,7 @@ import (
 	bondBounds_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondBounds"
 	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
 	bondBound_ports "github.com/futurapps/ms-blooming-go/internal/core/bondBound/ports"
+	bondHistory_domain "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/domain"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
@@ -60,6 +61,7 @@ type fakeApp struct {
 	bulkResult     bondBound_domain.BulkPurchaseResult
 	projection     bondBound_domain.SaleProjection
 	saleResult     bondBound_domain.SaleResult
+	history        []bondHistory_domain.HistoryEntry
 	err            error
 
 	calls    []string
@@ -96,6 +98,12 @@ func (a *fakeApp) Sale(_ context.Context, id string) (bondBound_domain.SaleResul
 	a.calls = append(a.calls, "Sale")
 	a.id = id
 	return a.saleResult, a.err
+}
+
+func (a *fakeApp) HistoryOf(_ context.Context, id string) ([]bondHistory_domain.HistoryEntry, error) {
+	a.calls = append(a.calls, "HistoryOf")
+	a.id = id
+	return a.history, a.err
 }
 
 // newTestAPI registra las rutas de /bond-bounds sobre app y atiende cada request con la sesión dada.

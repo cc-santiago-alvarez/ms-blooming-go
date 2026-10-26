@@ -409,9 +409,9 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
 - [ ] **BLM-0099** `impl` Caso de uso `HistoryOf` en bondBound (control de dueño y delegación) y handler `GET /bond-bounds/{id}/history`
   - cubre: RF-08.3 · depende de: BLM-0037, BLM-0077, BLM-0084, BLM-0026
   - archivos: `internal/core/bondBound/application/bondBound.history.go`, `bondBound.application.go` (dependencia `History` con `ListByRelated`), `bondBound.fakes_test.go` (`fakeHistory`), `internal/core/bondBound/ports/bondBound.ports.go` (`HistoryOf`), `cmd/api/handlers/bondBounds/bondBounds.history.get.go`, `bondBounds.handler.go` (ruta)
-- [ ] **BLM-0100** `test` Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote
+- [ ] **BLM-0100** `test` Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote, y control de dueño de `HistoryOf`
   - cubre: CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 · depende de: BLM-0063, BLM-0099
-  - archivos: `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/*/*.history_test.go`
+  - archivos: `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/bondObjects/bondObjects.history.get_test.go`, `bondObjects.testServer_test.go` (historial en `newTestAPI`), `cmd/api/handlers/bondBounds/bondBounds.history.get_test.go`, `bondBounds.testServer_test.go` (`HistoryOf` en `fakeApp`), `internal/core/bondBound/application/bondBound.history_test.go`, `bondBound.fakes_test.go` (`ListByRelated` en `fakeHistory`)
 
 **Criterio de salida F5:** Compra individual y masiva, cotización, venta y canje son transaccionales y no hay doble cobro.
 
