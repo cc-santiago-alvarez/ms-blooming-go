@@ -21,7 +21,9 @@ import (
 	"time"
 
 	"github.com/codecraftkit/mongocc"
+	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
 	bondBound_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/bondBound/infrastructure/mongocc"
+	bondBound_ports "github.com/futurapps/ms-blooming-go/internal/core/bondBound/ports"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
 	"github.com/joho/godotenv"
@@ -33,14 +35,17 @@ import (
 // testDBName es la base de estos tests; nunca la de FA_MONGO_DBNAME.
 const testDBName = "blooming_it_bondbound_mongocc"
 
-// Colecciones que leen o escriben los adapters.
+// Colecciones que leen o escriben los adapters; las tres últimas solo las leen los lookups.
 const (
 	boundCollection   = "bondBound"
 	counterCollection = "bondKeyCounter"
+	profileCollection = "profile"
+	objectCollection  = "bondObject"
+	typeCollection    = "bondType"
 )
 
 // collections se crean antes de los tests para que ninguna transacción tenga que crearlas.
-var collections = []string{boundCollection, counterCollection}
+var collections = []string{boundCollection, counterCollection, profileCollection, objectCollection, typeCollection}
 
 // IDs de los fixtures: Meteor (17 alfanuméricos) y UUID v4, con referencias cruzadas mixtas.
 const (
@@ -248,6 +253,141 @@ func boundDoc(id, bondTypeID, key string, extra bson.M) bson.M {
 	}
 	maps.Copy(doc, extra)
 	return doc
+}
+
+// boundAt arma un bono con boundDoc creado e iniciado minutes minutos después de fixtureAt, para fijar el
+// orden de los listados.
+func boundAt(id string, minutes int, extra bson.M) bson.M {
+	at := fixtureAt.Add(time.Duration(minutes) * time.Minute)
+	doc := boundDoc(id, typeID, "BP12-"+fmt.Sprint(minutes), bson.M{"createdAt": at, "initialDate": at})
+	maps.Copy(doc, extra)
+	return doc
+}
+
+// boundSeq numera los bonos de los fixtures.
+var boundSeq int
+
+// nextBoundID alterna _id Meteor y UUID v4 en los bonos de los fixtures.
+func nextBoundID() string {
+	boundSeq++
+	if boundSeq%2 == 0 {
+		return shared_domain.NewID()
+	}
+	return fmt.Sprintf("Bnd%014d", boundSeq)
+}
+
+// objectDoc arma un producto activo de la agencia A con la forma que dejaba Meteor y dos usuarios
+// autorizados; extra agrega o pisa campos.
+func objectDoc(id, name, key, bondTypeID string, extra bson.M) bson.M {
+	doc := bson.M{
+		"_id":                       id,
+		"name":                      name,
+		"description":               "Producto " + name,
+		"agencyId":                  bson.A{agencyA},
+		"key":                       key,
+		"bondTypeId":                bondTypeID,
+		"amount":                    1000.0,
+		"isPrivateBond":             true,
+		"authorizedUserIds":         bson.A{userID, user2ID},
+		"maturityTimeInDays":        365,
+		"maturityRewardsPercentage": 15.0,
+		"active":                    true,
+		"available":                 true,
+		"saleInitDate":              nil,
+		"saleEndDate":               nil,
+		"earlyCashTerm":             earlyCashTermDoc,
+		"createdAt":                 fixtureAt,
+		"updatedAt":                 fixtureAt,
+		"isRemove":                  false,
+	}
+	maps.Copy(doc, extra)
+	return doc
+}
+
+// typeDoc arma un tipo activo de la agencia A; extra agrega o pisa campos.
+func typeDoc(id, name string, extra bson.M) bson.M {
+	doc := bson.M{
+		"_id":         id,
+		"name":        name,
+		"description": "Tipo " + name,
+		"agencyId":    bson.A{agencyA},
+		"active":      true,
+		"isRemove":    false,
+		"createdAt":   fixtureAt,
+		"updatedAt":   fixtureAt,
+	}
+	maps.Copy(doc, extra)
+	return doc
+}
+
+// profileDoc arma un perfil con la forma de Meteor: la cédula en id y el hash del password.
+func profileDoc(id, cedula, firstName, lastName, email string) bson.M {
+	return bson.M{
+		"_id":        id,
+		"id":         cedula,
+		"first_name": firstName,
+		"last_name":  lastName,
+		"email":      email,
+		"agencyId":   agencyA,
+		"password":   "$2b$10$Qm9ub3NBbHRvcy5IYXNoLmRlLnBydWViYQ",
+		"createdAt":  fixtureAt,
+		"updatedAt":  fixtureAt,
+		"isRemove":   false,
+	}
+}
+
+// seedCatalog guarda los dos tipos, los dos productos con referencias cruzadas mixtas (el UUID apunta al tipo
+// Meteor y el Meteor al tipo UUID) y los perfiles de userID y user2ID.
+func seedCatalog(t *testing.T) {
+	t.Helper()
+	insert(t, typeCollection, typeDoc(typeID, "Plus", nil), typeDoc(legacyTypeID, "Clásico", nil))
+	insert(t, objectCollection,
+		objectDoc(objectID, "Bono Plus 12M", "BP12", legacyTypeID, nil),
+		objectDoc(legacyObjectID, "Bono Clásico 6M", "BC06", typeID, nil))
+	insert(t, profileCollection,
+		profileDoc(userID, "1020304050", "Carlos", "Ramírez", "carlos@futurapps.com"),
+		profileDoc(user2ID, "5040302010", "Lucía", "Torres", "lucia@futurapps.com"))
+}
+
+// ids devuelve el _id de cada documento, en el orden recibido.
+func ids(docs ...bson.M) []string {
+	out := make([]string, len(docs))
+	for i, doc := range docs {
+		out[i] = doc["_id"].(string)
+	}
+	return out
+}
+
+// agencyScope es el alcance de una sesión de agencyID que no es la principal.
+func agencyScope(id string) *string {
+	return &id
+}
+
+// adminRowIDs devuelve el _id del bono de cada fila del listado de administración.
+func adminRowIDs(rows []bondBound_ports.BondBoundAdminRow) []string {
+	out := make([]string, len(rows))
+	for i, row := range rows {
+		out[i] = row.Bound.ID
+	}
+	return out
+}
+
+// withObjectIDs devuelve el _id del bono de cada fila con producto.
+func withObjectIDs(rows []bondBound_ports.BondBoundWithObject) []string {
+	out := make([]string, len(rows))
+	for i, row := range rows {
+		out[i] = row.Bound.ID
+	}
+	return out
+}
+
+// boundIDs devuelve el _id de cada bono.
+func boundIDs(bounds []*bondBound_domain.BondBound) []string {
+	out := make([]string, len(bounds))
+	for i, b := range bounds {
+		out[i] = b.ID
+	}
+	return out
 }
 
 // insert guarda los documentos crudos en collection.
