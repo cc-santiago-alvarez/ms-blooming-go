@@ -79,7 +79,9 @@ Archivo: `backend/server/model/bond.bound.js`.
   - `aMonth` (`month`, `year`): el rango del mes calendario;
   - `aYear` (`year`): el rango del año.
 
-  Se implementan como **rangos sobre el campo de fecha**, no como `$month`/`$year` en UTC (corrige B23). La spec 07 los reutiliza sobre `createdAt` o `initialDate`.
+  Un `betweenDates` con `startDate` posterior a `endDate` es inválido.
+
+  Se implementan como **rangos sobre el campo de fecha**, no como `$month`/`$year` en UTC (corrige B23). El rango `[desde, hasta)` lo calcula `DateFilter.Range(u)` en el dominio. La spec 07 los reutiliza sobre `createdAt` o `initialDate`.
 
 ## 4. Contrato API
 
@@ -119,12 +121,13 @@ Archivo: `backend/server/model/bond.bound.js`.
 - `ERR_BOND_BOUND_NOT_FOUND` (404), `ERR_FORBIDDEN` (403).
 - `ERR_INVALID_DATE_FILTER` (400): `filter` desconocido, o fechas, mes o año inválidos.
 - `ERR_INVALID_STATUS` (400): `statusId` fuera del enum.
+- `ERR_INVALID_SEARCH` (400): `search` de más de 100 caracteres.
 
 ## 5. Reglas de negocio
 
 Ver RF-06.11 y RF-06.12.
 
-**Búsqueda segura:** el texto pasa por `regexp.QuoteMeta` antes de armar el `$regex`. Se aceptan como máximo 100 caracteres.
+**Búsqueda segura:** el texto pasa por `regexp.QuoteMeta` antes de armar el `$regex`. Se aceptan como máximo 100 caracteres; uno más largo responde `ERR_INVALID_SEARCH`.
 
 **Ejemplo de `acumulateAmount`:** `amount 1000`, `R 10`, `M 100`, estado `'1'` y día 50 dan `(1100 / 100) × 50 = 550`.
 
@@ -137,7 +140,7 @@ Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineI
 ## 7. Ports y dependencias
 
 - `BondBoundApplicationPorts`: `List`, `Statuses`, `ListByUserAndObject`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails`, `ListByObject`, `Timeline`, `Remove`.
-- `BondBoundMongoccRepositoryPorts`: un adapter por consulta, más `DateRangeStage(filter, field, u)`, que reutiliza la spec 07.
+- `BondBoundMongoccRepositoryPorts`: un adapter por consulta, más `DateRangeStage(filter, field, u)`, que arma el `$match` con el rango de `DateFilter.Range(u)` y reutiliza la spec 07.
 - `ProfileReader` (spec 00), para la proyección pública en RF-06.8.
 
 ## 8. Bugs legacy
@@ -155,10 +158,11 @@ Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineI
 ## 9. Criterios de aceptación
 
 - **CA-06.1** (RF-06.1) — Con 25 bonos de la agencia A y una sesión admin no principal de A, `GET /bond-bounds?page=2&limit=10` devuelve 10 items ordenados por `createdAt` desc, con `total 25` y `totalPages 3`. Los bonos de la agencia B no aparecen.
-- **CA-06.2** (RF-06.1) — `search=JUAN` encuentra bonos por `first_name`, `email`, `bondObject.key` o `bondType.name`, sin distinguir mayúsculas. `search=a.*(` no produce error y se busca literalmente.
+- **CA-06.2** (RF-06.1) — `search=JUAN` encuentra bonos por `first_name`, `email`, `bondObject.key` o `bondType.name`, sin distinguir mayúsculas. `search=a.*(` no produce error y se busca literalmente. Un `search` de 101 caracteres responde `400 ERR_INVALID_SEARCH`.
 - **CA-06.3** (RF-06.12) — Con `utcDiff -5`:
   - `filter=aDate&aDate=2026-10-13` incluye `createdAt 2026-10-14T04:59Z` y excluye `2026-10-14T05:00Z`;
-  - `filter=aMonth&month=10&year=2026` incluye `2026-11-01T03:00Z`.
+  - `filter=aMonth&month=10&year=2026` incluye `2026-11-01T03:00Z`;
+  - `filter=betweenDates` con `startDate` posterior a `endDate` responde `400 ERR_INVALID_DATE_FILTER`.
 - **CA-06.4** (RF-06.11) — `acumulateAmount` con `amount 1000`, `R 10`, `M 100`, día 50 y estado `'1'` es `550`. Con estado `'2'` es `0`, y con `daysPassed 101` también es `0`.
 - **CA-06.5** (RF-06.11) — Con `P 30` y `M 100`: el día 29 da `growing false`; el día 30, `growing true`; el día 100, `growing true` y `grew false`; el día 101, `growing false` y `grew true`.
 - **CA-06.6** (RF-06.2) — `GET /bond-bounds/statuses` devuelve 6 items: `[{1, Iniciado}, …, {6, Canjeado}]`.
@@ -175,13 +179,13 @@ Usa `BondBound` (spec 04). DTOs de salida: `BondBoundAdminItem`, `BondBoundMineI
 
 | ID | Tarea | Tipo | Fase | Cubre | Depende de | Archivos |
 |---|---|---|---|---|---|---|
-| BLM-0101 | Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` | impl | F6 | RF-06.1, RF-06.11, RF-06.12 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go` |
-| BLM-0102 | Constructor de rangos de fecha `DateRangeStage(filter, field, u)`, reutilizable por la spec 07 | impl | F6 | RF-06.12 | BLM-0101 | `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go` |
+| BLM-0101 | Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` y el rango `DateFilter.Range` | impl | F6 | RF-06.1, RF-06.11, RF-06.12 | BLM-0075, BLM-0009 | `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_DATE_FILTER`, `ERR_INVALID_STATUS`, `ERR_INVALID_SEARCH`) |
+| BLM-0102 | `$match` de rango de fecha `DateRangeStage(filter, field, u)` sobre `DateFilter.Range`, reutilizable por la spec 07 | impl | F6 | RF-06.12 | BLM-0101 | `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go` |
 | BLM-0103 | Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete` | impl | F6 | RF-06.1, RF-06.3, RF-06.4, RF-06.5, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0102, BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*.adapter.go`, `bondBound.findDetails.adapter.go`, `bondBound.timeline.adapter.go`, `bondBound.softDelete.adapter.go` |
 | BLM-0104 | Casos de uso admin: `List`, `ListByUserAndObject`, `ListByObject` (perfil público) y `Remove` | impl | F6 | RF-06.1, RF-06.3, RF-06.8, RF-06.10 | BLM-0103, BLM-0017 | `internal/core/bondBound/application/bondBound.list.go`, `bondBound.listByUserAndObject.go`, `bondBound.listByObject.go`, `bondBound.remove.go` |
 | BLM-0105 | Casos de uso del inversionista: `Statuses`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails` y `Timeline`, con control de dueño | impl | F6 | RF-06.2, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.9, RF-06.11 | BLM-0103, BLM-0007 | `internal/core/bondBound/application/bondBound.statuses.go`, `bondBound.listMine.go`, `bondBound.listRecent.go`, `bondBound.getById.go`, `bondBound.getDetails.go`, `bondBound.timeline.go` |
 | BLM-0106 | Handlers y rutas, incluidas `/users/{userId}/bond-bounds` y `/bond-objects/{id}/bond-bounds` | impl | F6 | RF-06.1, RF-06.2, RF-06.3, RF-06.4, RF-06.5, RF-06.6, RF-06.7, RF-06.8, RF-06.9, RF-06.10 | BLM-0104, BLM-0105, BLM-0084, BLM-0026 | `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go` |
-| BLM-0107 | Tests de tabla de los derivados y de los rangos de fecha | test | F6 | CA-06.3, CA-06.4, CA-06.5 | BLM-0101, BLM-0102 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |
+| BLM-0107 | Tests de tabla de los derivados y de los rangos de fecha | test | F6 | CA-06.3, CA-06.4, CA-06.5 | BLM-0101, BLM-0102 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |
 | BLM-0108 | Tests unitarios de casos de uso y handlers (permisos, dueño, 404) | test | F6 | CA-06.6, CA-06.7, CA-06.10, CA-06.12 | BLM-0106 | `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go` |
 | BLM-0109 | Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones) | test | F6 | CA-06.1, CA-06.2, CA-06.8, CA-06.9, CA-06.11, CA-06.13, CA-06.14 | BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go` |
 

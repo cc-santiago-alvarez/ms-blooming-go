@@ -421,10 +421,10 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
 
 Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-reportes-y-kpis.spec.md).
 
-- [ ] **BLM-0101** [P] `impl` Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation`
+- [ ] **BLM-0101** [P] `impl` Dominio: funciones puras `Accumulated`, `Progress` y `FormatShortDate`; DTOs `ListFilters` y `DateFilter` con `Normalize`/`Validation` y el rango `DateFilter.Range`
   - cubre: RF-06.1, RF-06.11, RF-06.12 · depende de: BLM-0075, BLM-0009
-  - archivos: `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go`
-- [ ] **BLM-0102** `impl` Constructor de rangos de fecha `DateRangeStage(filter, field, u)`, reutilizable por la spec 07
+  - archivos: `internal/core/bondBound/domain/bondBound.derived.go`, `bondBound.filters.domain.go`, `bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_INVALID_DATE_FILTER`, `ERR_INVALID_STATUS`, `ERR_INVALID_SEARCH`)
+- [ ] **BLM-0102** `impl` `$match` de rango de fecha `DateRangeStage(filter, field, u)` sobre `DateFilter.Range`, reutilizable por la spec 07
   - cubre: RF-06.12 · depende de: BLM-0101
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange.go`
 - [ ] **BLM-0103** `impl` Adapters de consulta: listado admin (`$facet`, lookups, búsqueda escapada), por usuario y producto, míos paginados, recientes, detalle, por producto, línea de tiempo (`%Y` en `u`) y `softDelete`
@@ -441,7 +441,7 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
   - archivos: `cmd/api/handlers/bondBounds/bondBounds.*.get.go`, `bondBounds.remove.delete.go`
 - [ ] **BLM-0107** `test` Tests de tabla de los derivados y de los rangos de fecha
   - cubre: CA-06.3, CA-06.4, CA-06.5 · depende de: BLM-0101, BLM-0102
-  - archivos: `internal/core/bondBound/domain/bondBound.derived_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go`
+  - archivos: `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go`
 - [ ] **BLM-0108** `test` Tests unitarios de casos de uso y handlers (permisos, dueño, 404)
   - cubre: CA-06.6, CA-06.7, CA-06.10, CA-06.12 · depende de: BLM-0106
   - archivos: `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go`

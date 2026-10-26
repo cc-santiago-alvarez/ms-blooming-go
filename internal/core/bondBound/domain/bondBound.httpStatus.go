@@ -16,7 +16,10 @@ func MapToHTTPStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrAccountIDRequired),
 		errors.Is(err, ErrBondObjectIDRequired),
-		errors.Is(err, ErrInvalidQuantity):
+		errors.Is(err, ErrInvalidQuantity),
+		errors.Is(err, ErrInvalidDateFilter),
+		errors.Is(err, ErrInvalidStatus),
+		errors.Is(err, ErrInvalidSearch):
 		return http.StatusBadRequest
 	case errors.Is(err, ErrBondPrivateNotAuthorized):
 		return http.StatusForbidden

@@ -8,6 +8,9 @@ var (
 	ErrAccountIDRequired    = errors.New("ERR_ACCOUNT_ID_REQUIRED")
 	ErrBondObjectIDRequired = errors.New("ERR_BOND_OBJECT_ID_REQUIRED")
 	ErrInvalidQuantity      = errors.New("ERR_INVALID_QUANTITY")
+	ErrInvalidDateFilter    = errors.New("ERR_INVALID_DATE_FILTER")
+	ErrInvalidStatus        = errors.New("ERR_INVALID_STATUS")
+	ErrInvalidSearch        = errors.New("ERR_INVALID_SEARCH")
 	// 403
 	ErrBondPrivateNotAuthorized = errors.New("ERR_BOND_PRIVATE_NOT_AUTHORIZED")
 	// 404
