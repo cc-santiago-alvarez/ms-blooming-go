@@ -20,6 +20,7 @@ var (
 	ErrBondAlreadySold       = errors.New("ERR_BOND_ALREADY_SOLD")
 	ErrBondAlreadyTook       = errors.New("ERR_BOND_ALREADY_TOOK")
 	ErrBondStatusNotSellable = errors.New("ERR_BOND_STATUS_NOT_SELLABLE")
+	ErrJobLocked             = errors.New("ERR_JOB_LOCKED")
 	// 422
 	ErrAccountWithoutFunds        = errors.New("ERR_ACCOUNT_WITHOUT_FUNDS")
 	ErrAccountNotActive           = errors.New("ERR_ACCOUNT_NOT_ACTIVE")

@@ -28,11 +28,11 @@
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
 | F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 26 | 18 | 8 | 0 |
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 16 | 11 | 5 | 0 |
-| F7 | Maduración (spec 10) | 8 | 6 | 2 | 0 |
+| F7 | Maduración (spec 10) | 9 | 7 | 2 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
 | F10 | Corte y retiro del legado | 6 | 0 | 0 | 6 |
-| | **Total** | **146** | **94** | **35** | **17** |
+| | **Total** | **147** | **95** | **35** | **17** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -489,7 +489,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `internal/core/shared/ports/shared.ports.go` (`JobLockPort`), `internal/core/shared/infrastructure/mongocc/jobLock.mongocc.repository.go`, `jobLock.acquire.adapter.go`, `jobLock.release.adapter.go`
 - [ ] **BLM-0120** `impl` Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones
   - cubre: RF-10.3, RF-10.4, RF-10.5, RF-10.6 · depende de: BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015
-  - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`
+  - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `bondBound.runMaturity.notify.go`, `bondBound.application.go` (`BondTypes` y `JobLock`), `bondBound.sale.notify.go` (`bondName` compartido), `internal/core/bondBound/ports/bondBound.ports.go` (`RunMaturity`), `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_JOB_LOCKED`), `cmd/api/server/server.bondBound.go`, `server.config.go` y `server.deps.go` (`JobLockPort` con el hostname)
 - [ ] **BLM-0121** `impl` Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job
   - cubre: RF-10.1 · depende de: BLM-0120, BLM-0019
   - archivos: `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go`
@@ -502,6 +502,9 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 - [ ] **BLM-0124** `test` Tests de integración: idempotencia, lock concurrente, historial de sistema, registro del cron y endpoint
   - cubre: CA-10.1, CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 · depende de: BLM-0121, BLM-0122
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`, `internal/cron/infra/scheduler_test.go`
+- [ ] **BLM-0140** [P] `impl` **(repo ms-notification)** Ruta interna de notificaciones que solo valida `x-secret`; `NotificationClient` la usa cuando el ctx no tiene sesión
+  - cubre: RF-10.5 · depende de: BLM-0014, BLM-0015
+  - archivos: `ms-notification/src/api/modules/notify/notify.routes.js`, `internal/core/shared/infrastructure/notification/notification.client.go`
 
 **Criterio de salida F7:** El cron madura solo bonos `'1'`, una sola réplica a la vez, con avisos agrupados.
 
@@ -549,7 +552,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - cubre: RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
   - archivos: informe en `docs/migracion-blooming/`
 - [ ] **BLM-0134** [P] `ops` Revisar el servicio `:8090` (`MS_FINOBONDS_FEED_URL`), desactivarlo junto con el `SyncedCron` `BondBoundCheckMaturity` de Meteor y activar `BOND_MATURITY_CRON` en el mismo deploy
-  - cubre: RF-10.1 · depende de: BLM-0124, BLM-0132
+  - cubre: RF-10.1 · depende de: BLM-0124, BLM-0132, BLM-0140
   - archivos: `backend/server/lib/crons.js`, `.env` de servidores
 - [ ] **BLM-0135** `ops` Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**
   - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133
@@ -663,7 +666,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 10 | RF-10.2 | BLM-0119 | BLM-0124 | CA-10.2 | — |
 | 10 | RF-10.3 | BLM-0117, BLM-0118, BLM-0120 | BLM-0123, BLM-0124, BLM-0126 | CA-10.3, CA-10.4, CA-10.9 | BLM-0133, BLM-0138 |
 | 10 | RF-10.4 | BLM-0120 | BLM-0124 | CA-10.5, CA-10.9 | — |
-| 10 | RF-10.5 | BLM-0117, BLM-0120 | BLM-0123, BLM-0124 | CA-10.4, CA-10.6 | — |
+| 10 | RF-10.5 | BLM-0117, BLM-0120, BLM-0140 | BLM-0123, BLM-0124 | CA-10.4, CA-10.6 | — |
 | 10 | RF-10.6 | BLM-0120 | BLM-0123 | CA-10.7 | — |
 | 10 | RF-10.7 | BLM-0122 | BLM-0124 | CA-10.8 | — |
 
@@ -749,4 +752,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 96 RF, 159 CA, 146 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0140`.
+Última generación: 11 specs, 96 RF, 159 CA, 147 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0141`.

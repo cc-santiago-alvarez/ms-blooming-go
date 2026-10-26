@@ -28,7 +28,8 @@ func MapToHTTPStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, ErrBondAlreadySold),
 		errors.Is(err, ErrBondAlreadyTook),
-		errors.Is(err, ErrBondStatusNotSellable):
+		errors.Is(err, ErrBondStatusNotSellable),
+		errors.Is(err, ErrJobLocked):
 		return http.StatusConflict
 	case errors.Is(err, ErrAccountWithoutFunds),
 		errors.Is(err, ErrAccountNotActive),

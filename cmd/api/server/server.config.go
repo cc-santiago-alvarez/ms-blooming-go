@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	oauth_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/oauth"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
+	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 	shared_exporter "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/exporter"
 	shared_mongocc_repository "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/mongocc"
 	shared_notification "github.com/futurapps/ms-blooming-go/internal/core/shared/infrastructure/notification"
@@ -44,6 +46,7 @@ func initServerConfig() (*nexus.Server, *serverDeps) {
 		Tx:    deps.transactionRunner,
 		Utils: deps.utils,
 	}
+	deps.jobLockPort = &shared_mongocc_repository.JobLockMongoccRepository{DB: deps.mongoDB, Owner: replicaName()}
 
 	// 3. CORS
 	corsOptions, err := middlewares_adapters.NewCorsOptions(cfg.Env.CorsOrigins)
@@ -85,6 +88,15 @@ func initDatabaseConnections(deps *serverDeps) {
 		log.Fatalf("[server] no se pudo conectar a MongoDB: %v", err)
 	}
 	deps.mongoDB = mongoDB
+}
+
+// replicaName identifica a esta réplica en los locks de los jobs: su hostname, que en Swarm es el del
+// contenedor, o un id nuevo si no se puede leer.
+func replicaName() string {
+	if name, err := os.Hostname(); err == nil && name != "" {
+		return name
+	}
+	return shared_domain.NewID()
 }
 
 // hideRoutesUnlessDebug responde 404 en /_routes y /_routes/raw cuando API_DEBUG es falso.

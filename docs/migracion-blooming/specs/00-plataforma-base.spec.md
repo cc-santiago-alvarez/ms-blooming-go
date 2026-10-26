@@ -426,4 +426,4 @@ Contrato de los params:
 - **Pregunta 1:** ¿ms-oauth puede agregar `gmt`/`utcDiff` a la sesión? Mientras no lo haga, se usa el mapa por país (RF-00.4).
 - **Pregunta 2:** ¿qué puerto usará el servicio? El esqueleto copió `25072` de petty-cash.
 - **Pregunta 3 (resuelta):** `to-emails` busca las direcciones en `profile` y descarta las que no son usuarios, así que el aviso al admin podía no llegar. Se resolvió con el grupo nuevo `to-raw-emails` en ms-notification (BLM-0015).
-- **Pregunta 4:** `POST /notify/:group/:notification` exige `x-token` (middleware `auth.token` de ms-notification), y el cron de maduración no tiene sesión, así que `notify-blooming-bondMatured` respondería 401. Hay dos salidas: una ruta interna de ms-notification que solo valide `x-secret`, o un token de servicio. Se resuelve en la spec 10.
+- **Pregunta 4 (resuelta):** `POST /notify/:group/:notification` exige `x-token` (middleware `auth.token` de ms-notification), y el cron de maduración no tiene sesión, así que `notify-blooming-bondMatured` respondería 401. Se resolvió en la spec 10 con una ruta interna de ms-notification que solo valida `x-secret` (BLM-0140).

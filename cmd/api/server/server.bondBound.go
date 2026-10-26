@@ -18,6 +18,7 @@ func initBondBoundDomain(deps *serverDeps) {
 		Repository:              repository,
 		KeyCounter:              &bondBound_mongocc_repository.KeyCounterMongoccRepository{DB: deps.mongoDB},
 		BondObjects:             deps.bondObjectApplication,
+		BondTypes:               deps.bondTypeApplication,
 		UserSettings:            deps.bondUserSettingApplication,
 		Balance:                 deps.balancePort,
 		History:                 deps.bondHistoryApplication,
@@ -28,6 +29,7 @@ func initBondBoundDomain(deps *serverDeps) {
 		Profiles:                deps.profileReader,
 		Agencies:                deps.agencyReader,
 		Exporter:                deps.exporterPort,
+		JobLock:                 deps.jobLockPort,
 		BulkPurchaseMaxQuantity: deps.env.BulkPurchaseMaxQuantity,
 		AdminEmails:             deps.env.BloomingAdminEmails,
 	}

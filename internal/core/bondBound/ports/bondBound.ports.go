@@ -284,6 +284,11 @@ type BondBoundApplicationPorts interface {
 	// admin solo los suyos, y pedir los de otro usuario es ErrForbidden. Un filtro inválido es el error de su
 	// Validation.
 	CountByStatus(ctx context.Context, f bondBound_domain.KpiFilters) (StatusCount, error)
+	// RunMaturity pasa a madurados los bonos iniciados que vencieron hasta now, con el lock del job tomado, y
+	// registra el historial del sistema de cada uno; después avisa a cada dueño una vez, con todos sus bonos
+	// madurados. Si otra corrida tiene el lock es ErrJobLocked. Un bono que falla se loguea, cuenta en Failed
+	// y la corrida sigue.
+	RunMaturity(ctx context.Context, now time.Time) (bondBound_domain.MaturityResult, error)
 }
 
 // BondBoundMongoccRepositoryPorts es el repositorio de bondBound. Las escrituras usan el ctx recibido, así

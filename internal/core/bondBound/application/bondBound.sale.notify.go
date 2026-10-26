@@ -74,7 +74,7 @@ func (app *BondBoundApplication) notifySale(ctx context.Context, session *sessio
 func (app *BondBoundApplication) bondName(ctx context.Context, bondObjectID string) string {
 	o, err := app.BondObjects.GetByIDIncludingRemoved(ctx, bondObjectID)
 	if err != nil {
-		log.Printf("[bondBound] no se pudo leer el producto %s para los avisos de la venta: %v", bondObjectID, err)
+		log.Printf("[bondBound] no se pudo leer el producto %s para los avisos: %v", bondObjectID, err)
 		return ""
 	}
 	return o.Name

@@ -38,12 +38,14 @@ Hoy esto lo hace un servicio externo (`MS_FINOBONDS_FEED_URL`, `127.0.0.1:8090/b
   - Si `UpdateStatusIf` no modifica el bono (otro proceso lo vendió entre medio), el bono se omite.
 - **RF-10.4** — Historial. Por cada bono madurado: `BondHistory.Add` en modo sistema con `{relatedId, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2'], userId: "", agencyId: bound.agencyId}`.
   - Con `userId ""`, la auditoría del gateway (`B_BondBound_Audit_details`, que agrupa por `(userId, relatedId)`) no mezcla la maduración con las ventas y los canjes del usuario, y no genera falsos positivos de doble cobro.
+  - La transición y el historial de cada bono van en la misma transacción: si el historial falla, el bono queda en `'1'`, cuenta como fallido y se reintenta en la próxima corrida.
 - **RF-10.5** — Notificaciones por usuario (best-effort, después de la transición).
   - Los bonos madurados en la corrida se agrupan por `userId`.
   - Para cada usuario se envía:
     - un `Notice` tipo `bond`, con la `agencyId` del usuario, título `BOND_BOUND_MESSAGE_MATURITY` y mensaje `BOND_BOUND_MESSAGE_MATURITY_SUCESS[first_name, last_name, tabla]`;
     - el email `notify-blooming-bondMatured`.
   - La tabla tiene una fila por bono: `Bono (key) | Tipo (bondType.name) | Nombre (bondObject.name)`, con el HTML del legado.
+  - El email sale sin sesión, por la ruta interna de ms-notification que solo valida `x-secret` (BLM-0140). Mientras no exista, ms-notification responde 401 y el fallo solo se loguea; el `notice` se guarda igual.
 - **RF-10.6** — Robustez y observabilidad.
   - Si falla un bono, se loguea con su `_id` y el lote sigue.
   - Al terminar se loguea `{matured, users, failed, durationMs}`.
@@ -66,10 +68,12 @@ defer Lock.Release
 porUsuario = {}
 para cada lote de Repo.FindMaturable(now, 500):
   para cada b en lote:
-    ok, err = Repo.UpdateStatusIf(b._id, from '1', to '2', set {matured: true, maturedAt: now})
-    si err → log, failed++ ; continue
+    ok, err = Tx {                              // transición e historial juntos
+      ok = Repo.UpdateStatusIf(b._id, from '1', to '2', set {matured: true, maturedAt: now})
+      si ok → BondHistory.Add(WithSystemAgency(txCtx, b.agencyId), {relatedId: b._id, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2']})
+    }
+    si err → log, failed++ ; continue         // el bono queda en '1'
     si !ok → continue                          // ya no estaba en '1'
-    BondHistory.Add(WithSystemAgency(ctx, b.agencyId), {relatedId: b._id, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2']})
     porUsuario[b.userId].append(b)
 para cada (userId, bonds) en porUsuario:
   Notify(userId, bonds)                         // best-effort
@@ -126,13 +130,15 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 | BLM-0117 | Dominio: `MaturityResult` y función pura `BuildMaturityTable(rows)` (HTML del legado) | impl | F7 | RF-10.3, RF-10.5 | BLM-0075 | `internal/core/bondBound/domain/bondBound.maturity.go` |
 | BLM-0118 | Adapter `FindMaturable` (lotes con cursor por `_id`), con transición condicional solo desde `'1'` | impl | F7 | RF-10.3 | BLM-0077 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (método `FindMaturable`) |
 | BLM-0119 | `JobLockPort` y su adapter mongocc (`bondJobLock`) | impl | F7 | RF-10.2 | BLM-0010 | `internal/core/shared/ports/shared.ports.go` (`JobLockPort`), `internal/core/shared/infrastructure/mongocc/jobLock.mongocc.repository.go`, `jobLock.acquire.adapter.go`, `jobLock.release.adapter.go` |
-| BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go` |
+| BLM-0120 | Caso de uso `RunMaturity`: lock, lotes, transición, historial de sistema, agrupación y notificaciones | impl | F7 | RF-10.3, RF-10.4, RF-10.5, RF-10.6 | BLM-0117, BLM-0118, BLM-0119, BLM-0035, BLM-0013, BLM-0014, BLM-0015 | `internal/core/bondBound/application/bondBound.runMaturity.go`, `bondBound.runMaturity.notify.go`, `bondBound.application.go` (`BondTypes` y `JobLock`), `bondBound.sale.notify.go` (`bondName` compartido), `internal/core/bondBound/ports/bondBound.ports.go` (`RunMaturity`), `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_JOB_LOCKED`), `cmd/api/server/server.bondBound.go`, `server.config.go` y `server.deps.go` (`JobLockPort` con el hostname) |
 | BLM-0121 | Scheduler `internal/cron` (robfig, `BOND_MATURITY_CRON`, parada en el shutdown) y registro del job | impl | F7 | RF-10.1 | BLM-0120, BLM-0019 | `internal/cron/infra/scheduler.go`, `internal/cron/jobs/bondMaturity.job.go`, `cmd/api/server/server.go` |
 | BLM-0122 | Endpoint interno de ejecución manual | impl | F7 | RF-10.7 | BLM-0120, BLM-0004 | `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` |
 | BLM-0123 | Tests unitarios: tabla HTML, agrupación por usuario, estados excluidos, fallo parcial | test | F7 | CA-10.3, CA-10.6, CA-10.7 | BLM-0120 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `internal/core/bondBound/domain/bondBound.maturity_test.go` |
 | BLM-0124 | Tests de integración: idempotencia, lock concurrente, historial de sistema, registro del cron y endpoint | test | F7 | CA-10.1, CA-10.2, CA-10.4, CA-10.5, CA-10.8, CA-10.9 | BLM-0121, BLM-0122 | `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`, `internal/cron/infra/scheduler_test.go` |
+| BLM-0140 | **(repo ms-notification)** Ruta interna de notificaciones que solo valida `x-secret`; `NotificationClient` la usa cuando el ctx no tiene sesión | impl | F7 | RF-10.5 | BLM-0014, BLM-0015 | `ms-notification/src/api/modules/notify/notify.routes.js`, `internal/core/shared/infrastructure/notification/notification.client.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
 - **Pregunta:** ¿qué hace hoy el servicio `:8090` (`MS_FINOBONDS_FEED_URL`)? ¿Escribe historial, o madura también estados `'5'`/`'4'`? Hay que revisarlo antes del corte, porque con los datos actuales puede haber bonos vendidos que pasaron a `'2'`. Se agrega una tarea de auditoría (BLM-0134).
+- **Decisión (Pregunta 4 de la spec 00):** el email de maduración sale sin sesión, y `POST /notify/:group/:notification` de ms-notification exige `x-token`. Se agrega a ms-notification una ruta interna que solo valida `x-secret`, y `NotificationClient` la usa cuando el ctx no tiene sesión (BLM-0140). El corte (BLM-0134) depende de esa tarea.
 - **Pregunta:** ¿la frecuencia de 5 minutos es suficiente? El legado corría cada 30 s, pero los avisos se pueden atrasar unos minutos sin impacto.

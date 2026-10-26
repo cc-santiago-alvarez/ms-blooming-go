@@ -34,6 +34,8 @@ type serverDeps struct {
 	// transactionRunner es el mismo que usa balancePort, para que sus escrituras se sumen a la transacción.
 	transactionRunner shared_ports.TransactionRunnerPort
 	balancePort       shared_ports.BalancePort
+	// jobLockPort toma los locks de los jobs a nombre de esta réplica.
+	jobLockPort shared_ports.JobLockPort
 
 	// ====================== Applications ======================
 	bondHistoryApplication     bondHistory_ports.BondHistoryApplicationPorts
