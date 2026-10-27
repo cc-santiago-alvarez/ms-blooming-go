@@ -4,7 +4,7 @@
 
 ## 1. Cómo leer este documento
 
-- **ID:** `BLM-xxxx`, numeración global de 4 dígitos; es también el ticket del commit (`[BLM-0042] [MS-BLOOMING][ÁREA] …`). Una tarea nueva toma el siguiente ID libre (ver §6) y no se renumeran las existentes. Excepción: las tareas de F0 conservan su formato original `T-PREP.x`.
+- **ID:** `BLM-xxxx`, numeración global de 4 dígitos; es también el ticket del commit (`feat: [BLM-0042] impl …`). Una tarea nueva toma el siguiente ID libre (ver §6) y no se renumeran las existentes. Excepción: las tareas de F0 conservan su formato original `T-PREP.x`.
 - **Fase:** la define la columna *Fase* de la tabla *Tareas* de cada spec; la spec de cada tarea se ve en el enlace al inicio de su fase.
 - **Formato:** `- [ ] ID [P] tipo título`, seguido de una línea con lo que cubre y sus dependencias, y otra con los archivos.
 - **`[P]`:** la tarea puede empezar al inicio de su fase, porque no depende de otra tarea de la misma fase. Las tareas `[P]` de una fase se pueden repartir en paralelo.
@@ -26,13 +26,13 @@
 | F2 | Historial y tipos compartidos (specs 08 y 03) | 11 | 9 | 2 | 0 |
 | F3 | Catálogo (specs 01, 02 y 03) | 25 | 19 | 6 | 0 |
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
-| F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 26 | 18 | 8 | 0 |
+| F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 33 | 22 | 11 | 0 |
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 16 | 11 | 5 | 0 |
-| F7 | Maduración (spec 10) | 10 | 7 | 3 | 0 |
+| F7 | Maduración (spec 10) | 12 | 8 | 4 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
-| F10 | Corte y retiro del legado | 6 | 0 | 0 | 6 |
-| | **Total** | **148** | **95** | **36** | **17** |
+| F10 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
+| | **Total** | **158** | **100** | **40** | **18** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -412,6 +412,27 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
 - [ ] **BLM-0100** `test` Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote, y control de dueño de `HistoryOf`
   - cubre: CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 · depende de: BLM-0063, BLM-0099
   - archivos: `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/bondObjects/bondObjects.history.get_test.go`, `bondObjects.testServer_test.go` (historial en `newTestAPI`), `cmd/api/handlers/bondBounds/bondBounds.history.get_test.go`, `bondBounds.testServer_test.go` (`HistoryOf` en `fakeApp`), `internal/core/bondBound/application/bondBound.history_test.go`, `bondBound.fakes_test.go` (`ListByRelated` en `fakeHistory`)
+- [ ] **BLM-0143** [P] `impl` `shared_domain`: `BoundChartPoint` y función pura `BoundProjection` (evolución del bono comprado)
+  - cubre: RF-03.6 · depende de: BLM-0029
+  - archivos: `internal/core/shared/domain/shared.boundProjection.go`, `shared.chart.go` (`BoundChartPoint`)
+- [ ] **BLM-0144** `test` Tests de tabla de `BoundProjection`, con casos calculados con el código de ms-feed (el comentario del test dice cómo se generaron)
+  - cubre: CA-03.11, CA-03.12, CA-03.13, CA-03.14, CA-03.15 · depende de: BLM-0143
+  - archivos: `internal/core/shared/domain/shared.boundProjection_test.go`, `testdata/legacy-bound-projection.json`
+- [ ] **BLM-0145** `impl` Caso de uso `Chart` en bondBound: guías y evolución, con control de dueño o admin
+  - cubre: RF-03.7 · depende de: BLM-0143, BLM-0078
+  - archivos: `internal/core/bondBound/application/bondBound.chart.go`, `internal/core/bondBound/ports/bondBound.ports.go` (`Chart`), `internal/core/bondBound/domain/bondBound.dto.domain.go` (`BondBoundChart.Data`)
+- [ ] **BLM-0146** `impl` Handler y ruta `GET /bond-bounds/{id}/chart`
+  - cubre: RF-03.7 · depende de: BLM-0145, BLM-0085
+  - archivos: `cmd/api/handlers/bondBounds/bondBounds.chart.get.go`, `bondBounds.handler.go` (ruta)
+- [ ] **BLM-0147** `test` Tests del caso de uso y del handler de la gráfica de bondBound (dueño, admin, 403, 404, id legacy)
+  - cubre: CA-03.16 · depende de: BLM-0146
+  - archivos: `internal/core/bondBound/application/bondBound.chart_test.go`, `cmd/api/handlers/bondBounds/bondBounds.chart.get_test.go`, `bondBounds.testServer_test.go` (`Chart` en `fakeApp`)
+- [ ] **BLM-0150** `impl` `QuoteSale` cotiza un bono `'2'` como vencido (`daysPassed = M` y monto completo), sin mirar la fecha
+  - cubre: RF-05.2 · depende de: BLM-0090
+  - archivos: `internal/core/bondBound/domain/bondBound.quoteSale.go`
+- [ ] **BLM-0151** `test` Tests de la cotización de un `'2'` antes de su día de vencimiento en la zona del usuario, y de que un `'1'` no cambia
+  - cubre: CA-05.17 · depende de: BLM-0150
+  - archivos: `internal/core/bondBound/domain/bondBound.quoteSale_test.go`
 
 **Criterio de salida F5:** Compra individual y masiva, cotización, venta y canje son transaccionales y no hay doble cobro.
 
@@ -502,12 +523,18 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 - [ ] **BLM-0140** [P] `impl` **(repo ms-notification)** Ruta interna de notificaciones que solo valida `x-secret`; `NotificationClient` la usa cuando el ctx no tiene sesión
   - cubre: RF-10.5 · depende de: BLM-0014, BLM-0015
   - archivos: `ms-notification/src/api/modules/notify/notify.routes.js`, `internal/core/shared/infrastructure/notification/notification.client.go`
-- [ ] **BLM-0141** `impl` **(repo ms-cronjob-go)** Adapter `blooming_api` y job `blooming-bond-maturity` cada 300 s que llama al endpoint interno de maduración
+- [ ] **BLM-0141** `impl` **(repo ms-cronjob-go)** Adapter `blooming_api` y job `blooming-bond-maturity` cada 300 s que llama al endpoint interno de maduración: no se registra sin URL, el 409 se loguea como informativo y el timeout es de 10 min. Corrige además lo desactualizado de `CLAUDE.md` y `README.md` (antes, `git pull`: la rama va detrás de su remoto)
   - cubre: RF-10.1 · depende de: BLM-0122
   - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/`, `internal/core/application/bond_maturity/`, `internal/core/port/`, `internal/core/domain/`, `cmd/api/main.go`, `cmd/api/config/enviroments.config.go`, `.env.example`, `README.md`, `CLAUDE.md`
-- [ ] **BLM-0142** `test` **(repo ms-cronjob-go)** Tests del adapter (`httptest`) y del job: URL vacía, POST con `x-secret`, 409 informativo y error
+- [ ] **BLM-0142** `test` **(repo ms-cronjob-go)** Tests del adapter (`httptest`) y del job: URL vacía sin registrar el job, POST con `x-secret` a la URL con `/api/v1`, 409 como error centinela informativo y error
   - cubre: CA-10.1 · depende de: BLM-0141
   - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/blooming_api_test.go`, `internal/core/application/bond_maturity/*_test.go`
+- [ ] **BLM-0148** `impl` Corte de maduración al fin del día en UTC: `RunMaturity` calcula `cutoff` y `FindMaturable` filtra `maturityDate < cutoff`
+  - cubre: RF-10.3 · depende de: BLM-0118, BLM-0120
+  - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (parámetro `cutoff`)
+- [ ] **BLM-0149** `test` Tests del corte (lo que vence hoy en UTC madura aunque sea más tarde; lo de mañana no) y ajuste de los tests de maduración que asumían `maturityDate <= now`
+  - cubre: CA-10.10 · depende de: BLM-0148
+  - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable` con corte), `bondBound.runMaturity_integration_test.go`
 
 **Criterio de salida F7:** La maduración pasa solo bonos `'1'`, una sola réplica a la vez, con avisos agrupados.
 
@@ -515,8 +542,8 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 
 ### F8 — Calidad transversal
 
-- [ ] **BLM-0125** [P] `test` Arnés de paridad: ejecutar los métodos Meteor (DDP) y los endpoints Go sobre el mismo dump y comparar las fórmulas (`getDataChart`, `preSale`, derivados del listado)
-  - cubre: RF-03.1, RF-05.2, RF-06.11 · depende de: T-PREP.7, BLM-0031, BLM-0096, BLM-0107
+- [ ] **BLM-0125** [P] `test` Arnés de paridad: ejecutar los métodos Meteor (DDP, backend en `origin/main`), los feeds de ms-feed y los endpoints Go sobre el mismo dump y comparar las fórmulas (`getDataChart`, `preSale`, `/bound/:id/feed`, derivados del listado)
+  - cubre: RF-03.1, RF-03.6, RF-05.2, RF-06.11 · depende de: T-PREP.7, BLM-0031, BLM-0096, BLM-0107, BLM-0144
   - archivos: `cmd/tools/parity/`
 - [ ] **BLM-0126** [P] `test` Suite end-to-end de flujos completos: compra → venta; compra → maduración → canje; compra masiva → listado → reporte
   - cubre: RF-04.1, RF-04.2, RF-05.3, RF-10.3, RF-07.1 · depende de: BLM-0088, BLM-0098, BLM-0124, BLM-0116
@@ -551,26 +578,29 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 
 ### F10 — Corte y retiro del legado
 
-- [ ] **BLM-0133** [P] `ops` Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `'2'`/`'6'` con `soldDate` (B22)
+- [ ] **BLM-0133** [P] `ops` Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `'2'`/`'6'` con `soldDate` (B22), bonos `'1'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida
   - cubre: RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
   - archivos: informe en `docs/migracion-blooming/`
-- [ ] **BLM-0134** [P] `ops` Revisar el servicio `:8090` (`MS_FINOBONDS_FEED_URL`), desactivarlo junto con el `SyncedCron` `BondBoundCheckMaturity` de Meteor y activar el job de maduración de ms-cronjob-go en el mismo deploy
-  - cubre: RF-10.1 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141
-  - archivos: `backend/server/lib/crons.js`, `.env` de servidores y de ms-cronjob-go
+- [ ] **BLM-0134** [P] `ops` Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento
+  - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141, BLM-0142, BLM-0149
+  - archivos: `backend/server/lib/crons.js`, `.env` de ms-cronjob-go
 - [ ] **BLM-0135** `ops` Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**
-  - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133
+  - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133, BLM-0151
   - archivos: `backend/server/model/bond.bound.js`
-- [ ] **BLM-0136** [P] `ops` Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec
-  - cubre: RF-01.1, RF-02.9, RF-09.1, RF-04.1, RF-06.4 · depende de: BLM-0132
+- [ ] **BLM-0136** [P] `ops` Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec. Las gráficas dejan de leer ms-feed desde el navegador: `/bond/:id/feed` pasa a `GET /bond-objects/{id}/chart?simulation=true` y `/bound/:id/feed` a `GET /bond-bounds/{id}/chart`
+  - cubre: RF-01.1, RF-02.9, RF-03.4, RF-03.7, RF-09.1, RF-04.1, RF-06.4 · depende de: BLM-0132, BLM-0146
   - archivos: repo del front
-- [ ] **BLM-0137** `ops` Retirar `bond.*.js` de Meteor y la referencia a `MS_FINOBONDS_FEED_URL`, una vez desplegado BLM-0072
+- [ ] **BLM-0137** `ops` Retirar `bond.*.js` de Meteor y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072
   - cubre: — · depende de: BLM-0134, BLM-0135, BLM-0136, BLM-0072
-  - archivos: `backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`
+  - archivos: `backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`, `.env.example`
 - [ ] **BLM-0138** `ops` Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`
   - cubre: RF-05.5, RF-10.3 · depende de: BLM-0135
   - archivos: dashboards y logs
+- [ ] **BLM-0152** `ops` Retirar ms-feed: con la maduración en ms-cronjob-go (BLM-0134) y el front sin llamar a los feeds (BLM-0136), bajar los stacks `ms-feed` y `testing-ms-feed` y archivar el repo
+  - cubre: RF-03.7, RF-10.1 · depende de: BLM-0134, BLM-0136
+  - archivos: servidores de ms-feed, repo `futurapps/ms-feed`
 
-**Criterio de salida F10:** El front usa solo REST, Meteor no tiene código de bonos y el monitoreo no muestra incidencias.
+**Criterio de salida F10:** El front usa solo REST, Meteor no tiene código de bonos, ms-feed está apagado y el monitoreo no muestra incidencias.
 
 ## 4. Matriz de trazabilidad: requisito → tareas
 
@@ -616,8 +646,10 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 03 | RF-03.1 | BLM-0028, BLM-0029 | BLM-0031, BLM-0125 | CA-03.1, CA-03.2, CA-03.3 | — |
 | 03 | RF-03.2 | BLM-0028, BLM-0030 | BLM-0031 | CA-03.4, CA-03.5 | — |
 | 03 | RF-03.3 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.6, CA-03.10 | — |
-| 03 | RF-03.4 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.7, CA-03.9 | — |
+| 03 | RF-03.4 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.7, CA-03.9 | BLM-0136 |
 | 03 | RF-03.5 | BLM-0028, BLM-0030, BLM-0078, BLM-0085 | BLM-0086 | CA-03.8 | — |
+| 03 | RF-03.6 | BLM-0143 | BLM-0125, BLM-0144 | CA-03.11, CA-03.12, CA-03.13, CA-03.14, CA-03.15 | — |
+| 03 | RF-03.7 | BLM-0145, BLM-0146 | BLM-0147 | CA-03.16 | BLM-0136, BLM-0152 |
 | 04 | RF-04.1 | BLM-0075, BLM-0076, BLM-0081, BLM-0084 | BLM-0087, BLM-0088, BLM-0126, BLM-0127 | CA-04.1, CA-04.2, CA-04.3, CA-04.4, CA-04.14 | BLM-0135, BLM-0136 |
 | 04 | RF-04.2 | BLM-0075, BLM-0076, BLM-0082, BLM-0084 | BLM-0087, BLM-0088, BLM-0126 | CA-04.3, CA-04.5, CA-04.6 | — |
 | 04 | RF-04.3 | BLM-0076, BLM-0079 | BLM-0088 | CA-04.7, CA-04.14 | BLM-0133, BLM-0135 |
@@ -627,7 +659,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 04 | RF-04.7 | BLM-0083 | BLM-0089 | CA-04.12 | — |
 | 04 | RF-04.8 | BLM-0075, BLM-0076, BLM-0077 | BLM-0088 | CA-04.13 | — |
 | 05 | RF-05.1 | BLM-0092, BLM-0095 | BLM-0097 | CA-05.5, CA-05.6 | — |
-| 05 | RF-05.2 | BLM-0090 | BLM-0096, BLM-0097, BLM-0125 | CA-05.1, CA-05.2, CA-05.3, CA-05.4, CA-05.5 | — |
+| 05 | RF-05.2 | BLM-0090, BLM-0150 | BLM-0096, BLM-0097, BLM-0125, BLM-0151 | CA-05.1, CA-05.2, CA-05.3, CA-05.4, CA-05.5, CA-05.17 | — |
 | 05 | RF-05.3 | BLM-0091, BLM-0093, BLM-0095 | BLM-0097, BLM-0098, BLM-0126, BLM-0127 | CA-05.7, CA-05.8, CA-05.9, CA-05.10, CA-05.11, CA-05.16 | BLM-0135 |
 | 05 | RF-05.4 | BLM-0093 | BLM-0097, BLM-0098 | CA-05.7, CA-05.12 | — |
 | 05 | RF-05.5 | BLM-0093 | BLM-0098 | CA-05.7, CA-05.8, CA-05.13, CA-05.16 | BLM-0138 |
@@ -665,9 +697,9 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 09 | RF-09.8 | BLM-0065, BLM-0069, BLM-0071 | BLM-0073 | CA-09.9 | — |
 | 09 | RF-09.9 | BLM-0070, BLM-0072 | BLM-0074 | CA-09.10 | — |
 | 09 | RF-09.10 | BLM-0067 | BLM-0073 | CA-09.11 | — |
-| 10 | RF-10.1 | BLM-0141 | BLM-0142 | CA-10.1 | BLM-0134 |
+| 10 | RF-10.1 | BLM-0141 | BLM-0142 | CA-10.1 | BLM-0134, BLM-0152 |
 | 10 | RF-10.2 | BLM-0119 | BLM-0124 | CA-10.2 | — |
-| 10 | RF-10.3 | BLM-0117, BLM-0118, BLM-0120 | BLM-0123, BLM-0124, BLM-0126 | CA-10.3, CA-10.4, CA-10.9 | BLM-0133, BLM-0138 |
+| 10 | RF-10.3 | BLM-0117, BLM-0118, BLM-0120, BLM-0148 | BLM-0123, BLM-0124, BLM-0126, BLM-0149 | CA-10.3, CA-10.4, CA-10.9, CA-10.10 | BLM-0133, BLM-0134, BLM-0138 |
 | 10 | RF-10.4 | BLM-0120 | BLM-0124 | CA-10.5, CA-10.9 | — |
 | 10 | RF-10.5 | BLM-0117, BLM-0120, BLM-0140 | BLM-0123, BLM-0124 | CA-10.4, CA-10.6 | — |
 | 10 | RF-10.6 | BLM-0120 | BLM-0123 | CA-10.7 | — |
@@ -692,10 +724,11 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | O5 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0052 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. |
 | O6 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0045 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. |
 | O9 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0052 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. |
-| O10 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0029 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. |
+| O10 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0029, BLM-0143 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. Los feeds de ms-feed hacen lo mismo: `/bond/:id/feed` con el monto y los porcentajes, y `/bound/:id/feed` con los porcentajes y el punto de inflexión. |
 | O7 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0060 | `getDataChart` con `simulation` pero sin `preview` devuelve `data: []`. |
-| O8 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0030 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. |
+| O8 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0030, BLM-0143 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. Los feeds de ms-feed también usan la zona del servidor, para las fechas y para los días transcurridos. |
 | B17 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0078 | `getChartGuides` no valida que el bono exista (crashea) ni que sea del usuario. |
+| B35 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0145 | `GET /bound/:id/feed` de ms-feed no tiene autenticación (`oAuth` es un stub) y tiene CORS `*`: con el `_id` cualquiera lee el monto y la evolución de un bono ajeno, aunque esté borrado. Si el bono no existe, responde `500`. |
 | B7 | [spec 04](specs/04-bond-bound-compra.spec.md) | Corregir | BLM-0081 | `insert` no verifica el resultado del retiro: se puede crear un bono sin cobro. Sin transacción ni idempotencia. |
 | B8 | [spec 04](specs/04-bond-bound-compra.spec.md) | Corregir (contador atómico); se mantiene contar los borrados en la siembra | BLM-0079 | La clave se arma con `count(bondTypeId) + 1`: hay carrera bajo compras concurrentes, sin índice único, y cuenta los borrados. |
 | B9 | [spec 04](specs/04-bond-bound-compra.spec.md) | Corregir | BLM-0081 | No se valida `isPrivateBond`/`authorizedUserIds` ni `saleEndDate`, ni se hace null-check de la cuenta y el producto (crash). |
@@ -713,6 +746,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | B14 | [spec 05](specs/05-bond-bound-venta-canje.spec.md) | Corregir | BLM-0090 | `parseInt` en `maturityTimeInDays`, `inflectionPoint` y `maturityRewardsPercentage`. |
 | B16 | [spec 05](specs/05-bond-bound-venta-canje.spec.md) | Corregir | BLM-0093 | `preSale` y `sale` no validan que el bono sea del usuario. `sale` acredita el valor de un bono ajeno en la cuenta de quien llama. |
 | B21 | [spec 05](specs/05-bond-bound-venta-canje.spec.md) | Corregir | BLM-0094 | El email usa el rendimiento y el plazo actuales del producto, no los del bono comprado. |
+| B37 | [spec 05](specs/05-bond-bound-venta-canje.spec.md) | Corregir | BLM-0150 | `preSale` cotiza un bono `'2'` por la fecha, en la zona del usuario, pero la maduración (ms-feed) lo pasa a `'2'` al inicio del día UTC. Un canje en esas horas se paga con penalidad y `M - 1` días: un bono de 1000 a 365 días al 15 % (`P 30`, `Pf 75`) acredita 1037,39 en vez de 1150. |
 | B10 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0105 | `listByUserlogged` con `skip` salta siempre 5, y `limitBondResults` reordena después de saltar. |
 | B15 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0104 | `listByBondObjectId` y `getInvestorsById` devuelven el `profile` completo, con el hash del password. Tampoco filtran `isRemove` ni agencia. |
 | B23 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0102 | `aMonth` y `aYear` usan `$month`/`$year` en UTC: una compra del 31-oct a las 22:00 (UTC-5) cae en noviembre. |
@@ -737,8 +771,9 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | U4 | [spec 09](specs/09-bond-user-setting.spec.md) | Corregir | BLM-0067 | `user` devuelve el perfil completo (sin `password`, pero con el resto de los campos), y `account` el documento entero. |
 | U6 | [spec 09](specs/09-bond-user-setting.spec.md) | Corregir | BLM-0068 | `setSelectedAccount` acepta `data.userId`: cualquier sesión puede cambiar la cuenta destino de **otro** usuario y desviar a su propia cuenta el dinero de las ventas y canjes de la víctima. |
 | U7 | [spec 09](specs/09-bond-user-setting.spec.md) | Corregir | BLM-0068 | `setSelectedAccount` no valida que la cuenta sea del usuario. |
-| B22 | [spec 10](specs/10-maduracion-cron.spec.md) | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | BLM-0118 | La regla legacy (`checkMaturity`) maduraba también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. |
-| B32 | [spec 10](specs/10-maduracion-cron.spec.md) | Corregir | BLM-0141 | `SyncedCron.start()` solo corre en `Cron.init()`, que está comentado en `main.js`. La maduración solo arranca después de editar un cronjob, y depende de un servicio externo que no está versionado en el workspace. |
+| B22 | [spec 10](specs/10-maduracion-cron.spec.md) | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | BLM-0118 | La regla de Meteor (`bondBound.checkMaturity`, comentada) y una versión anterior de ms-feed (`bound/index.js:220-239`, comentada) maduraban también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. La versión actual de ms-feed solo toma `'1'`, pero no mira `soldDate`/`tookDate`, y su `updateMany` no repite la condición de estado: un bono vendido entre la consulta y la actualización también pasa a `'2'`. |
+| B32 | [spec 10](specs/10-maduracion-cron.spec.md) | No aplica en `main` | — | En una rama vieja del backend, `Cron.init()` está comentado en `main.js` y la maduración solo arranca después de editar un cronjob. En `origin/main` está activo desde `029e73c` (2022), así que en producción la maduración corre cada 30 s vía ms-feed. |
+| B36 | [spec 10](specs/10-maduracion-cron.spec.md) | Corregir | BLM-0118 | `checkMaturity` de ms-feed nunca madura un bono cuyo `profile`, `bondType` o `bondObject` no existe: los `$unwind` (`bound/index.js:149,158,167`) lo sacan de la agregación, y el `updateMany` solo usa los ids que salen de ella. |
 | B33 | [spec 10](specs/10-maduracion-cron.spec.md) | Corregir (prevención) | BLM-0119 | Con 3 réplicas sin lock, la maduración y los avisos se ejecutarían tres veces. |
 
 ## 6. Regenerar y validar
@@ -755,4 +790,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 96 RF, 159 CA, 148 tareas, 63 bugs. Validación sin errores. Siguiente ID libre: `BLM-0143`.
+Última generación: 11 specs, 98 RF, 167 CA, 158 tareas, 66 bugs. Validación sin errores. Siguiente ID libre: `BLM-0153`.

@@ -40,6 +40,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-05.2** — `QuoteSale(bound, now, utcDiff) (SaleProjection, error)`, función pura con la fórmula de §5.1.
   - Si hoy es anterior a la fecha mínima de retiro, devuelve `ERR_INVALID_WITHDRAW_DATE`.
   - Usa los valores del snapshot del bono, en `float64`, sin truncar (corrige B14).
+  - Un bono en estado `'2'` (madurado) se cotiza siempre como vencido: `daysPassed = M` y el monto completo, sin mirar la fecha (corrige B37).
 - **RF-05.3** — Venta o canje.
   - Carga el bono, que **debe ser del usuario de la sesión**. Ni siquiera un admin vende bonos ajenos (corrige B16).
   - Determina la transición por estado (§5.3) y calcula `QuoteSale`. Si la cotización falla, **aborta** sin escribir nada (corrige B3).
@@ -117,21 +118,23 @@ maturity   = StartOfDay(bound.maturityDate, u)
 M = maturityTimeInDays;  P = inflectionPoint;  R = maturityRewardsPercentage;  Pf = inflectionPenaltyPercentage
 effDays    = M - P                                    // si <= 0 → ERR_BOND_INVALID_TERMS
 perDay     = amount / effDays
-daysPassed = min(DaysBetween(start, today, u), M)
+madurado   = statusId == '2'                          // se cotiza como vencido sin mirar la fecha (B37)
+daysPassed = madurado ? M : min(DaysBetween(start, today, u), M)
 interest   = perDay * (daysPassed - P) * (R / 100)    // negativo antes de la inflexión
 penalized  = interest * (1 - Pf / 100)
 
 si today < withdraw → ERR_INVALID_WITHDRAW_DATE
 
 proj = {inversion: amount, interest: R, penaltyPercentage: Pf, profit: max(interest, 0), totalDaysPassed: daysPassed}
-si today < inflection:        proj.amount = amount;            proj.atMoment = amount
-si inflection <= today < maturity:
+si madurado o today >= maturity:
+                              proj.atMoment = interest + amount
+                              proj.amount   = interest + amount
+                              proj.profit   = max(interest, 0)
+si no, si today < inflection: proj.amount = amount;            proj.atMoment = amount
+si no (inflection <= today < maturity):
                               proj.atMoment = interest + amount
                               proj.amount   = amount + penalized
                               proj.profit   = max(penalized, 0)
-si today >= maturity:         proj.atMoment = interest + amount
-                              proj.amount   = interest + amount
-                              proj.profit   = max(interest, 0)
 redondear amount, atMoment y profit con Round2 al responder
 ```
 
@@ -140,6 +143,8 @@ redondear amount, atMoment y profit con Round2 al responder
 - pero en el vencimiento `profit` quedaba **penalizado**, aunque el monto acreditado era el completo.
 
 Aquí, en el vencimiento, `profit` es el interés completo. Solo cambia el valor de "Ganancia" en el email y en la respuesta; el monto acreditado no cambia.
+
+**Diferencia con el legado (B37):** el legado cotiza un bono `'2'` por la fecha, como a cualquier otro. Como la maduración corta al fin del día UTC (spec 10, RF-10.3), un bono puede estar en `'2'` cuando en la zona del usuario todavía es el día anterior al vencimiento (en Colombia, de 19:00 a 24:00), y entonces el canje se pagaba con penalidad y `M - 1` días. Aquí un `'2'` se cotiza siempre como vencido. La venta de un `'1'` no cambia.
 
 ### 5.2 Ejemplo verificable
 
@@ -217,6 +222,7 @@ type SaleProjection struct {
 | B14 | `parseInt` en `maturityTimeInDays`, `inflectionPoint` y `maturityRewardsPercentage`. | Corregir | Tasas con decimales. | BLM-0090 |
 | B16 | `preSale` y `sale` no validan que el bono sea del usuario. `sale` acredita el valor de un bono ajeno en la cuenta de quien llama. | Corregir | Seguridad y dinero (crítico). | BLM-0093 |
 | B21 | El email usa el rendimiento y el plazo actuales del producto, no los del bono comprado. | Corregir | Se usa el snapshot del bono. | BLM-0094 |
+| B37 | `preSale` cotiza un bono `'2'` por la fecha, en la zona del usuario, pero la maduración (ms-feed) lo pasa a `'2'` al inicio del día UTC. Un canje en esas horas se paga con penalidad y `M - 1` días: un bono de 1000 a 365 días al 15 % (`P 30`, `Pf 75`) acredita 1037,39 en vez de 1150. | Corregir | Dinero. | BLM-0150 |
 
 ## 9. Criterios de aceptación
 
@@ -236,6 +242,9 @@ type SaleProjection struct {
 - **CA-05.14** (RF-05.6) — Después de una venta, `bondHistory` tiene `{typeId '2', text 'BOND_BOUND_STATUS_CHANGED', params ['1','5']}`, y la consulta del gateway `{text: 'BOND_BOUND_STATUS_CHANGED', params: {$size: 2}}` lo encuentra.
 - **CA-05.15** (RF-05.7) — El mensaje del email usa `initialDate` del bono (no ahora) y el `available` posterior al depósito sin sumarlo dos veces. Si ms-notification falla, la venta responde `200`.
 - **CA-05.16** (RF-05.3, RF-05.5, RF-05.6) — Venta de un `bondBound` legacy (`_id` de 17 caracteres, comprado en Meteor): el estado cambia, el `_id` se conserva y el `bondHistory` nuevo (con `_id` UUID) tiene `relatedId` igual al `_id` legacy.
+- **CA-05.17** (RF-05.2) — Un bono de `amount 1000`, `M 365`, `R 15`, `P 30` y `Pf 75`, comprado el `2026-10-13T20:30Z` (`maturityDate 2027-10-13T20:30Z`), se cotiza el `2027-10-13T01:00Z` con `utcDiff -5`, que en la zona del usuario todavía es el 12 de octubre:
+  - en `'2'`: `amount 1150`, `atMoment 1150`, `profit 150` y `totalDaysPassed 365`;
+  - en `'1'`: `amount 1037.39`, `atMoment 1149.55`, `profit 37.39` y `totalDaysPassed 364`, igual que antes.
 
 ## 10. Tareas
 
@@ -250,10 +259,12 @@ type SaleProjection struct {
 | BLM-0096 | Tests de tabla de `QuoteSale` contra casos calculados con el código legacy | test | F5 | CA-05.1, CA-05.2, CA-05.3, CA-05.4 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
 | BLM-0097 | Tests unitarios de `PreSale` y `Sale` con fakes (dueño, estados, cotización inválida, cuenta destino) y de sus handlers | test | F5 | CA-05.5, CA-05.6, CA-05.9, CA-05.10, CA-05.11, CA-05.12 | BLM-0095 | `internal/core/bondBound/application/bondBound.preSale_test.go`, `bondBound.sale_test.go`, `bondBound.fakes_test.go` (`UpdateStatusIf`, `Deposit`, `GetByIDIncludingRemoved` y `UserSettings` en memoria), `cmd/api/handlers/bondBounds/bondBounds.preSale.get_test.go`, `bondBounds.sale.post_test.go`, `bondBounds.testServer_test.go` (`PreSale` y `Sale` en `fakeApp`) |
 | BLM-0098 | Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones | test | F5 | CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 | BLM-0095, BLM-0094 | `internal/core/bondBound/application/bondBound.sale_integration_test.go`, `bondBound.testdb_integration_test.go` (`bondUserSetting` y `UserSettings` con el adapter real) |
+| BLM-0150 | `QuoteSale` cotiza un bono `'2'` como vencido (`daysPassed = M` y monto completo), sin mirar la fecha | impl | F5 | RF-05.2 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
+| BLM-0151 | Tests de la cotización de un `'2'` antes de su día de vencimiento en la zona del usuario, y de que un `'1'` no cambia | test | F5 | CA-05.17 | BLM-0150 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
 - `earlyCashTerm.blockWithdrawals` no lo usa ninguna regla del legado y tampoco se usa aquí.
-- **Pregunta:** si un bono sigue en `'1'` pero ya pasó su `maturityDate` (el cron todavía no corrió), el legado lo **vende** (`descriptionId '8'`) con el monto completo. ¿Debería ser un canje? Por ahora se mantiene la paridad.
+- **Pregunta:** si un bono sigue en `'1'` pero ya pasó su `maturityDate` (el cron todavía no corrió), el legado lo **vende** (`descriptionId '8'`) con el monto completo. ¿Debería ser un canje? Por ahora se mantiene la paridad. Con el corte al fin del día UTC (spec 10), esa ventana dura como mucho un tick del job (5 min) después de las 00:00 UTC.
 - **Pregunta:** ¿se debe validar que la cuenta destino esté activa? El legado acredita aunque esté suspendida o cancelada.
 - **Pregunta:** ¿el admin necesita vender en nombre de un usuario (acreditando la cuenta del dueño)? Hoy no está contemplado.

@@ -48,4 +48,4 @@ Levantar con `air`.
 
 ## Ramas
 
-Formato de commit: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español`.
+Formato de commit: `<feat|test|chore>: [BLM-xxxx] <impl|test|ops> <título de la tarea>` (ver `docs/constitution.md` §13).

@@ -134,7 +134,7 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 | **DEBE** un único helper `shared.Round2(v float64) float64` hacer el redondeo. | Un solo criterio de redondeo. |
 | **NO DEBE** truncarse porcentajes ni montos con conversiones a entero. | Corrige B14 (`parseInt` en tasas y `parseCurrency`). |
 | **DEBE** persistirse toda fecha en UTC (`time.Now().UTC()`). | Sin ambigüedad de zona. |
-| **DEBE** todo cálculo "por día" (días transcurridos, inicio de día, filtros por fecha) usar la zona de la sesión mediante el helper único `shared.StartOfDay(t, utcDiff)`. | Paridad con `moment().utcOffset(session.utcDiff)` del legado. |
+| **DEBE** todo cálculo "por día" (días transcurridos, inicio de día, filtros por fecha) usar la zona de la sesión mediante el helper único `shared.StartOfDay(t, utcDiff)`. Sin sesión (jobs internos), la zona la fija la spec: la maduración usa UTC (spec 10). | Paridad con `moment().utcOffset(session.utcDiff)` del legado; la maduración de ms-feed corría con el servidor en UTC. |
 | **DEBE** cada fórmula financiera vivir en una función pura del dominio, sin I/O, con tabla de tests. | Se puede comparar contra el legado caso por caso. |
 
 ## 9. Transacciones y efectos colaterales
@@ -180,7 +180,7 @@ Front ──x-secret + x-token──▶ ms-blooming-go
 
 - Flujo `cc-* ↔ integrations → main`. La infra (`.deploy*/`, `.github/workflows/docker-build.yml`, `.dockerignore`, `.env*` salvo `.env.example`) vive **solo en `main`**.
 - `.claude/` **NO DEBE** versionarse en ninguna rama.
-- Formato de commit: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español`, donde `BLM-xxxx` es el ID de la tarea en `tasks.md`. Ejemplo: `[BLM-0081] [MS-BLOOMING][BOND-BOUND] compra con transacción`.
+- Formato de commit: `<tipo>: [BLM-xxxx] <impl|test|ops> <título de la tarea>`, en español, donde `BLM-xxxx` es el ID de la tarea en `tasks.md` y `<tipo>` es `feat` para `impl`, `test` para `test` y `chore` para `ops`. Ejemplo: `feat: [BLM-0122] impl Endpoint interno de ejecución de la maduración (lo llama ms-cronjob-go)`. Los cambios sin tarea (specs, documentación, correcciones) van sin ID: `docs: …` o `fix: …`.
 
 ## 14. Proceso SDD
 

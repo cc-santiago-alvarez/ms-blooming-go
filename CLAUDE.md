@@ -5,10 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 `ms-blooming-go` is the Go microservice for **Blooming** (bonds) in Futurapps. It replaces the bond DDP
-methods/publications of the Meteor backend (`backend/server/model/bond.*.js`) with a REST API the front
+methods/publications of the Meteor backend (`backend/server/model/bond.*.js`) and the `ms-feed` service
+(chart feeds and `PUT /bound/check-maturity`, `ms-feed/src/components/`) with a REST API the front
 calls directly. Built on `codecraftkit/nexus` (HTTP) and `codecraftkit/mongocc` (MongoDB, driver v2).
 Reference architecture: `ms-petty-cash-api` — anything not specified here or in the constitution is
 resolved the way petty-cash does it.
+
+Read the legacy Meteor code at the backend's `origin/main` (`git -C ../backend show origin/main:<path>`):
+the local checkout can be hundreds of commits behind.
 
 **`docs/constitution.md` is the source of non-negotiable rules** (stack, architecture, naming, errors,
 validation, auth, data, money/dates, transactions, security, testing, ops). Read it before writing code;
@@ -62,7 +66,7 @@ Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bon
 - `internal/core/<domain>/` — `domain/`, `ports/`, `application/` (one use case per file),
   `infrastructure/mongocc/` (one file per repository method + `EnsureIndexes`).
 - Scheduled jobs are not run here: `ms-cronjob-go` triggers them through internal endpoints
-  (`POST /internal/jobs/...`, `x-secret`), and each job takes a distributed lock (bond maturity: `bondJobLock`).
+  (`POST /api/v1/internal/jobs/...`, `x-secret`), and each job takes a distributed lock (bond maturity: `bondJobLock`).
 
 ## Conventions
 
@@ -83,4 +87,6 @@ Hexagonal, one directory per domain (`bondType`, `bondObject`, `bondBound`, `bon
 - The Go module path is already the final one: `github.com/futurapps/ms-blooming-go`.
 - **`.claude/` is never versioned** (it is in `.gitignore`); never `git add -f` anything under it.
   `CLAUDE.md` itself is versioned.
-- Commit format: `[BLM-xxxx] [MS-BLOOMING][ÁREA] descripción en español` (the task ID). The user makes the commits.
+- Commit format: `<feat|test|chore>: [BLM-xxxx] <impl|test|ops> <task title>` in Spanish (`feat` for `impl`,
+  `test` for `test`, `chore` for `ops`), e.g. `feat: [BLM-0122] impl Endpoint interno de ejecución de la maduración (lo llama ms-cronjob-go)`.
+  Changes without a task (specs, docs, fixes) carry no ID: `docs: …` or `fix: …`. The user makes the commits.

@@ -12,6 +12,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 
 - Hoy Blooming vive en el backend Meteor como **50 métodos DDP y 10 publicaciones** repartidos en 5 archivos. Tiene colecciones sin esquema ni índices, ningún control de permisos y respuestas heterogéneas (valores crudos, `Response.ok/error`, excepciones).
 - El front lo consume por DDP.
+- ms-feed (`:8090`) calcula las series de las gráficas, que el front pide directo desde el navegador (`GET /bond/:id/feed` y `GET /bound/:id/feed`), y la maduración, que Meteor dispara cada 30 s (`PUT /bound/check-maturity`).
 - El gateway GraphQL (`ms-gateway-gql`) no lo llama: solo lee `bondBound` y `bondHistory` directo en Mongo para auditorías (`resolvers/B_BoundBound.js`).
 
 **Objetivo:** reimplementar esas operaciones en `ms-blooming-go` con arquitectura hexagonal (referencia: `ms-petty-cash-api`), exponerlas como REST para el front, corregir los bugs críticos de dinero y seguridad, y retirar el código de bonos de Meteor.
@@ -27,7 +28,8 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | Datos | Mismas colecciones y nombres de campos que el legado. Soft delete con `isRemove`. Meteor y Go comparten la base durante el corte. |
 | Bugs legacy | Se corrigen los **críticos** (dinero, seguridad, llamadas que nunca responden); el resto mantiene paridad. Cada spec documenta su decisión bug por bug. |
 | Saldo | `BalancePort` escribe directo en `balanceDetail`, `balanceHistory`, `balanceOperation` y `balanceAccount`, replicando `balanceAccount.withdraw` y `balanceDetail.insert`, **dentro de una transacción** Mongo. |
-| Maduración | La dispara ms-cronjob-go cada 5 minutos con `POST /internal/jobs/bond-maturity/run` (`x-secret`); el ms no usa librería de cron y toma un lock entre réplicas. Reemplaza al servicio externo `:8090` y al `SyncedCron` de Meteor. |
+| Maduración | La dispara ms-cronjob-go cada 5 minutos con `POST /internal/jobs/bond-maturity/run` (`x-secret`); el ms no usa librería de cron y toma un lock entre réplicas. Madura lo que vence en el día UTC, como ms-feed. Reemplaza a `PUT /bound/check-maturity` de ms-feed y al job `BondBoundCheckMaturity` (`SyncedCron`) de Meteor. |
+| Gráficas | Las series que hoy calcula ms-feed salen de ms-blooming-go (spec 03): `GET /bond-objects/{id}/chart?simulation=true` y `GET /bond-bounds/{id}/chart`. ms-feed se apaga al final del corte (BLM-0152). |
 | Notificaciones | `notice` y `activity` se insertan directo; los emails van por **ms-notification** (handlers nuevos `blooming-*`). |
 | Reportes | Por **ms-exporter**, con el mismo payload que hoy; el endpoint entrega el `.xlsx`. |
 
@@ -134,8 +136,17 @@ Todas las specs usan la misma plantilla:
 
 **Fuera de los 5 archivos**, también se migran:
 - `Model.bondHistory.add` → `BondHistoryPort.Add` (spec 08);
-- el cron `BondBoundCheckMaturity` y el servicio externo `:8090` → `POST /internal/jobs/bond-maturity/run`, disparado por ms-cronjob-go (spec 10);
-- `balanceAccount.withdraw` y `balanceDetail.insert` (solo el camino de bonos) → `BalancePort` (spec 00).
+- el cron `BondBoundCheckMaturity` de Meteor → `POST /internal/jobs/bond-maturity/run`, disparado por ms-cronjob-go (spec 10);
+- `balanceAccount.withdraw` y `balanceDetail.insert` (solo el camino de bonos) → `BalancePort` (spec 00);
+- los 3 endpoints de ms-feed (tabla siguiente).
+
+**Endpoints de ms-feed** (`ms-feed/src/routes/index.js:20-22`):
+
+| Endpoint | Lo llama | Destino | Spec | Acción |
+|---|---|---|---|---|
+| `GET /bond/:id/feed` | el front, desde el navegador | `GET /bond-objects/{id}/chart?simulation=true` | 03 | Fusionar |
+| `GET /bound/:id/feed` | el front, desde el navegador | `GET /bond-bounds/{id}/chart` | 03 | Migrar |
+| `PUT /bound/check-maturity` | el job `BondBoundCheckMaturity` de Meteor | `POST /internal/jobs/bond-maturity/run` (lo dispara ms-cronjob-go) | 10 | Migrar |
 
 ## 4. Dependencias
 
@@ -165,7 +176,7 @@ Todas las specs usan la misma plantilla:
 
 ## 5. Bugs críticos que corrige la migración
 
-Cada spec tiene la tabla completa (63 bugs). `tasks.md` §5 los mapea a sus tareas. Los más graves son estos:
+Cada spec tiene la tabla completa (66 bugs). `tasks.md` §5 los mapea a sus tareas. Los más graves son estos:
 
 | Bug | Spec | Problema |
 |---|---|---|
@@ -173,6 +184,7 @@ Cada spec tiene la tabla completa (63 bugs). `tasks.md` §5 los mapea a sus tare
 | U6 | 09 | `setSelectedAccount` acepta `userId` del cliente: se puede redirigir a una cuenta propia el dinero de las ventas de otro usuario. |
 | B18 | 04 | `bulkPurchase` debita la cuenta de **otro** usuario de la misma agencia. |
 | B22 | 10 | La maduración legacy incluía bonos vendidos: un bono vendido volvía a `'2'` y se canjeaba otra vez (doble cobro). |
+| B37 | 05 | El canje de un bono recién madurado se paga con penalidad durante unas horas: la maduración corta en UTC y la cotización usa la zona del usuario. |
 | B7 / B19 | 04 | Compra sin transacción: bonos sin cobro, o compras masivas parciales. |
 | B3 / B4 | 05 | La venta acredita `NaN` si la cotización falla, y a veces nunca responde. |
 | B15 / O9 | 02, 06 | Respuestas con el perfil completo, incluido el hash del password. |
@@ -183,9 +195,9 @@ Cada spec tiene la tabla completa (63 bugs). `tasks.md` §5 los mapea a sus tare
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
 3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
-4. **Maduración en un solo corte (BLM-0134).** Se apagan el `SyncedCron` y el servicio `:8090` y se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`).
-5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec.
-6. **Retiro (BLM-0137).** Se borran `bond.*.js` de Meteor.
+4. **Maduración en un solo corte (BLM-0134).** Se apaga el job `BondBoundCheckMaturity` de Meteor, que llama a ms-feed, y se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`, vacío hasta ese deploy).
+5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec. Incluye las gráficas que hoy leen ms-feed.
+6. **Retiro (BLM-0137 y BLM-0152).** Se borran `bond.*.js` de Meteor y se apaga ms-feed.
 7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
 
 Antes del corte se ejecuta la auditoría de datos **BLM-0133**: claves y settings duplicados, numéricos guardados como string y bonos vendidos que maduraron (B22).
@@ -203,7 +215,7 @@ Antes del corte se ejecuta la auditoría de datos **BLM-0133**: claves y setting
 |---|---|---|
 | 1 | ¿Qué puerto usará el servicio? El esqueleto copió `25072` de petty-cash. | Spec 00 |
 | 2 | ¿ms-oauth puede agregar `gmt`/`utcDiff` a la sesión? Hoy se usa un mapa por país. | Spec 00 |
-| 3 | ¿Qué hace exactamente el servicio `:8090`? ¿Maduró bonos vendidos? | Spec 10, BLM-0133 |
+| 3 | **Resuelta:** el servicio `:8090` es ms-feed (spec 10 §11). Una versión anterior maduraba bonos vendidos, así que BLM-0133 los audita. | Spec 10, BLM-0133 |
 | 4 | Los avisos de retiro al admin van a direcciones que quizá no son usuarios: ¿ms-notification necesita un grupo de emails crudos? | Spec 00 |
 | 5 | ¿Se mantiene la compra de bonos de otra agencia? | Spec 04 |
 | 6 | ¿Un bono `'1'` vencido que aún no maduró se vende o se canjea? | Spec 05 |
