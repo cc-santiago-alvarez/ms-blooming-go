@@ -24,8 +24,9 @@ type BondBoundsHandler struct {
 // NewBondBoundsHandler registra las rutas de /bond-bounds, los bonos de un usuario en /users y los compradores
 // de un producto en /bond-objects. Exigen adminBlooming el listado, los reportes, la baja, los bonos de un
 // usuario y los compradores. La compra, los estados, mis bonos, los recientes y la línea de tiempo son del
-// usuario de la sesión. Un bono, su detalle, sus guías, su cotización y su historial los ve su dueño o un
-// admin, y solo el dueño lo vende; lo valida el caso de uso, igual que el alcance del KPI por estado.
+// usuario de la sesión. Un bono, su detalle, sus guías, su gráfica, su cotización y su historial los ve su
+// dueño o un admin, y solo el dueño lo vende; lo valida el caso de uso, igual que el alcance del KPI por
+// estado.
 func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_ports.BondBoundApplicationPorts) {
 	handler := &BondBoundsHandler{bondBoundApplication: bondBoundApplication}
 	admin := middlewares_adapters.RequireBloomingAdmin
@@ -43,6 +44,7 @@ func NewBondBoundsHandler(server *nexus.Server, bondBoundApplication bondBound_p
 		{Path: "GET /{id}/details", HandlerFunc: handler.GetDetails},
 		{Path: "DELETE /{id}", HandlerFunc: admin(handler.Remove)},
 		{Path: "GET /{id}/chart-guides", HandlerFunc: handler.ChartGuides},
+		{Path: "GET /{id}/chart", HandlerFunc: handler.Chart},
 		{Path: "GET /{id}/pre-sale", HandlerFunc: handler.PreSale},
 		{Path: "POST /{id}/sale", HandlerFunc: handler.Sale},
 		{Path: "GET /{id}/history", HandlerFunc: handler.History},
