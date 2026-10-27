@@ -96,3 +96,52 @@ func TestQuoteSaleMatchesLegacy(t *testing.T) {
 		})
 	}
 }
+
+// Un bono madurado se cotiza como vencido aunque en la zona del usuario todavía no sea su día de
+// vencimiento: todos los días del plazo y el interés completo, sin penalidad. Uno iniciado se sigue
+// cotizando por la fecha. CA-05.17
+func TestQuoteSaleMaturedIgnoresDate(t *testing.T) {
+	bound := quoteBound(1000, 365, 15, 30, 75, 0)
+	bound.InitialDate = at(t, "2026-10-13T20:30:00Z")
+	bound.MaturityDate = bound.InitialDate.AddDate(0, 0, 365)
+
+	tests := []struct {
+		name     string
+		status   bondBound_domain.BondBoundStatus
+		now      string
+		profit   float64
+		atMoment float64
+		amount   float64
+		days     int
+	}{
+		{name: "madurado, todavía 12 de octubre en la zona del usuario", status: bondBound_domain.StatusFinalized,
+			now: "2027-10-13T01:00:00Z", profit: 150, atMoment: 1150, amount: 1150, days: 365},
+		{name: "iniciado a la misma hora, sin cambios", status: bondBound_domain.StatusInitiated,
+			now: "2027-10-13T01:00:00Z", profit: 37.39, atMoment: 1149.55, amount: 1037.39, days: 364},
+		{name: "madurado lejos del vencimiento", status: bondBound_domain.StatusFinalized,
+			now: "2027-05-01T20:30:00Z", profit: 150, atMoment: 1150, amount: 1150, days: 365},
+		{name: "iniciado ya en su día de vencimiento local", status: bondBound_domain.StatusInitiated,
+			now: "2027-10-13T06:00:00Z", profit: 150, atMoment: 1150, amount: 1150, days: 365},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := bondBound_domain.QuoteSale(withStatus(bound, tt.status), at(t, tt.now), -5)
+			if err != nil {
+				t.Fatalf("error %v, se esperaba la cotización", err)
+			}
+
+			want := bondBound_domain.SaleProjection{
+				Inversion:         1000,
+				Interest:          15,
+				PenaltyPercentage: 75,
+				Profit:            tt.profit,
+				AtMoment:          tt.atMoment,
+				Amount:            tt.amount,
+				TotalDaysPassed:   tt.days,
+			}
+			if got != want {
+				t.Errorf("cotización %+v, se esperaba %+v", got, want)
+			}
+		})
+	}
+}
