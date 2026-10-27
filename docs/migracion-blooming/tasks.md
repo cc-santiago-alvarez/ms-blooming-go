@@ -28,11 +28,11 @@
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
 | F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 33 | 22 | 11 | 0 |
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 16 | 11 | 5 | 0 |
-| F7 | Maduración (spec 10) | 12 | 8 | 4 | 0 |
+| F7 | Maduración (spec 10) | 13 | 8 | 5 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
 | F10 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
-| | **Total** | **158** | **100** | **40** | **18** |
+| | **Total** | **159** | **100** | **41** | **18** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -522,7 +522,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_integration_test.go`
 - [ ] **BLM-0140** [P] `impl` **(repo ms-notification)** Ruta interna de notificaciones que solo valida `x-secret`; `NotificationClient` la usa cuando el ctx no tiene sesión
   - cubre: RF-10.5 · depende de: BLM-0014, BLM-0015
-  - archivos: `ms-notification/src/api/modules/notify/notify.routes.js`, `internal/core/shared/infrastructure/notification/notification.client.go`
+  - archivos: `ms-notification/src/api/modules/notify/notify.routes.js`, `ms-notification/CLAUDE.md`, `internal/core/shared/infrastructure/notification/notification.client.go`
 - [ ] **BLM-0141** `impl` **(repo ms-cronjob-go)** Adapter `blooming_api` y job `blooming-bond-maturity` cada 300 s que llama al endpoint interno de maduración: no se registra sin URL, el 409 se loguea como informativo y el timeout es de 10 min. Corrige además lo desactualizado de `CLAUDE.md` y `README.md` (antes, `git pull`: la rama va detrás de su remoto)
   - cubre: RF-10.1 · depende de: BLM-0122
   - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/`, `internal/core/application/bond_maturity/`, `internal/core/port/`, `internal/core/domain/`, `cmd/api/main.go`, `cmd/api/config/enviroments.config.go`, `.env.example`, `README.md`, `CLAUDE.md`
@@ -535,6 +535,9 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 - [ ] **BLM-0149** `test` Tests del corte (lo que vence hoy en UTC madura aunque sea más tarde; lo de mañana no) y ajuste de los tests de maduración que asumían `maturityDate <= now`
   - cubre: CA-10.10 · depende de: BLM-0148
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable` con corte), `bondBound.runMaturity_integration_test.go`
+- [ ] **BLM-0153** `test` Tests del `NotificationClient`: sin sesión, o con una sesión sin token, va a `/notify/internal/{group}/{notification}` sin `x-token`; con sesión, a la ruta normal; el email de maduración va a la ruta interna
+  - cubre: CA-00.40, CA-10.6 · depende de: BLM-0140
+  - archivos: `internal/core/shared/infrastructure/notification/notification.client_test.go`, `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` y `bondBound.purchase.notify_test.go` (token en las sesiones de prueba)
 
 **Criterio de salida F7:** La maduración pasa solo bonos `'1'`, una sola réplica a la vez, con avisos agrupados.
 
@@ -582,7 +585,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - cubre: RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
   - archivos: informe en `docs/migracion-blooming/`
 - [ ] **BLM-0134** [P] `ops` Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento
-  - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141, BLM-0142, BLM-0149
+  - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141, BLM-0142, BLM-0149, BLM-0153
   - archivos: `backend/server/lib/crons.js`, `.env` de ms-cronjob-go
 - [ ] **BLM-0135** `ops` Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**
   - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133, BLM-0151
@@ -616,7 +619,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.8 | BLM-0009, BLM-0026, BLM-0139 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30, CA-00.37 | — |
 | 00 | RF-00.9 | BLM-0010 | BLM-0022 | CA-00.13 | — |
 | 00 | RF-00.10 | BLM-0011, BLM-0012 | BLM-0022, BLM-0023 | CA-00.14, CA-00.15, CA-00.16, CA-00.17, CA-00.18, CA-00.29, CA-00.33 | — |
-| 00 | RF-00.11 | BLM-0013, BLM-0014, BLM-0015 | BLM-0022, BLM-0024 | CA-00.19, CA-00.20, CA-00.35, CA-00.40 | — |
+| 00 | RF-00.11 | BLM-0013, BLM-0014, BLM-0015 | BLM-0022, BLM-0024, BLM-0153 | CA-00.19, CA-00.20, CA-00.35, CA-00.40 | — |
 | 00 | RF-00.12 | BLM-0018, BLM-0139 | BLM-0023 | CA-00.21, CA-00.38 | — |
 | 00 | RF-00.13 | BLM-0003 | BLM-0021 | CA-00.22 | — |
 | 00 | RF-00.14 | BLM-0016 | BLM-0024 | CA-00.23, CA-00.41 | — |
@@ -701,7 +704,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 10 | RF-10.2 | BLM-0119 | BLM-0124 | CA-10.2 | — |
 | 10 | RF-10.3 | BLM-0117, BLM-0118, BLM-0120, BLM-0148 | BLM-0123, BLM-0124, BLM-0126, BLM-0149 | CA-10.3, CA-10.4, CA-10.9, CA-10.10 | BLM-0133, BLM-0134, BLM-0138 |
 | 10 | RF-10.4 | BLM-0120 | BLM-0124 | CA-10.5, CA-10.9 | — |
-| 10 | RF-10.5 | BLM-0117, BLM-0120, BLM-0140 | BLM-0123, BLM-0124 | CA-10.4, CA-10.6 | — |
+| 10 | RF-10.5 | BLM-0117, BLM-0120, BLM-0140 | BLM-0123, BLM-0124, BLM-0153 | CA-10.4, CA-10.6 | — |
 | 10 | RF-10.6 | BLM-0120 | BLM-0123 | CA-10.7 | — |
 | 10 | RF-10.7 | BLM-0122 | BLM-0124 | CA-10.8 | — |
 
@@ -790,4 +793,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 98 RF, 167 CA, 158 tareas, 66 bugs. Validación sin errores. Siguiente ID libre: `BLM-0153`.
+Última generación: 11 specs, 98 RF, 167 CA, 159 tareas, 66 bugs. Validación sin errores. Siguiente ID libre: `BLM-0154`.

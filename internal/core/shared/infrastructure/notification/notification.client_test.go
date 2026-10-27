@@ -162,16 +162,20 @@ func TestSendLogsFailures(t *testing.T) {
 	}
 }
 
-// Send hace POST /notify/{group}/{notification} con {"data":{"params":…}}, x-secret y el x-token de
-// la sesión, aunque el ctx del llamador ya esté cancelado. CA-00.40
+// Send manda {"data":{"params":…}} con x-secret aunque el ctx del llamador ya esté cancelado: con sesión
+// a POST /notify/{group}/{notification} con su x-token, y sin sesión o sin token a
+// POST /notify/internal/{group}/{notification} sin x-token. CA-00.40
 func TestSendRequest(t *testing.T) {
 	const fullBody = `{"data":{"params":{"userIds":["u1"],"key":"AB-3","quantity":3,"amount":"dato-sensible-AB3"}}}`
 	const purchasePath = "/api/v1/notify/user-ids/notify-blooming-bondPurchased"
+	const internalPath = "/api/v1/notify/internal/user-ids/notify-blooming-bondPurchased"
 
-	cancelled := func() context.Context {
-		ctx, cancel := context.WithCancel(sessionContext())
-		cancel()
-		return ctx
+	cancelled := func(parent func() context.Context) func() context.Context {
+		return func() context.Context {
+			ctx, cancel := context.WithCancel(parent())
+			cancel()
+			return ctx
+		}
 	}
 
 	tests := []struct {
@@ -187,16 +191,20 @@ func TestSendRequest(t *testing.T) {
 		{name: "con sesión", ctx: sessionContext, group: group, notification: notification,
 			params: purchaseParams(), wantPath: purchasePath, wantToken: []string{sessionToken}, wantBody: fullBody},
 		{name: "sin sesión", ctx: context.Background, group: group, notification: notification,
-			params: purchaseParams(), wantPath: purchasePath, wantBody: fullBody},
+			params: purchaseParams(), wantPath: internalPath, wantBody: fullBody},
 		{name: "sesión sin token", ctx: func() context.Context {
 			return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{UserID: "u1"})
-		}, group: group, notification: notification, params: purchaseParams(), wantPath: purchasePath, wantBody: fullBody},
+		}, group: group, notification: notification, params: purchaseParams(), wantPath: internalPath, wantBody: fullBody},
 		{name: "sin params", ctx: sessionContext, group: group, notification: notification,
 			params: nil, wantPath: purchasePath, wantToken: []string{sessionToken}, wantBody: `{"data":{"params":{}}}`},
 		{name: "grupo y notificación con barra", ctx: sessionContext, group: "a/b", notification: "c/d",
 			params: purchaseParams(), wantPath: "/api/v1/notify/a%2Fb/c%2Fd", wantToken: []string{sessionToken}, wantBody: fullBody},
-		{name: "ctx ya cancelado", ctx: cancelled, group: group, notification: notification,
+		{name: "sin sesión, grupo y notificación con barra", ctx: context.Background, group: "a/b", notification: "c/d",
+			params: purchaseParams(), wantPath: "/api/v1/notify/internal/a%2Fb/c%2Fd", wantBody: fullBody},
+		{name: "ctx ya cancelado", ctx: cancelled(sessionContext), group: group, notification: notification,
 			params: purchaseParams(), wantPath: purchasePath, wantToken: []string{sessionToken}, wantBody: fullBody},
+		{name: "sin sesión y ctx ya cancelado", ctx: cancelled(context.Background), group: group, notification: notification,
+			params: purchaseParams(), wantPath: internalPath, wantBody: fullBody},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

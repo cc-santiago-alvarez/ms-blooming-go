@@ -241,7 +241,7 @@ func TestRunMaturityNotifiesEachOwnerOnce(t *testing.T) {
 }
 
 // Si ms-notification responde 500, los 3 bonos quedan madurados igual, el aviso se guarda y el email se
-// intenta una sola vez. CA-10.6
+// intenta una sola vez, por la ruta interna porque la corrida no tiene sesión. CA-10.6
 func TestRunMaturityNotificationServiceFails(t *testing.T) {
 	paths := make(chan string, 10)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -272,8 +272,8 @@ func TestRunMaturityNotificationServiceFails(t *testing.T) {
 
 	select {
 	case p := <-paths:
-		if p != "/notify/user-ids/notify-blooming-bondMatured" {
-			t.Errorf("ms-notification recibió %s, se esperaba /notify/user-ids/notify-blooming-bondMatured", p)
+		if p != "/notify/internal/user-ids/notify-blooming-bondMatured" {
+			t.Errorf("ms-notification recibió %s, se esperaba /notify/internal/user-ids/notify-blooming-bondMatured", p)
 		}
 	case <-time.After(notifyTimeout):
 		t.Fatal("ms-notification no recibió el email de maduración")

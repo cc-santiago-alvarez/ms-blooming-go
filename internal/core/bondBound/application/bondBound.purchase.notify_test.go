@@ -43,10 +43,11 @@ func notifyApp() (*fakes, *bondBound_application.BondBoundApplication) {
 	return f, app
 }
 
-// namedSession es un context con la sesión de ownerID en la agencia A, con nombre y en UTC-5.
+// namedSession es un context con la sesión de ownerID, con su token, en la agencia A, con nombre y en UTC-5.
 func namedSession() context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
 		UserID:    ownerID,
+		Token:     "tok-" + ownerID,
 		AgencyID:  agencyA,
 		FirstName: "Sesión",
 		LastName:  "Usuario",

@@ -703,10 +703,11 @@ func assertNothingWritten(t *testing.T, f *fakes) {
 	}
 }
 
-// withSession es un context con la sesión de userID en la agencia A y la zona utcDiff.
+// withSession es un context con la sesión de userID, con su token, en la agencia A y la zona utcDiff.
 func withSession(userID string, utcDiff int) context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
 		UserID:   userID,
+		Token:    "tok-" + userID,
 		AgencyID: agencyA,
 		UtcDiff:  session_domain.OptionalUtcDiff{Hours: utcDiff, Valid: true},
 	})

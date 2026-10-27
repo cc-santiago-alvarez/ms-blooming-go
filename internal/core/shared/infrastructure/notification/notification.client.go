@@ -21,7 +21,8 @@ const (
 	maxBodyBytes   = 64 << 10
 )
 
-// NotificationClient envía notificaciones a ms-notification (POST /notify/{group}/{notification}).
+// NotificationClient envía notificaciones a ms-notification: POST /notify/{group}/{notification} con el
+// token de la sesión, o POST /notify/internal/{group}/{notification} cuando no hay sesión.
 type NotificationClient struct {
 	baseURL string
 	secret  string
@@ -58,15 +59,25 @@ func (c *NotificationClient) send(ctx context.Context, group, notification strin
 		return err
 	}
 
-	endpoint := c.baseURL + "/notify/" + url.PathEscape(group) + "/" + url.PathEscape(notification)
+	token := ""
+	if session, ok := session_domain.GetUserSession(ctx); ok {
+		token = session.Token
+	}
+	// Sin token de sesión va a la ruta interna, que solo valida x-secret.
+	path := "/notify/"
+	if token == "" {
+		path = "/notify/internal/"
+	}
+
+	endpoint := c.baseURL + path + url.PathEscape(group) + "/" + url.PathEscape(notification)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-secret", c.secret)
-	if session, ok := session_domain.GetUserSession(ctx); ok && session.Token != "" {
-		req.Header.Set("x-token", session.Token)
+	if token != "" {
+		req.Header.Set("x-token", token)
 	}
 
 	resp, err := c.client.Do(req)

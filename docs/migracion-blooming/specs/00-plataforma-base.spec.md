@@ -131,7 +131,9 @@ Ningún endpoint de negocio vive aquí.
 - **RF-00.11** — Notificaciones.
   - `NoticePort.Add(ctx, Notice{Type, UserID, AgencyID, Title, Message})` inserta en `notice`: `typeId` (`bond '3'`, `balance '1'`), `categoryId '1'` (info), `unread: null`, `_id` UUID y timestamps.
   - `ActivityPort.Add(ctx, Activity{Description, RelatedID, AgencyID, UserID, Params})` inserta en `activity` con `moduleId '1'` y `name 'Blooming'`.
-  - `NotificationPort.Send(ctx, group, notification, params)` hace `POST {MS_NOTIFICATION_URL}/notify/{group}/{notification}` con body `{"data":{"params":{...}}}`, headers `x-secret: MS_NOTIFICATION_SECRET` y el `x-token` de la sesión cuando existe, y timeout de 15 s.
+  - `NotificationPort.Send(ctx, group, notification, params)` manda el body `{"data":{"params":{...}}}` con el header `x-secret: MS_NOTIFICATION_SECRET` y timeout de 15 s.
+    - Con sesión: `POST {MS_NOTIFICATION_URL}/notify/{group}/{notification}`, con el `x-token` de la sesión.
+    - Sin sesión, o con una sesión sin token: `POST {MS_NOTIFICATION_URL}/notify/internal/{group}/{notification}`, sin `x-token`. Es la ruta interna de ms-notification, que solo valida `x-secret` (spec 10, RF-10.5).
   - Los handlers de ms-notification que hacen falta están en §7.3.
   - Ningún fallo de estos tres ports se propaga al llamador: se loguea (constitución §9).
 - **RF-00.12** — Textos y formato.
@@ -381,7 +383,7 @@ Contrato de los params:
 - **CA-00.37** (RF-00.8) — `Round2` coincide con `toFixed(2)` del legado en una tabla de casos calculados con Node (incluye `0.015 → 0.01`, `2.675 → 2.67` y `-0.125 → -0.13`) y devuelve `0`, no `-0`, para `-0.001`. `MaskAccountNumber("4000123412341234")` da `"****************1234"`. `RandomAlnum(16)` da 16 caracteres `[A-Za-z0-9]` y `RandomAlnum(0)` da `""`.
 - **CA-00.38** (RF-00.12) — Para cada clave legacy de §7.2, `Text(clave)` devuelve exactamente la plantilla de `text.js`; una clave desconocida devuelve la clave misma.
 - **CA-00.39** (RF-00.18) — `NewPaginated` con `total 25` y `limit 10` da `totalPages 3`; con `total 0` da `totalPages 0` e `items []` (nunca `null`), y el JSON usa las claves `items, total, page, limit, totalPages`.
-- **CA-00.40** (RF-00.11) — `NotificationPort.Send` hace `POST {MS_NOTIFICATION_URL}/notify/{group}/{notification}` con body `{"data":{"params":{...}}}` (`{}` si no hay params), `x-secret` y el `x-token` de la sesión solo cuando hay sesión, y la envía aunque el `ctx` del llamador ya esté cancelado.
+- **CA-00.40** (RF-00.11) — `NotificationPort.Send` manda el body `{"data":{"params":{...}}}` (`{}` si no hay params) con `x-secret`, y la envía aunque el `ctx` del llamador ya esté cancelado. Con sesión hace `POST {MS_NOTIFICATION_URL}/notify/{group}/{notification}` con el `x-token` de la sesión; sin sesión, o con una sesión sin token, hace `POST {MS_NOTIFICATION_URL}/notify/internal/{group}/{notification}` sin `x-token`.
 - **CA-00.41** (RF-00.14) — `ExporterPort.Excel` hace `POST {MS_EXPORTER_URL}/export/excel/report/{report}` con el payload como body JSON sin envoltorio, `x-secret` y el `x-token` de la sesión cuando existe.
 - **CA-00.42** (RF-00.7) — Un panic en un handler responde `500 ERR_INTERNAL`; el valor del panic y el stack aparecen solo en el log.
 - **CA-00.43** (RF-00.2) — Con `API_DEBUG=false`, `GET /_routes` y `/_routes/raw` responden 404; con `API_DEBUG=true`, `/_routes` devuelve las rutas registradas sin pedir `x-secret`.
