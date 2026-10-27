@@ -19,8 +19,9 @@ type SaleProjection struct {
 
 // QuoteSale cotiza el bono a la fecha now en la zona utcDiff, con los términos de su snapshot. Antes del
 // punto de inflexión devuelve la inversión; desde la inflexión suma el interés penalizado, y desde el
-// vencimiento, el completo. Si el plazo no supera al punto de inflexión es ErrBondInvalidTerms, y antes del
-// día mínimo de retiro, ErrInvalidWithdrawDate. Amount, AtMoment y Profit salen redondeados.
+// vencimiento, el completo. Un bono madurado se cotiza siempre como vencido, con todos los días del plazo,
+// sin mirar la fecha. Si el plazo no supera al punto de inflexión es ErrBondInvalidTerms, y antes del día
+// mínimo de retiro, ErrInvalidWithdrawDate. Amount, AtMoment y Profit salen redondeados.
 func QuoteSale(bound BondBound, now time.Time, utcDiff int) (SaleProjection, error) {
 	m := bound.MaturityTimeInDays
 	p := bound.EarlyCashTerm.InflectionPoint
@@ -37,7 +38,11 @@ func QuoteSale(bound BondBound, now time.Time, utcDiff int) (SaleProjection, err
 	}
 
 	amount := bound.Amount
-	daysPassed := min(shared_domain.DaysBetween(start, today, utcDiff), m)
+	matured := bound.StatusID == StatusFinalized
+	daysPassed := m
+	if !matured {
+		daysPassed = min(shared_domain.DaysBetween(start, today, utcDiff), m)
+	}
 	// la conversión explícita evita que el compilador fusione la operación (FMA) y mantiene el resultado
 	// de JavaScript
 	interest := float64(amount / float64(m-p) * float64(daysPassed-p) * (r / 100))
@@ -45,7 +50,7 @@ func QuoteSale(bound BondBound, now time.Time, utcDiff int) (SaleProjection, err
 
 	atMoment, credited, profit := amount, amount, max(interest, 0)
 	switch {
-	case !today.Before(shared_domain.StartOfDay(bound.MaturityDate, utcDiff)):
+	case matured || !today.Before(shared_domain.StartOfDay(bound.MaturityDate, utcDiff)):
 		atMoment, credited = interest+amount, interest+amount
 	case !today.Before(start.AddDate(0, 0, p)):
 		atMoment, credited, profit = interest+amount, amount+penalized, max(penalized, 0)
