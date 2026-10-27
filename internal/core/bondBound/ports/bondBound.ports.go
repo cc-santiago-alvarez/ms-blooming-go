@@ -219,6 +219,10 @@ type BondBoundApplicationPorts interface {
 	// existe es ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id inválido es
 	// ErrInvalidID.
 	ChartGuides(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error)
+	// Chart devuelve las guías del bono, como ChartGuides, y su evolución desde initialDate hasta el
+	// vencimiento a la fecha de hoy, en la zona de la sesión. Si no existe es ErrBondBoundNotFound, y si no
+	// es del usuario ni es admin, ErrForbidden. Un id inválido es ErrInvalidID.
+	Chart(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error)
 	// PreSale cotiza la venta anticipada o el canje del bono a hoy, en la zona de la sesión. Si no existe es
 	// ErrBondBoundNotFound; si no es del usuario ni es admin, ErrForbidden; si su estado no se puede vender,
 	// el error de SaleTransitionFor, y si la cotización falla, el de QuoteSale. Un id inválido es

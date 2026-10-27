@@ -81,7 +81,8 @@ type SaleResult struct {
 	Available   float64         `json:"available"`
 }
 
-// BondBoundChart son las guías de la gráfica de un bono comprado.
+// BondBoundChart es la gráfica de un bono comprado: sus guías y, en la gráfica completa, su evolución.
 type BondBoundChart struct {
-	Guides []shared_domain.ChartGuide `json:"guides"`
+	Guides []shared_domain.ChartGuide      `json:"guides"`
+	Data   []shared_domain.BoundChartPoint `json:"data,omitempty"` // vacío cuando solo se piden las guías
 }
