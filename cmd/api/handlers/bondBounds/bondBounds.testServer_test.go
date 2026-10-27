@@ -117,6 +117,12 @@ func (a *fakeApp) ChartGuides(_ context.Context, id string) (bondBound_domain.Bo
 	return a.chart, a.err
 }
 
+func (a *fakeApp) Chart(_ context.Context, id string) (bondBound_domain.BondBoundChart, error) {
+	a.calls = append(a.calls, "Chart")
+	a.id = id
+	return a.chart, a.err
+}
+
 func (a *fakeApp) PreSale(_ context.Context, id string) (bondBound_domain.SaleProjection, error) {
 	a.calls = append(a.calls, "PreSale")
 	a.id = id
