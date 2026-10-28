@@ -22,7 +22,7 @@ func TestUpdateKeys(t *testing.T) {
 		objectDoc(uuid2, "Fuera de la lista", typeID, bson.A{agencyA}, nil),
 	)
 
-	got, err := repo.UpdateKeys(ctx, []string{meteor1, uuid1, meteor2}, "BP24")
+	got, err := repo.UpdateKeys(ctx, []string{meteor1, uuid1, meteor2}, "BP24", nil)
 
 	if err != nil {
 		t.Fatalf("UpdateKeys() = %v", err)

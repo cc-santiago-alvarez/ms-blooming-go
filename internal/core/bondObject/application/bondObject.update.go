@@ -5,21 +5,27 @@ import (
 
 	bondHistory_domain "github.com/futurapps/ms-blooming-go/internal/core/bondHistory/domain"
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
+	shared_application "github.com/futurapps/ms-blooming-go/internal/core/shared/application"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
-// Update valida p, reemplaza los campos editables del producto no borrado y lo devuelve actualizado, o
-// ErrBondObjectNotFound. Un bondTypeId inexistente o borrado es ErrBondObjectInvalidBondType. Registra en
-// el historial los campos que cambiaron; si falla, solo se loguea. Los bonos ya comprados no cambian.
+// Update valida p, reemplaza los campos editables del producto no borrado del alcance de agencia de la
+// sesión y lo devuelve actualizado, o ErrBondObjectNotFound. Fuera de la agencia principal, el producto y p
+// solo pueden tener la agencia de la sesión; si no, es ErrForbidden. Un bondTypeId inexistente, borrado o
+// fuera del alcance de agencia es ErrBondObjectInvalidBondType. Registra en el historial los campos que
+// cambiaron; si falla, solo se loguea. Los bonos ya comprados no cambian.
 func (app *BondObjectApplication) Update(ctx context.Context, id string, p bondObject_domain.UpdateParams) (*bondObject_domain.BondObject, error) {
 	p.Normalize()
 	if err := p.Validation(); err != nil {
 		return nil, err
 	}
 
-	o, err := app.findNotRemoved(ctx, id)
+	o, err := app.findInScope(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if !shared_application.OnlyInAgencyScope(ctx, o.AgencyID...) || !shared_application.OnlyInAgencyScope(ctx, p.AgencyID...) {
+		return nil, shared_domain.ErrForbidden
 	}
 	if err := app.checkBondType(ctx, p.BondTypeID); err != nil {
 		return nil, err

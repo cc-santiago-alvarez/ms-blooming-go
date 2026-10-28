@@ -8,13 +8,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// UpdateKeys cambia key y updatedAt de los productos no borrados de ids. Sin ids no consulta.
-func (repo *BondObjectMongoccRepository) UpdateKeys(ctx context.Context, ids []string, key string) (bondObject_domain.UpdateKeysResult, error) {
+// UpdateKeys cambia key y updatedAt de los productos no borrados de ids; con agencyID, solo los que son
+// únicamente de esa agencia. Sin ids no consulta.
+func (repo *BondObjectMongoccRepository) UpdateKeys(ctx context.Context, ids []string, key string, agencyID *string) (bondObject_domain.UpdateKeysResult, error) {
 	if len(ids) == 0 {
 		return bondObject_domain.UpdateKeysResult{}, nil
 	}
 
 	filter := bson.M{"_id": bson.M{"$in": ids}, "isRemove": false}
+	if agencyID != nil {
+		filter["agencyId"] = onlyAgency(*agencyID)
+	}
 	update := bson.M{"$set": bson.M{"key": key, "updatedAt": shared_domain.Now()}}
 
 	res, err := repo.DB.UpdateMany(ctx, collectionName, filter, update, nil)

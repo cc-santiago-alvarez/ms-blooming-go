@@ -18,12 +18,12 @@ func (app *BondObjectApplication) ChartByID(ctx context.Context, id string, simu
 	return buildChart(ctx, o.ProjectionTerms(), o.Amount, simulation), nil
 }
 
-// findVisibleByID devuelve el producto si la sesión lo ve: un admin, cualquiera no borrado; el resto,
-// solo uno activo de su agencia y, si es privado, donde está autorizado. Si no, es ErrBondObjectNotFound.
-// Un id inválido es ErrInvalidID.
+// findVisibleByID devuelve el producto si la sesión lo ve: un admin, cualquiera no borrado de su alcance
+// de agencia; el resto, solo uno activo de su agencia y, si es privado, donde está autorizado. Si no, es
+// ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
 func (app *BondObjectApplication) findVisibleByID(ctx context.Context, id string) (*bondObject_domain.BondObject, error) {
 	if session, ok := session_domain.GetUserSession(ctx); ok && session.AdminBlooming {
-		return app.findNotRemoved(ctx, id)
+		return app.findInScope(ctx, id)
 	}
 	if !shared_domain.IsValidID(id) {
 		return nil, shared_domain.ErrInvalidID

@@ -19,28 +19,33 @@ type BondObjectGroup struct {
 type BondObjectApplicationPorts interface {
 	bondType_ports.BondObjectCounterPort
 
-	// List devuelve los productos no borrados por name; con agencyIDs, solo los que tienen alguna de esas
-	// agencias. Un agencyID inválido es ErrInvalidID.
+	// List devuelve los productos no borrados del alcance de agencia de la sesión, por name. agencyIDs solo
+	// filtra si la agencia de la sesión es la principal. Un agencyID inválido es ErrInvalidID.
 	List(ctx context.Context, agencyIDs []string) ([]*bondObject_domain.BondObject, error)
 	// ListGroupedByType agrupa por tipo los productos del alcance de la sesión; agencyIDs solo filtra si
 	// la agencia de la sesión es la principal. Un agencyID inválido es ErrInvalidID.
 	ListGroupedByType(ctx context.Context, agencyIDs []string) ([]BondObjectGroup, error)
-	// GetByID devuelve el producto no borrado con los perfiles públicos de sus autorizados, o
-	// ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
+	// GetByID devuelve el producto no borrado del alcance de agencia de la sesión con los perfiles públicos
+	// de sus autorizados, o ErrBondObjectNotFound. Un id inválido es ErrInvalidID.
 	GetByID(ctx context.Context, id string) (*bondObject_domain.BondObjectDetail, error)
 	// GetByIDIncludingRemoved devuelve el producto aunque esté borrado, o ErrBondObjectNotFound. Un id
 	// inválido es ErrInvalidID.
 	GetByIDIncludingRemoved(ctx context.Context, id string) (*bondObject_domain.BondObject, error)
-	// Create normaliza y valida p, guarda el producto y devuelve el creado. Un bondTypeId inexistente o
-	// borrado es ErrBondObjectInvalidBondType.
+	// Create normaliza y valida p, guarda el producto y devuelve el creado. Fuera de la agencia principal, p
+	// solo puede tener la agencia de la sesión; si no, es ErrForbidden. Un bondTypeId inexistente, borrado o
+	// fuera del alcance de agencia es ErrBondObjectInvalidBondType.
 	Create(ctx context.Context, p bondObject_domain.CreateParams) (*bondObject_domain.BondObject, error)
-	// Update reemplaza los campos editables y devuelve el producto actualizado, o ErrBondObjectNotFound.
-	// Un bondTypeId inexistente o borrado es ErrBondObjectInvalidBondType.
+	// Update reemplaza los campos editables del producto del alcance de agencia de la sesión y lo devuelve
+	// actualizado, o ErrBondObjectNotFound. Fuera de la agencia principal, el producto y p solo pueden tener
+	// la agencia de la sesión; si no, es ErrForbidden. Un bondTypeId inexistente, borrado o fuera del
+	// alcance de agencia es ErrBondObjectInvalidBondType.
 	Update(ctx context.Context, id string, p bondObject_domain.UpdateParams) (*bondObject_domain.BondObject, error)
-	// UpdateKeys cambia la clave de los productos no borrados de la lista.
+	// UpdateKeys cambia la clave de los productos no borrados de la lista; fuera de la agencia principal,
+	// solo la de los que son únicamente de la agencia de la sesión.
 	UpdateKeys(ctx context.Context, p bondObject_domain.UpdateKeysParams) (bondObject_domain.UpdateKeysResult, error)
-	// Remove borra el producto de forma lógica, o devuelve ErrBondObjectNotFound. Un id inválido es
-	// ErrInvalidID.
+	// Remove borra de forma lógica el producto del alcance de agencia de la sesión, o devuelve
+	// ErrBondObjectNotFound. Fuera de la agencia principal, si también es de otras agencias devuelve
+	// ErrForbidden. Un id inválido es ErrInvalidID.
 	Remove(ctx context.Context, id string) error
 	// ListInvestors devuelve los usuarios con bonos vigentes del producto, en el alcance de la sesión. Un
 	// id inválido es ErrInvalidID.
@@ -57,7 +62,8 @@ type BondObjectApplicationPorts interface {
 	// simulation, su simulación diaria.
 	ChartPreview(ctx context.Context, p bondObject_domain.ChartPreviewParams) (bondObject_domain.BondObjectChart, error)
 	// ChartByID devuelve las guías del producto y, con simulation, su simulación diaria. Si la sesión no
-	// lo ve, es ErrBondObjectNotFound; un admin ve cualquiera no borrado. Un id inválido es ErrInvalidID.
+	// lo ve, es ErrBondObjectNotFound; un admin ve cualquiera no borrado de su alcance de agencia. Un id
+	// inválido es ErrInvalidID.
 	ChartByID(ctx context.Context, id string, simulation bool) (bondObject_domain.BondObjectChart, error)
 	// FindVisibleForPurchase devuelve el producto no borrado, de cualquier agencia, o nil si no existe.
 	// Un id inválido es ErrInvalidID.
@@ -81,8 +87,9 @@ type BondObjectMongoccRepositoryPorts interface {
 	// UpdateOne guarda los campos editables y updatedAt de o; devuelve false si el producto ya no existe o
 	// está borrado.
 	UpdateOne(ctx context.Context, o *bondObject_domain.BondObject) (bool, error)
-	// UpdateKeys cambia key y updatedAt de los productos no borrados de ids.
-	UpdateKeys(ctx context.Context, ids []string, key string) (bondObject_domain.UpdateKeysResult, error)
+	// UpdateKeys cambia key y updatedAt de los productos no borrados de ids. agencyID nil no filtra por
+	// agencia; si no, solo cambia los productos que son únicamente de esa agencia.
+	UpdateKeys(ctx context.Context, ids []string, key string, agencyID *string) (bondObject_domain.UpdateKeysResult, error)
 	// SoftDelete marca el producto con isRemove true y actualiza updatedAt; devuelve false si no existe o
 	// ya estaba borrado.
 	SoftDelete(ctx context.Context, id string) (bool, error)

@@ -38,6 +38,12 @@ func visibleTo(userID string) bson.A {
 	return conditions
 }
 
+// onlyAgency es la condición de agencyId de los productos que son solo de agencyID: el string igual, o un
+// arreglo que la contiene y no tiene otra.
+func onlyAgency(agencyID string) bson.M {
+	return bson.M{"$eq": agencyID, "$not": bson.M{"$elemMatch": bson.M{"$ne": agencyID}}}
+}
+
 // findOne devuelve el producto que cumple filter, o nil, nil si no hay ninguno.
 func (repo *BondObjectMongoccRepository) findOne(ctx context.Context, filter bson.M) (*bondObject_domain.BondObject, error) {
 	var o bondObject_domain.BondObject
