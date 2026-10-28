@@ -19,11 +19,12 @@ const (
 	maturityBatchSize = 500
 )
 
-// RunMaturity pasa a madurados los bonos iniciados que vencieron hasta now, de a lotes, con el lock del job
-// tomado; si otra corrida lo tiene es ErrJobLocked. Cada bono cambia de estado y registra el historial del
-// sistema en una transacción; si falla, se loguea, cuenta como fallido y la corrida sigue. Después avisa a
-// cada dueño una vez, con todos sus bonos madurados. Si no puede leer un lote, avisa lo que ya maduró y
-// devuelve el resultado parcial con el error. Una corrida empezada no se corta aunque ctx se cancele.
+// RunMaturity pasa a madurados los bonos iniciados que vencen hasta el fin del día de now en UTC, de a lotes,
+// con el lock del job tomado; si otra corrida lo tiene es ErrJobLocked. Cada bono cambia de estado y registra
+// el historial del sistema en una transacción; si falla, se loguea, cuenta como fallido y la corrida sigue.
+// Después avisa a cada dueño una vez, con todos sus bonos madurados. Si no puede leer un lote, avisa lo que
+// ya maduró y devuelve el resultado parcial con el error. Una corrida empezada no se corta aunque ctx se
+// cancele.
 func (app *BondBoundApplication) RunMaturity(ctx context.Context, now time.Time) (bondBound_domain.MaturityResult, error) {
 	ctx = context.WithoutCancel(ctx)
 	start := time.Now()
@@ -40,9 +41,11 @@ func (app *BondBoundApplication) RunMaturity(ctx context.Context, now time.Time)
 	var result bondBound_domain.MaturityResult
 	var matured []*bondBound_domain.BondBound
 	var findErr error
+	// inicio de mañana en UTC
+	cutoff := shared_domain.StartOfDay(now, 0).AddDate(0, 0, 1)
 	afterID := ""
 	for {
-		batch, err := app.Repository.FindMaturable(ctx, now, maturityBatchSize, afterID)
+		batch, err := app.Repository.FindMaturable(ctx, cutoff, maturityBatchSize, afterID)
 		if err != nil {
 			findErr = err
 			log.Printf("[bondBound] no se pudo leer el lote de bonos por madurar después de %q: %v", afterID, err)

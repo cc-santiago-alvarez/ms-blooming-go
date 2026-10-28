@@ -288,10 +288,10 @@ type BondBoundApplicationPorts interface {
 	// admin solo los suyos, y pedir los de otro usuario es ErrForbidden. Un filtro inválido es el error de su
 	// Validation.
 	CountByStatus(ctx context.Context, f bondBound_domain.KpiFilters) (StatusCount, error)
-	// RunMaturity pasa a madurados los bonos iniciados que vencieron hasta now, con el lock del job tomado, y
-	// registra el historial del sistema de cada uno; después avisa a cada dueño una vez, con todos sus bonos
-	// madurados. Si otra corrida tiene el lock es ErrJobLocked. Un bono que falla se loguea, cuenta en Failed
-	// y la corrida sigue.
+	// RunMaturity pasa a madurados los bonos iniciados que vencen hasta el fin del día de now en UTC, con el
+	// lock del job tomado, y registra el historial del sistema de cada uno; después avisa a cada dueño una vez,
+	// con todos sus bonos madurados. Si otra corrida tiene el lock es ErrJobLocked. Un bono que falla se
+	// loguea, cuenta en Failed y la corrida sigue.
 	RunMaturity(ctx context.Context, now time.Time) (bondBound_domain.MaturityResult, error)
 }
 
@@ -305,9 +305,9 @@ type BondBoundMongoccRepositoryPorts interface {
 	// tiene soldDate ni tookDate; devuelve false si no modificó nada.
 	UpdateStatusIf(ctx context.Context, id string, c StatusChange) (bool, error)
 	// FindMaturable devuelve hasta limit bonos no borrados e iniciados, sin soldDate ni tookDate, cuya
-	// maturityDate es hasta now, por _id ascendente y con _id mayor que afterID. afterID vacío empieza por el
-	// primero y limit 0 no limita.
-	FindMaturable(ctx context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error)
+	// maturityDate es anterior a cutoff, por _id ascendente y con _id mayor que afterID. afterID vacío empieza
+	// por el primero y limit 0 no limita.
+	FindMaturable(ctx context.Context, cutoff time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error)
 	// ListAdmin devuelve la página p, ya normalizada, de los bonos no borrados que pasan f, por createdAt
 	// descendente, con su dueño, su producto y su tipo; los bonos sin producto o sin tipo no aparecen. El
 	// filtro de fecha, el mes y el año usan la zona utcDiff. agencyID nil no filtra por agencia.

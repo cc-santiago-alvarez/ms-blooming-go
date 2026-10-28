@@ -13,13 +13,13 @@ import (
 var byID = bson.D{{Key: "_id", Value: 1}}
 
 // FindMaturable devuelve hasta limit bonos no borrados e iniciados, sin soldDate ni tookDate y con
-// maturityDate hasta now, por _id ascendente y después de afterID. afterID vacío empieza por el primero y
-// limit 0 no limita.
-func (repo *BondBoundMongoccRepository) FindMaturable(ctx context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
+// maturityDate antes de cutoff, por _id ascendente y después de afterID. afterID vacío empieza por el primero
+// y limit 0 no limita.
+func (repo *BondBoundMongoccRepository) FindMaturable(ctx context.Context, cutoff time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
 	filter := bson.M{
 		"isRemove":     false,
 		"statusId":     bondBound_domain.StatusInitiated,
-		"maturityDate": bson.M{"$lte": now},
+		"maturityDate": bson.M{"$lt": cutoff},
 		"soldDate":     nil,
 		"tookDate":     nil,
 	}

@@ -531,7 +531,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/blooming_api_test.go`, `internal/core/application/bond_maturity/*_test.go`, `CLAUDE.md` (paquetes con tests)
 - [ ] **BLM-0148** `impl` Corte de maduración al fin del día en UTC: `RunMaturity` calcula `cutoff` y `FindMaturable` filtra `maturityDate < cutoff`
   - cubre: RF-10.3 · depende de: BLM-0118, BLM-0120
-  - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (parámetro `cutoff`)
+  - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (parámetro `cutoff`), `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` (comentario)
 - [ ] **BLM-0149** `test` Tests del corte (lo que vence hoy en UTC madura aunque sea más tarde; lo de mañana no) y ajuste de los tests de maduración que asumían `maturityDate <= now`
   - cubre: CA-10.10 · depende de: BLM-0148
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable` con corte), `bondBound.runMaturity_integration_test.go`
