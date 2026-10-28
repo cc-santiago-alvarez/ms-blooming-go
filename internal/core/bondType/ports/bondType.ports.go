@@ -8,22 +8,26 @@ import (
 
 // BondTypeApplicationPorts son los casos de uso de bondType.
 type BondTypeApplicationPorts interface {
-	// List devuelve los tipos no borrados por name; con agencyIDs, solo los que tienen alguna de esas
-	// agencias. Un agencyID inválido es ErrInvalidID.
+	// List devuelve los tipos no borrados del alcance de agencia de la sesión, por name. agencyIDs solo
+	// filtra si la agencia de la sesión es la principal. Un agencyID inválido es ErrInvalidID.
 	List(ctx context.Context, agencyIDs []string) ([]*bondType_domain.BondType, error)
 	// ListActive devuelve los tipos activos de la agencia de la sesión, con la cantidad de bonos que el
 	// usuario puede ver.
 	ListActive(ctx context.Context) ([]bondType_domain.ActiveBondType, error)
-	// GetByID devuelve el tipo no borrado, o ErrBondTypeNotFound.
+	// GetByID devuelve el tipo no borrado del alcance de agencia de la sesión, o ErrBondTypeNotFound.
 	GetByID(ctx context.Context, id string) (*bondType_domain.BondType, error)
 	// GetManyByIDs devuelve los tipos no borrados que existan entre ids; los demás no aparecen.
 	GetManyByIDs(ctx context.Context, ids []string) ([]*bondType_domain.BondType, error)
-	// Create normaliza y valida p, y devuelve el tipo creado.
+	// Create normaliza y valida p, y devuelve el tipo creado. Fuera de la agencia principal, p solo puede
+	// tener la agencia de la sesión; si no, es ErrForbidden.
 	Create(ctx context.Context, p bondType_domain.CreateParams) (*bondType_domain.BondType, error)
-	// Update reemplaza los campos editables y devuelve el tipo actualizado, o ErrBondTypeNotFound.
+	// Update reemplaza los campos editables del tipo del alcance de agencia de la sesión y lo devuelve
+	// actualizado, o ErrBondTypeNotFound. Fuera de la agencia principal, el tipo y p solo pueden tener la
+	// agencia de la sesión; si no, es ErrForbidden.
 	Update(ctx context.Context, id string, p bondType_domain.UpdateParams) (*bondType_domain.BondType, error)
-	// Remove borra el tipo de forma lógica; si tiene bondObjects no borrados devuelve
-	// ErrBondTypeHasBondObjects.
+	// Remove borra de forma lógica el tipo del alcance de agencia de la sesión, o devuelve
+	// ErrBondTypeNotFound. Fuera de la agencia principal, si también es de otras agencias devuelve
+	// ErrForbidden; si tiene bondObjects no borrados, ErrBondTypeHasBondObjects.
 	Remove(ctx context.Context, id string) error
 }
 
