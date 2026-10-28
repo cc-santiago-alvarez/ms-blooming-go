@@ -15,9 +15,9 @@
 //   - Meteor y ms-feed tienen que correr con la zona del proceso igual a -utc-diff (TZ=Etc/GMT+5 para -5),
 //     porque calculan algunas fechas con la zona del servidor y Go, con la de la sesión.
 //
-// Las sesiones son del admin (-admin, o el primer admin de Blooming de la zona) y de los dueños de la muestra,
-// solo de usuarios cuyo perfil y agencia están en la zona: ms-oauth toma la zona del perfil y Meteor, de la
-// agencia. Se borran al terminar.
+// Las sesiones son del admin (-admin, o el primer admin de Blooming de la agencia principal en la zona, que ve
+// los bonos de todas las agencias) y de los dueños de la muestra, solo de usuarios cuyo perfil y agencia están
+// en la zona: ms-oauth toma la zona del perfil y Meteor, de la agencia. Se borran al terminar.
 //
 // Lee FA_MONGO_URL, FA_MONGO_DBNAME, API_SECRET y API_PORT de los mismos archivos de entorno que el API; -db
 // pisa FA_MONGO_DBNAME.
@@ -57,7 +57,7 @@ func main() {
 	var cfg runConfig
 	var only string
 	flag.StringVar(&cfg.db, "db", "", "base de la corrida, una copia; pisa FA_MONGO_DBNAME")
-	flag.StringVar(&cfg.admin, "admin", "", "userId del admin de Blooming; sin él se elige el primero de la zona")
+	flag.StringVar(&cfg.admin, "admin", "", "userId del admin de Blooming; sin él se elige el primero de la agencia principal en la zona")
 	flag.IntVar(&cfg.utcDiff, "utc-diff", -5, "zona de la corrida en horas; Meteor y ms-feed tienen que correr con esa TZ")
 	flag.StringVar(&cfg.meteorURL, "meteor", "ws://localhost:3000/websocket", "websocket DDP de Meteor")
 	flag.StringVar(&cfg.feedURL, "feed", "http://localhost:8090", "URL base de ms-feed")

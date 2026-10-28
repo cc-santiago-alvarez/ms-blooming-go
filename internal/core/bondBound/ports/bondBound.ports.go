@@ -216,17 +216,18 @@ type BondBoundApplicationPorts interface {
 	// BulkPurchase compra quantity bonos del producto como Purchase, todos en una sola transacción.
 	BulkPurchase(ctx context.Context, p bondBound_domain.BulkPurchaseParams) (bondBound_domain.BulkPurchaseResult, error)
 	// ChartGuides devuelve las guías del bono a partir de su createdAt, en la zona de la sesión. Si no
-	// existe es ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id inválido es
-	// ErrInvalidID.
+	// existe o está fuera del alcance de agencia de la sesión es ErrBondBoundNotFound, y si no es del usuario
+	// ni es admin, ErrForbidden. Un id inválido es ErrInvalidID.
 	ChartGuides(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error)
 	// Chart devuelve las guías del bono, como ChartGuides, y su evolución desde initialDate hasta el
-	// vencimiento a la fecha de hoy, en la zona de la sesión. Si no existe es ErrBondBoundNotFound, y si no
-	// es del usuario ni es admin, ErrForbidden. Un id inválido es ErrInvalidID.
+	// vencimiento a la fecha de hoy, en la zona de la sesión. Si no existe o está fuera del alcance de
+	// agencia de la sesión es ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id
+	// inválido es ErrInvalidID.
 	Chart(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error)
-	// PreSale cotiza la venta anticipada o el canje del bono a hoy, en la zona de la sesión. Si no existe es
-	// ErrBondBoundNotFound; si no es del usuario ni es admin, ErrForbidden; si su estado no se puede vender,
-	// el error de SaleTransitionFor, y si la cotización falla, el de QuoteSale. Un id inválido es
-	// ErrInvalidID.
+	// PreSale cotiza la venta anticipada o el canje del bono a hoy, en la zona de la sesión. Si no existe o
+	// está fuera del alcance de agencia de la sesión es ErrBondBoundNotFound; si no es del usuario ni es
+	// admin, ErrForbidden; si su estado no se puede vender, el error de SaleTransitionFor, y si la cotización
+	// falla, el de QuoteSale. Un id inválido es ErrInvalidID.
 	PreSale(ctx context.Context, id string) (bondBound_domain.SaleProjection, error)
 	// Sale vende el bono iniciado o canjea el madurado del usuario de la sesión: en una transacción cambia
 	// su estado, acredita la cotización en la cuenta destino y registra el historial. Si no existe es
@@ -236,8 +237,8 @@ type BondBoundApplicationPorts interface {
 	// cambió antes, ErrBondAlreadySold. Un id inválido es ErrInvalidID.
 	Sale(ctx context.Context, id string) (bondBound_domain.SaleResult, error)
 	// HistoryOf devuelve el historial del bono en la agencia de la sesión, del más reciente al más antiguo y
-	// listo para mostrar. Si no existe es ErrBondBoundNotFound, y si no es del usuario ni es admin,
-	// ErrForbidden. Un id inválido es ErrInvalidID.
+	// listo para mostrar. Si no existe o está fuera del alcance de agencia de la sesión es
+	// ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id inválido es ErrInvalidID.
 	HistoryOf(ctx context.Context, id string) ([]bondHistory_domain.HistoryEntry, error)
 	// List devuelve la página p de los bonos no borrados del alcance de la sesión que pasan f, por createdAt
 	// descendente, con su dueño, su producto, su tipo y los días y el monto acumulados a hoy; las fechas usan
@@ -263,15 +264,16 @@ type BondBoundApplicationPorts interface {
 	// cualquier agencia, con su producto y los derivados a hoy en la zona de la sesión.
 	ListRecent(ctx context.Context) ([]BondBoundMineItem, error)
 	// GetByID devuelve el bono no borrado si es del usuario de la sesión o la sesión es admin. Si no existe
-	// es ErrBondBoundNotFound, y si es ajeno, ErrForbidden. Un id inválido es ErrInvalidID.
+	// o está fuera del alcance de agencia de la sesión es ErrBondBoundNotFound, y si es ajeno, ErrForbidden.
+	// Un id inválido es ErrInvalidID.
 	GetByID(ctx context.Context, id string) (*bondBound_domain.BondBound, error)
 	// GetDetails devuelve el detalle del bono con lo acumulado a hoy en la zona de la sesión. Si no existe,
 	// le falta el producto o el tipo, o está fuera del alcance de agencia de la sesión, es
 	// ErrBondBoundNotFound; si es ajeno y la sesión no es admin, ErrForbidden. Un id inválido es ErrInvalidID.
 	GetDetails(ctx context.Context, id string) (*BondBoundDetail, error)
 	// Timeline devuelve las compras de userID, o del usuario de la sesión si viene vacío, con las fechas en
-	// la zona de la sesión. Las de otro usuario exigen admin; si no, ErrForbidden. Un id inválido es
-	// ErrInvalidID.
+	// la zona de la sesión. Las propias son de todas sus agencias. Las de otro usuario exigen admin, si no es
+	// ErrForbidden, y solo son las del alcance de agencia de la sesión. Un id inválido es ErrInvalidID.
 	Timeline(ctx context.Context, userID string) ([]TimelineItem, error)
 	// ReportPurchased genera el Excel de los bonos no borrados de la agencia de la sesión que pasan f, por
 	// createdAt descendente, con la moneda de la agencia; el filtro de fecha y la hora del nombre usan la zona
@@ -329,8 +331,8 @@ type BondBoundMongoccRepositoryPorts interface {
 	// falta el producto o el tipo. No filtra por dueño ni por agencia.
 	FindDetails(ctx context.Context, id string) (*BondBoundDetailRow, error)
 	// Timeline devuelve las compras no borradas del usuario por fecha inicial, con las fechas en la zona
-	// utcDiff.
-	Timeline(ctx context.Context, userID string, utcDiff int) ([]TimelineItem, error)
+	// utcDiff. agencyID nil no filtra por agencia.
+	Timeline(ctx context.Context, userID string, agencyID *string, utcDiff int) ([]TimelineItem, error)
 	// SoftDelete marca el bono con isRemove true y actualiza updatedAt; devuelve false si no existe o ya
 	// estaba borrado.
 	SoftDelete(ctx context.Context, id string) (bool, error)

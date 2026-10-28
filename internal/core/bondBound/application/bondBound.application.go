@@ -11,7 +11,6 @@ import (
 	bondUserSetting_ports "github.com/futurapps/ms-blooming-go/internal/core/bondUserSetting/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
 	utils_adapters "github.com/futurapps/ms-blooming-go/internal/core/shared/adapters/utils"
-	shared_application "github.com/futurapps/ms-blooming-go/internal/core/shared/application"
 	shared_ports "github.com/futurapps/ms-blooming-go/internal/core/shared/ports"
 )
 
@@ -54,10 +53,4 @@ func sessionUser(ctx context.Context) (*session_domain.UserSession, error) {
 		return nil, errNoSession
 	}
 	return session, nil
-}
-
-// inAgencyScope indica si un bono de agencyID está en el alcance de la sesión: la agencia principal ve todas.
-func inAgencyScope(ctx context.Context, agencyID string) bool {
-	scope := shared_application.AgencyScope(ctx)
-	return scope == nil || *scope == agencyID
 }

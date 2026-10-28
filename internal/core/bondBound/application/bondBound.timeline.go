@@ -11,21 +11,25 @@ import (
 )
 
 // Timeline devuelve las compras de userID, o del usuario de la sesión si viene vacío, con las fechas en la
-// zona de la sesión. Las de otro usuario exigen admin; si no, ErrForbidden. Un id inválido es ErrInvalidID.
+// zona de la sesión. Las propias son de todas sus agencias. Las de otro usuario exigen admin, si no es
+// ErrForbidden, y solo son las del alcance de agencia de la sesión. Un id inválido es ErrInvalidID.
 func (app *BondBoundApplication) Timeline(ctx context.Context, userID string) ([]bondBound_ports.TimelineItem, error) {
 	session, err := sessionUser(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	var agencyID *string
 	userID = strings.TrimSpace(userID)
 	switch {
-	case userID == "":
+	case userID == "" || userID == session.UserID:
 		userID = session.UserID
 	case !shared_domain.IsValidID(userID):
 		return nil, shared_domain.ErrInvalidID
-	case !shared_application.IsOwnerOrAdmin(ctx, userID):
+	case !session.AdminBlooming:
 		return nil, shared_domain.ErrForbidden
+	default:
+		agencyID = shared_application.AgencyScope(ctx)
 	}
-	return app.Repository.Timeline(ctx, userID, session_domain.UtcDiff(ctx))
+	return app.Repository.Timeline(ctx, userID, agencyID, session_domain.UtcDiff(ctx))
 }

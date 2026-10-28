@@ -105,7 +105,8 @@ func loadSample(ctx context.Context, db *mongocc.MongoQueries, cfg runConfig) (s
 	return sample{admin: admin, objects: objects, bounds: bounds, owners: owners}, nil
 }
 
-// pickAdmin devuelve id si es un admin de Blooming en la zona, o, sin id, el primero que lo sea.
+// pickAdmin devuelve id si es un admin de Blooming de la agencia principal en la zona, o, sin id, el primero
+// que lo sea: un admin de otra agencia no ve los bonos de las demás.
 func pickAdmin(ctx context.Context, db *mongocc.MongoQueries, id string, zone int) (string, error) {
 	filter := bson.M{"adminBlooming": true, "isRemove": false, "status": true}
 	if id != "" {
@@ -120,14 +121,31 @@ func pickAdmin(ctx context.Context, db *mongocc.MongoQueries, id string, zone in
 		if err != nil {
 			return "", err
 		}
-		if ok {
+		if !ok {
+			continue
+		}
+		main, err := isMainAgency(ctx, db, p.AgencyID)
+		if err != nil {
+			return "", err
+		}
+		if main {
 			return p.ID, nil
 		}
 	}
 	if id != "" {
-		return "", fmt.Errorf("%s no es un admin de Blooming activo con perfil y agencia en la zona %d", id, zone)
+		return "", fmt.Errorf("%s no es un admin de Blooming activo de la agencia principal con perfil y agencia en la zona %d", id, zone)
 	}
-	return "", fmt.Errorf("no hay un admin de Blooming activo con perfil y agencia en la zona %d; pasar -admin", zone)
+	return "", fmt.Errorf("no hay un admin de Blooming activo de la agencia principal con perfil y agencia en la zona %d; pasar -admin", zone)
+}
+
+// isMainAgency indica si agencyID es la agencia principal: la que tiene main, que ms-oauth entrega como
+// agency.isMain.
+func isMainAgency(ctx context.Context, db *mongocc.MongoQueries, agencyID string) (bool, error) {
+	n, err := db.CountDocuments(ctx, agencyCollection, bson.M{"_id": agencyID, "main": true})
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 // pickOwners devuelve hasta limit dueños distintos de bounds, en orden, activos y con perfil y agencia en la

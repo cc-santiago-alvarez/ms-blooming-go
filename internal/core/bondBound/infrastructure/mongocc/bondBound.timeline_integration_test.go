@@ -57,7 +57,7 @@ func TestTimeline(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			items, err := repo.Timeline(context.Background(), userID, tt.utcDiff)
+			items, err := repo.Timeline(context.Background(), userID, nil, tt.utcDiff)
 			if err != nil {
 				t.Fatalf("Timeline: %v", err)
 			}
@@ -69,10 +69,49 @@ func TestTimeline(t *testing.T) {
 	}
 
 	t.Run("usuario sin compras", func(t *testing.T) {
-		items, err := repo.Timeline(context.Background(), missingID, -5)
+		items, err := repo.Timeline(context.Background(), missingID, nil, -5)
 
 		if err != nil || items == nil || len(items) != 0 {
 			t.Errorf("Timeline = %+v, %v, se esperaba una lista vacía", items, err)
 		}
 	})
+}
+
+// Con una agencia, la línea de tiempo trae solo las compras del usuario en esa agencia; sin agencia, las de
+// todas. CA-06.16
+func TestTimelineAgencyScope(t *testing.T) {
+	repo := setup(t)
+	seedCatalog(t)
+	inA := boundDoc(nextBoundID(), typeID, "BP12-1", bson.M{"userId": user2ID})
+	inB := boundDoc(nextBoundID(), typeID, "BP12-2", bson.M{"userId": user2ID, "agencyId": agencyB})
+	insert(t, boundCollection, inA, inB)
+	a, b := agencyA, agencyB
+
+	tests := []struct {
+		name     string
+		agencyID *string
+		want     []string
+	}{
+		{name: "agencia A", agencyID: &a, want: []string{inA["_id"].(string)}},
+		{name: "agencia B", agencyID: &b, want: []string{inB["_id"].(string)}},
+		{name: "sin agencia", want: []string{inA["_id"].(string), inB["_id"].(string)}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			items, err := repo.Timeline(context.Background(), user2ID, tt.agencyID, -5)
+			if err != nil {
+				t.Fatalf("Timeline: %v", err)
+			}
+
+			got := make([]string, len(items))
+			for i, item := range items {
+				got[i] = item.ID
+			}
+			slices.Sort(got)
+			want := slices.Sorted(slices.Values(tt.want))
+			if !slices.Equal(got, want) {
+				t.Errorf("Timeline devolvió %v, se esperaba %v", got, want)
+			}
+		})
+	}
 }

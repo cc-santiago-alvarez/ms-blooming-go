@@ -9,8 +9,9 @@ import (
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
-// ChartGuides devuelve las guías del bono a partir de su createdAt, en la zona de la sesión. Si no existe
-// es ErrBondBoundNotFound, y si no es del usuario ni es admin, ErrForbidden. Un id inválido es ErrInvalidID.
+// ChartGuides devuelve las guías del bono a partir de su createdAt, en la zona de la sesión. Si no existe o
+// está fuera del alcance de agencia de la sesión es ErrBondBoundNotFound, y si no es del usuario ni es
+// admin, ErrForbidden. Un id inválido es ErrInvalidID.
 func (app *BondBoundApplication) ChartGuides(ctx context.Context, id string) (bondBound_domain.BondBoundChart, error) {
 	b, err := app.findOwnedOrAdmin(ctx, id)
 	if err != nil {
@@ -20,8 +21,9 @@ func (app *BondBoundApplication) ChartGuides(ctx context.Context, id string) (bo
 	return bondBound_domain.BondBoundChart{Guides: guides}, nil
 }
 
-// findOwnedOrAdmin devuelve el bono no borrado si es del usuario de la sesión o si la sesión es admin. Si
-// no existe es ErrBondBoundNotFound, y si es ajeno, ErrForbidden. Un id inválido es ErrInvalidID.
+// findOwnedOrAdmin devuelve el bono no borrado del alcance de agencia de la sesión si es del usuario de la
+// sesión o si la sesión es admin. Si no existe o está fuera del alcance es ErrBondBoundNotFound, también
+// para el dueño, y si es ajeno, ErrForbidden. Un id inválido es ErrInvalidID.
 func (app *BondBoundApplication) findOwnedOrAdmin(ctx context.Context, id string) (*bondBound_domain.BondBound, error) {
 	if !shared_domain.IsValidID(id) {
 		return nil, shared_domain.ErrInvalidID
@@ -30,7 +32,7 @@ func (app *BondBoundApplication) findOwnedOrAdmin(ctx context.Context, id string
 	if err != nil {
 		return nil, err
 	}
-	if b == nil {
+	if b == nil || !shared_application.InAgencyScope(ctx, b.AgencyID) {
 		return nil, bondBound_domain.ErrBondBoundNotFound
 	}
 	if !shared_application.IsOwnerOrAdmin(ctx, b.UserID) {

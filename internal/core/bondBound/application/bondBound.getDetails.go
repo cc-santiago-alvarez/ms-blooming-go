@@ -23,7 +23,7 @@ func (app *BondBoundApplication) GetDetails(ctx context.Context, id string) (*bo
 	if err != nil {
 		return nil, err
 	}
-	if row == nil || !inAgencyScope(ctx, row.Bound.AgencyID) {
+	if row == nil || !shared_application.InAgencyScope(ctx, row.Bound.AgencyID) {
 		return nil, bondBound_domain.ErrBondBoundNotFound
 	}
 	if !shared_application.IsOwnerOrAdmin(ctx, row.Bound.UserID) {

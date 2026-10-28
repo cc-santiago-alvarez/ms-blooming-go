@@ -10,29 +10,38 @@ import (
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 )
 
-// El dueño y un admin que no es dueño reciben la cotización del bono a hoy, sin que se escriba nada; otro
-// usuario, o una llamada sin sesión, es ErrForbidden, y un bono inexistente es ErrBondBoundNotFound aunque la
-// sesión sea admin. CA-05.6
+// El dueño y un admin que no es dueño reciben la cotización del bono a hoy, sin que se escriba nada, y otro
+// usuario es ErrForbidden. Un bono inexistente o de otra agencia que la de la sesión es ErrBondBoundNotFound
+// aunque la sesión sea admin o del dueño, y también sin sesión; el admin de la agencia principal cotiza el de
+// cualquier agencia. CA-05.6, CA-05.18
 func TestPreSaleAccess(t *testing.T) {
 	owner := withSession(ownerID, -5)
 
 	tests := []struct {
-		name string
-		ctx  context.Context
-		id   string
-		err  error
+		name     string
+		ctx      context.Context
+		agencyID string
+		id       string
+		err      error
 	}{
 		{name: "dueño", ctx: owner, id: boundID},
 		{name: "admin que no es dueño", ctx: withAdmin(), id: boundID},
 		{name: "otro usuario", ctx: withSession(otherUserID, -5), id: boundID, err: shared_domain.ErrForbidden},
-		{name: "sin sesión", ctx: context.Background(), id: boundID, err: shared_domain.ErrForbidden},
+		{name: "sin sesión", ctx: context.Background(), id: boundID, err: bondBound_domain.ErrBondBoundNotFound},
 		{name: "inexistente", ctx: owner, id: missingID, err: bondBound_domain.ErrBondBoundNotFound},
 		{name: "inexistente, admin", ctx: withAdmin(), id: missingID, err: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, admin", ctx: withAdmin(), agencyID: agencyB, id: boundID, err: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, dueño", ctx: owner, agencyID: agencyB, id: boundID, err: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, otro usuario", ctx: withSession(otherUserID, -5), agencyID: agencyB, id: boundID, err: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, admin de la principal", ctx: withMainAdmin(), agencyID: agencyB, id: boundID},
 		{name: "id inválido", ctx: owner, id: "abc", err: shared_domain.ErrInvalidID},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := boundOnDay(50)
+			if tt.agencyID != "" {
+				b.AgencyID = tt.agencyID
+			}
 			f := newFakes(b)
 
 			projection, err := f.app().PreSale(tt.ctx, tt.id)

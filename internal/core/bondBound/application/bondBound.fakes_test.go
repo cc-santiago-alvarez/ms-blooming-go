@@ -224,8 +224,8 @@ func (r *fakeRepository) FindDetails(_ context.Context, id string) (*bondBound_p
 	return &bondBound_ports.BondBoundDetailRow{Bound: *b, BondObject: r.detailObject, BondType: r.detailType}, nil
 }
 
-func (r *fakeRepository) Timeline(_ context.Context, userID string, utcDiff int) ([]bondBound_ports.TimelineItem, error) {
-	r.queries = append(r.queries, repoQuery{method: "Timeline", userID: userID, utcDiff: utcDiff})
+func (r *fakeRepository) Timeline(_ context.Context, userID string, agencyID *string, utcDiff int) ([]bondBound_ports.TimelineItem, error) {
+	r.queries = append(r.queries, repoQuery{method: "Timeline", userID: userID, agencyID: agencyID, utcDiff: utcDiff})
 	if r.err != nil {
 		return nil, r.err
 	}

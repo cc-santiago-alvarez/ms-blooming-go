@@ -17,21 +17,24 @@ func timelineItems() []bondBound_ports.TimelineItem {
 	}
 }
 
-// Sin userId, o con el propio, son las compras del usuario de la sesión; las de otro usuario exigen admin,
-// y un no admin recibe ErrForbidden sin consultar. Siempre se consulta en la zona de la sesión. CA-06.12
+// Sin userId, o con el propio, son las compras del usuario de la sesión, de todas sus agencias; las de otro
+// usuario exigen admin, que solo ve las de su agencia salvo que sea la principal, y un no admin recibe
+// ErrForbidden sin consultar. Siempre se consulta en la zona de la sesión. CA-06.12, CA-06.16
 func TestTimelineAccess(t *testing.T) {
 	tests := []struct {
-		name     string
-		ctx      context.Context
-		userID   string
-		wantUser string
-		wantZone int
-		wantErr  error
+		name       string
+		ctx        context.Context
+		userID     string
+		wantUser   string
+		wantAgency *string
+		wantZone   int
+		wantErr    error
 	}{
 		{name: "sin userId", ctx: withSession(ownerID, -5), userID: "", wantUser: ownerID, wantZone: -5},
 		{name: "userId con espacios", ctx: withSession(ownerID, 14), userID: "  ", wantUser: ownerID, wantZone: 14},
 		{name: "el propio userId", ctx: withSession(ownerID, -5), userID: ownerID, wantUser: ownerID, wantZone: -5},
-		{name: "admin con userId ajeno", ctx: withAdmin(), userID: otherUserID, wantUser: otherUserID, wantZone: -5},
+		{name: "admin con userId ajeno", ctx: withAdmin(), userID: otherUserID, wantUser: otherUserID, wantAgency: agency(agencyA), wantZone: -5},
+		{name: "admin de la principal con userId ajeno", ctx: withMainAdmin(), userID: otherUserID, wantUser: otherUserID, wantZone: -5},
 		{name: "admin sin userId", ctx: withAdmin(), userID: "", wantUser: adminID, wantZone: -5},
 		{name: "no admin con userId ajeno", ctx: withSession(ownerID, -5), userID: otherUserID, wantErr: shared_domain.ErrForbidden},
 		{name: "userId inválido", ctx: withAdmin(), userID: "abc", wantErr: shared_domain.ErrInvalidID},
@@ -53,7 +56,7 @@ func TestTimelineAccess(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Timeline: %v", err)
 			}
-			want := []repoQuery{{method: "Timeline", userID: tt.wantUser, utcDiff: tt.wantZone}}
+			want := []repoQuery{{method: "Timeline", userID: tt.wantUser, agencyID: tt.wantAgency, utcDiff: tt.wantZone}}
 			if !reflect.DeepEqual(f.repo.queries, want) {
 				t.Errorf("consultas %+v, se esperaba %+v", f.repo.queries, want)
 			}

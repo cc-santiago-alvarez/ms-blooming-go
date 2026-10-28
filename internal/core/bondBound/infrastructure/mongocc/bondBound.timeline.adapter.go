@@ -11,10 +11,15 @@ import (
 const timelineFormat = "%Y-%m-%d %H:%M"
 
 // Timeline devuelve las compras no borradas del usuario por fecha inicial: "<producto> (<clave>)" y la fecha
-// inicial en la zona utcDiff como inicio y fin. Sin producto, el texto queda vacío.
-func (repo *BondBoundMongoccRepository) Timeline(ctx context.Context, userID string, utcDiff int) ([]bondBound_ports.TimelineItem, error) {
+// inicial en la zona utcDiff como inicio y fin. Sin producto, el texto queda vacío. agencyID nil no filtra
+// por agencia.
+func (repo *BondBoundMongoccRepository) Timeline(ctx context.Context, userID string, agencyID *string, utcDiff int) ([]bondBound_ports.TimelineItem, error) {
+	match := bson.M{"isRemove": false, "userId": userID}
+	if agencyID != nil {
+		match["agencyId"] = *agencyID
+	}
 	pipeline := bson.A{
-		bson.M{"$match": bson.M{"isRemove": false, "userId": userID}},
+		bson.M{"$match": match},
 		bson.M{"$sort": bson.D{{Key: "initialDate", Value: 1}, {Key: "_id", Value: 1}}},
 	}
 	pipeline = append(pipeline, lookupOne(bondObjectCollection, "bondObjectId", "bondObject",

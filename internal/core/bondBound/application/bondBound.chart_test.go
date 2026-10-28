@@ -90,10 +90,13 @@ func TestChartEvolutionBase(t *testing.T) {
 	})
 }
 
-// El dueño y un admin reciben la gráfica; otro usuario, o una llamada sin sesión, es ErrForbidden, y un
-// bono inexistente o borrado es ErrBondBoundNotFound aunque la sesión sea admin. CA-03.16
+// El dueño y un admin reciben la gráfica, y otro usuario es ErrForbidden. Un bono inexistente, borrado o de
+// otra agencia que la de la sesión es ErrBondBoundNotFound aunque la sesión sea admin, del dueño o de otro
+// usuario, y también sin sesión, sin llegar a ErrForbidden; el admin de la agencia principal recibe la de
+// cualquier agencia. CA-03.16, CA-03.18
 func TestChartAccess(t *testing.T) {
 	removed := func(b *bondBound_domain.BondBound) { b.IsRemove = true }
+	inAgencyB := func(b *bondBound_domain.BondBound) { b.AgencyID = agencyB }
 	owner := withSession(ownerID, -5)
 
 	tests := []struct {
@@ -107,11 +110,15 @@ func TestChartAccess(t *testing.T) {
 		{name: "admin que no es dueño", ctx: withAdmin(), id: boundID},
 		{name: "dueño con id legacy", ctx: owner, id: legacyBoundID},
 		{name: "otro usuario", ctx: withSession(otherUserID, -5), id: boundID, wantErr: shared_domain.ErrForbidden},
-		{name: "sin sesión", ctx: context.Background(), id: boundID, wantErr: shared_domain.ErrForbidden},
+		{name: "sin sesión", ctx: context.Background(), id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
 		{name: "inexistente", ctx: owner, id: missingID, wantErr: bondBound_domain.ErrBondBoundNotFound},
 		{name: "inexistente, admin", ctx: withAdmin(), id: missingID, wantErr: bondBound_domain.ErrBondBoundNotFound},
 		{name: "borrado", ctx: owner, modify: removed, id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
 		{name: "borrado, admin", ctx: withAdmin(), modify: removed, id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, admin", ctx: withAdmin(), modify: inAgencyB, id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, dueño", ctx: owner, modify: inAgencyB, id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, otro usuario", ctx: withSession(otherUserID, -5), modify: inAgencyB, id: boundID, wantErr: bondBound_domain.ErrBondBoundNotFound},
+		{name: "de otra agencia, admin de la principal", ctx: withMainAdmin(), modify: inAgencyB, id: boundID},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
