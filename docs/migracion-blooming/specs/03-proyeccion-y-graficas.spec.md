@@ -51,19 +51,19 @@ El front pedía a ms-feed la `data` de las dos gráficas: `getDataChart` solo la
   - Los valida con las reglas de la spec 02 §5.1 que aplican a los términos.
   - Responde `{guides}`, más `data` cuando `simulation=true`.
 - **RF-03.4** — Proyección de un bondObject del catálogo (usuario).
-  - Carga el bondObject solo si es visible para el usuario con las reglas de RF-02.9 (agencia, activo, privado autorizado). El admin lo ve siempre.
+  - Carga el bondObject solo si es visible para el usuario con las reglas de RF-02.9 (agencia, activo, privado autorizado). Un admin lo ve aunque esté inactivo o sea privado, dentro del alcance de agencia de la sesión (spec 02): si su agencia no es la principal, el `agencyId` del bondObject debe contenerla (corrige O12).
   - Responde `{guides}`, más `data` cuando `simulation=true`.
   - Si no es visible, `ERR_BOND_OBJECT_NOT_FOUND`.
 - **RF-03.5** — Guías de un bono comprado (dueño o admin).
   - `BuildBoundGuides(terms, createdAt, utcDiff)` (función pura) usa como base `bondBound.createdAt` y los términos del snapshot `bondBound.earlyCashTerm` y `maturityTimeInDays` (§5.3).
-  - Si el bono no existe, `ERR_BOND_BOUND_NOT_FOUND`. Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`.
+  - Si el bono no existe o está fuera del alcance de agencia de la sesión (`AgencyScope`), `ERR_BOND_BOUND_NOT_FOUND`, también para el dueño. Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`. El alcance se valida antes que el dueño, como en el detalle (spec 06, RF-06.7; corrige B38).
 - **RF-03.6** — `BoundProjection(terms, amount, initialDate, now, utcDiff) []BoundChartPoint` (función pura) genera la evolución de un bono comprado con la fórmula de §5.4: `maturityTimeInDays + 1` puntos, de `i = 0` a `maturityTimeInDays` inclusive, desde `StartOfDay(initialDate, utcDiff)`.
   - Los días hasta hoy llevan `inversion` (lo acumulado) y `perdida` (lo acumulado con la penalidad). Los días posteriores a la inflexión que todavía no llegaron llevan `ganancia` (lo proyectado). Los días hasta la inflexión llevan además `ganancia` igual a `amount`.
   - El punto de hoy lleva `atMoment`, `perdidaAtMoment` y `bulletClass: "lastBullet"`; el último lleva `gananciaFinal`.
   - Los valores son `float64` redondeados a 2 decimales, sin truncar porcentajes (corrige O10). Las fechas y los días transcurridos se calculan en `utcDiff` (corrige O8).
 - **RF-03.7** — Gráfica de un bono comprado (dueño o admin).
   - Responde `{guides, data}`: las guías de RF-03.5 y la evolución de RF-03.6 a la fecha actual, en el `utcDiff` de la sesión.
-  - Mismo control que RF-03.5: si el bono no existe o está borrado, `ERR_BOND_BOUND_NOT_FOUND`; si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN` (corrige B35).
+  - Mismo control que RF-03.5: si el bono no existe, está borrado o fuera del alcance de agencia, `ERR_BOND_BOUND_NOT_FOUND`; si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN` (corrige B35 y B38).
 
 ## 4. Contrato API
 
@@ -259,9 +259,9 @@ Esta spec no persiste nada.
 
 ## 7. Ports y dependencias
 
-- `BondObjectApplicationPorts.ChartPreview` y `ChartByID` (spec 02). Para la visibilidad, `ChartByID` reutiliza el filtro de RF-02.9.
+- `BondObjectApplicationPorts.ChartPreview` y `ChartByID` (spec 02). Para la visibilidad, `ChartByID` reutiliza el filtro de RF-02.9 y, para el admin, el alcance de agencia de la spec 02.
 - `BondBoundApplicationPorts.ChartGuides` (spec 04/06). Usa `FindOneByID` del repositorio de `bondBound` (BLM-0077).
-- `BondBoundApplicationPorts.Chart` (RF-03.7). Reutiliza el control de dueño o admin de `ChartGuides` (`findOwnedOrAdmin`).
+- `BondBoundApplicationPorts.Chart` (RF-03.7). Reutiliza el control de alcance de agencia y de dueño o admin de `ChartGuides` (`findOwnedOrAdmin`).
 - `shared.StartOfDay`, `shared.DaysBetween` y `shared.Round2` (spec 00).
 
 ## 8. Bugs legacy
@@ -282,7 +282,7 @@ Esta spec no persiste nada.
 - **CA-03.4** (RF-03.2) — Con `P 0` e `initialDayForWithdraw 0` hay una sola guía, con `lineThickness 0` y `label ""`.
 - **CA-03.5** (RF-03.2) — Con hoy `2026-10-13`, `utcDiff -5`, `initialDayForWithdraw 30` y `M 365`, la guía de retiro tiene `date "2026-11-12"` y `toDate "2027-10-12"`.
 - **CA-03.6** (RF-03.3) — Sin `adminBlooming`, el preview responde `403`. Con `inflectionPoint >= maturityTimeInDays` responde `400`. Con `simulation: false` la respuesta no tiene la clave `data`.
-- **CA-03.7** (RF-03.4) — La proyección de un bono privado que no autoriza al usuario responde `404 ERR_BOND_OBJECT_NOT_FOUND`; un admin sí la recibe.
+- **CA-03.7** (RF-03.4) — La proyección de un bono privado que no autoriza al usuario responde `404 ERR_BOND_OBJECT_NOT_FOUND`; un admin de una agencia del bono, o de la principal, sí la recibe.
 - **CA-03.8** (RF-03.5) — Las guías de un bono de otro usuario responden `403` para un no admin. Para el dueño, con `createdAt 2026-01-01T15:00Z`, `P 30` e `initialDayForWithdraw 10`, `G1.date` es `"2026-01-31"`, `G2.date` es `"2026-01-11"`, y `G2` no tiene `toDate`.
 - **CA-03.9** (RF-03.4) — `GET /bond-objects/{id}/chart?simulation=true` sobre un bondObject legacy (`_id` de 17 caracteres) devuelve la misma proyección que sobre uno nuevo con los mismos términos.
 - **CA-03.10** (RF-03.3) — Con `amount 1000.004`, `M 10`, `R 100`, `P 0` y las dos penalidades en `0`, el día 10 de la vista previa da `ganancia 2000` y `perdida 1000`: se simuló con `amount 1000` y penalidades de 100. Sin el redondeo la ganancia daría `2000.01`, y sin el default la pérdida daría `2000`.
@@ -300,6 +300,8 @@ Esta spec no persiste nada.
   - otro usuario recibe `403 ERR_FORBIDDEN`, y un bono inexistente o borrado, `404 ERR_BOND_BOUND_NOT_FOUND`;
   - un id fuera de formato responde `400 ERR_INVALID_ID` sin leer el repositorio;
   - un `_id` legacy de 17 caracteres responde igual que uno nuevo.
+- **CA-03.17** (RF-03.4) — `GET /bond-objects/{id}/chart` de un bondObject de la agencia A, activo y público, responde `404 ERR_BOND_OBJECT_NOT_FOUND` a un admin de B que no es la principal. Un admin de la agencia principal lo recibe aunque esté inactivo o sea privado.
+- **CA-03.18** (RF-03.5, RF-03.7) — Dado un bono de la agencia B, `/chart-guides` y `/chart` responden `404 ERR_BOND_BOUND_NOT_FOUND` a un admin de A que no es la principal y a un usuario de A que no es el dueño, sin `403`. Un admin de la agencia principal recibe `200`.
 
 ## 10. Tareas
 
@@ -322,6 +324,8 @@ Esta spec no persiste nada.
 | BLM-0147 | Tests del caso de uso y del handler de la gráfica de bondBound (dueño, admin, 403, 404, id legacy) | test | F5 | CA-03.16 | BLM-0146 | `internal/core/bondBound/application/bondBound.chart_test.go`, `cmd/api/handlers/bondBounds/bondBounds.chart.get_test.go`, `bondBounds.testServer_test.go` (`Chart` en `fakeApp`) |
 
 BLM-0028, BLM-0029, BLM-0030 y BLM-0031 van en la fase F2. BLM-0060, BLM-0061 y BLM-0062 van en la F3 (catálogo). BLM-0078, BLM-0085 y BLM-0086 van en la F5, cuando ya existe el repositorio de `bondBound` (BLM-0077). La evolución del bono comprado, que sale de ms-feed (BLM-0143 a BLM-0147), también va en la F5. Ver `tasks.md`.
+
+El alcance de agencia de RF-03.4 (O12) va en BLM-0160 y BLM-0161 (spec 02); el de RF-03.5 y RF-03.7 (B38), en BLM-0162 y BLM-0163 (spec 06).
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -22,17 +22,17 @@
 | Fase | Nombre | Tareas | impl | test | ops |
 |---|---|---|---|---|---|
 | F0 | Preparación del repositorio | 7 | 0 | 0 | 7 |
-| F1 | Plataforma base (spec 00) | 28 | 22 | 6 | 0 |
+| F1 | Plataforma base (spec 00) | 30 | 23 | 7 | 0 |
 | F2 | Historial y tipos compartidos (specs 08 y 03) | 11 | 9 | 2 | 0 |
-| F3 | Catálogo (specs 01, 02 y 03) | 27 | 20 | 7 | 0 |
+| F3 | Catálogo (specs 01, 02 y 03) | 31 | 22 | 9 | 0 |
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
 | F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 33 | 22 | 11 | 0 |
-| F6 | Consultas, reportes y KPIs (specs 06 y 07) | 16 | 11 | 5 | 0 |
+| F6 | Consultas, reportes y KPIs (specs 06 y 07) | 18 | 12 | 6 | 0 |
 | F7 | Maduración (spec 10) | 13 | 8 | 5 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
 | F10 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
-| | **Total** | **161** | **101** | **42** | **18** |
+| | **Total** | **169** | **105** | **46** | **18** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -157,6 +157,12 @@ Specs: [spec 00](specs/00-plataforma-base.spec.md).
 - [ ] **BLM-0023** `test` Tests unitarios de helpers, `EffectiveDate`, textos y paginación
   - cubre: CA-00.11, CA-00.12, CA-00.17, CA-00.21, CA-00.28, CA-00.37, CA-00.38, CA-00.39 · depende de: BLM-0009, BLM-0011, BLM-0018, BLM-0139
   - archivos: `internal/core/shared/domain/*_test.go`, `internal/core/shared/domain/testdata/`, `internal/core/shared/adapters/utils/*_test.go`
+- [ ] **BLM-0156** `impl` `InAgencyScope` y `OnlyInAgencyScope`: alcance de lectura y de escritura de un recurso con una o varias agencias
+  - cubre: RF-00.5 · depende de: BLM-0007
+  - archivos: `internal/core/shared/application/shared.authorization.go`
+- [ ] **BLM-0157** `test` Tests de `InAgencyScope` y `OnlyInAgencyScope` (agencia principal, otra agencia, varias agencias, lista vacía y sin sesión)
+  - cubre: CA-00.44 · depende de: BLM-0156
+  - archivos: `internal/core/shared/application/shared.authorization_test.go`
 
 **Criterio de salida F1:** El servicio arranca, valida `x-secret` y la sesión de ms-oauth, y los ports compartidos (saldo, notificaciones, exportador) tienen tests.
 
@@ -289,6 +295,18 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
 - [ ] **BLM-0155** `test` Tests del decoder con cada valor de `isPrivateBond` y de integración del detalle y del listado del tipo con un `isPrivateBond` string
   - cubre: CA-02.16, CA-02.17 · depende de: BLM-0154
   - archivos: `internal/core/bondObject/domain/bondObject.bson_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.findVisible_integration_test.go`
+- [ ] **BLM-0158** `impl` Alcance de agencia en bondType: el listado filtra por `AgencyScope` en lugar del `agencyId` del query, el detalle fuera del alcance es `ERR_BOND_TYPE_NOT_FOUND`, y el alta, la edición y la baja de un admin de otra agencia exigen tipos solo de su agencia
+  - cubre: RF-01.1, RF-01.3, RF-01.4, RF-01.5, RF-01.6 · depende de: BLM-0156, BLM-0042, BLM-0043, BLM-0049
+  - archivos: `internal/core/bondType/application/bondType.list.go`, `bondType.getById.go`, `bondType.create.go`, `bondType.update.go`, `bondType.remove.go`, `internal/core/bondType/ports/bondType.ports.go` (comentarios)
+- [ ] **BLM-0159** `test` Tests de alcance de agencia de bondType (admin de otra agencia, de la principal y tipos compartidos) y ajuste de los tests que usaban un context sin sesión
+  - cubre: CA-01.1, CA-01.10, CA-01.11 · depende de: BLM-0158
+  - archivos: `internal/core/bondType/application/*_test.go`
+- [ ] **BLM-0160** `impl` Alcance de agencia en bondObject: listado con `AgencyScope`, detalle, edición, baja y gráfica del admin solo en su alcance, alta y edición solo con su agencia y un tipo de su alcance, y `UpdateKeys` solo sobre los productos de su agencia
+  - cubre: RF-02.1, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-03.4 · depende de: BLM-0156, BLM-0158, BLM-0052, BLM-0054, BLM-0060
+  - archivos: `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go`, `bondObject.create.go`, `bondObject.update.go`, `bondObject.remove.go`, `bondObject.updateKeys.go`, `bondObject.chartById.go`, `bondObject.fakes_test.go` (firma de `UpdateKeys`), `internal/core/bondObject/ports/bondObject.ports.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.updateKeys.adapter.go`, `bondObject.mongocc.repository.go`, `bondObject.updateKeys_integration_test.go` (firma)
+- [ ] **BLM-0161** `test` Tests de alcance de agencia de bondObject y de su gráfica, ajuste de los tests que usaban un admin de otra agencia o un context sin sesión, e integración de `UpdateKeys` con `agencyId` string, solo de la agencia y compartido
+  - cubre: CA-02.1, CA-02.18, CA-02.19, CA-02.20, CA-03.7, CA-03.17 · depende de: BLM-0160
+  - archivos: `internal/core/bondObject/application/*_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.updateKeys_integration_test.go`, `bondObject.chart_integration_test.go`
 
 **Criterio de salida F3:** Tipos y productos se administran y consultan por REST, con historial, proyección y permisos.
 
@@ -496,6 +514,12 @@ Specs: [spec 06](specs/06-bond-bound-consultas.spec.md), [spec 07](specs/07-repo
 - [ ] **BLM-0116** `test` Tests de integración de las agregaciones (rangos, búsqueda, agrupado)
   - cubre: CA-07.1, CA-07.2, CA-07.3, CA-07.5, CA-07.6, CA-07.8 · depende de: BLM-0111
   - archivos: `internal/core/bondBound/infrastructure/mongocc/bondBound.report*_integration_test.go`, `bondBound.countByStatus_integration_test.go`, `bondBound.testdb_integration_test.go` (helpers de los reportes)
+- [ ] **BLM-0162** `impl` Alcance de agencia en los bonos por id con control de dueño o admin (`findOwnedOrAdmin`: bono, guías, gráfica, cotización e historial) y en la línea de tiempo de otro usuario; `inAgencyScope` pasa a `shared`
+  - cubre: RF-06.6, RF-06.9, RF-03.5, RF-03.7, RF-05.1, RF-08.3 · depende de: BLM-0156, BLM-0078, BLM-0092, BLM-0099, BLM-0105, BLM-0145
+  - archivos: `internal/core/bondBound/application/bondBound.chartGuides.go` (`findOwnedOrAdmin`), `bondBound.timeline.go`, `bondBound.application.go`, `bondBound.getDetails.go`, `bondBound.remove.go`, `bondBound.fakes_test.go` (firma de `Timeline`), `internal/core/bondBound/ports/bondBound.ports.go` (`Timeline` con `agencyID` y comentarios), `internal/core/bondBound/infrastructure/mongocc/bondBound.timeline.adapter.go`, `bondBound.timeline_integration_test.go` (firma)
+- [ ] **BLM-0163** `test` Tests de alcance de agencia de los bonos por id y de la línea de tiempo, ajuste de los casos sin sesión (ahora `404`) y admin de la agencia principal en el arnés de paridad
+  - cubre: CA-03.18, CA-05.18, CA-06.15, CA-06.16, CA-08.10 · depende de: BLM-0162
+  - archivos: `internal/core/bondBound/application/bondBound.getById_test.go`, `bondBound.chartGuides_test.go`, `bondBound.chart_test.go`, `bondBound.preSale_test.go`, `bondBound.history_test.go`, `bondBound.timeline_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.timeline_integration_test.go`, `cmd/tools/parity/dump.go` (`pickAdmin`)
 
 **Criterio de salida F6:** Todas las lecturas de bonos, reportes Excel y KPI responden con permisos y filtros de fecha correctos.
 
@@ -558,7 +582,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - cubre: RF-04.1, RF-04.2, RF-05.3, RF-10.3, RF-07.1 · depende de: BLM-0088, BLM-0098, BLM-0124, BLM-0116
   - archivos: `test/e2e/`
 - [ ] **BLM-0127** [P] `test` Matriz de autorización rol × endpoint (usuario, dueño, admin, otra agencia) ejecutada sobre todas las rutas registradas
-  - cubre: RF-00.5, RF-04.1, RF-05.3, RF-06.6, RF-09.3 · depende de: BLM-0106, BLM-0071, BLM-0095
+  - cubre: RF-00.5, RF-04.1, RF-05.3, RF-06.6, RF-09.3 · depende de: BLM-0106, BLM-0071, BLM-0095, BLM-0158, BLM-0160, BLM-0162
   - archivos: `test/authz/`
 - [ ] **BLM-0128** [P] `test` Prueba de carga: 50 compras concurrentes sobre la misma cuenta y p95 del listado de administración con 100k bonos
   - cubre: RF-04.5, RF-06.1 · depende de: BLM-0088, BLM-0109
@@ -619,7 +643,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.2 | BLM-0004 | BLM-0021, BLM-0025 | CA-00.2, CA-00.43 | — |
 | 00 | RF-00.3 | BLM-0005 | BLM-0021 | CA-00.3, CA-00.4, CA-00.5 | — |
 | 00 | RF-00.4 | BLM-0006 | BLM-0021 | CA-00.6 | — |
-| 00 | RF-00.5 | BLM-0007 | BLM-0021, BLM-0127 | CA-00.7, CA-00.8, CA-00.34 | — |
+| 00 | RF-00.5 | BLM-0007, BLM-0156 | BLM-0021, BLM-0127, BLM-0157 | CA-00.7, CA-00.8, CA-00.34, CA-00.44 | — |
 | 00 | RF-00.6 | BLM-0008 | BLM-0025 | CA-00.9 | BLM-0132 |
 | 00 | RF-00.7 | BLM-0002 | BLM-0025 | CA-00.10, CA-00.42 | — |
 | 00 | RF-00.8 | BLM-0009, BLM-0026, BLM-0139 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30, CA-00.37 | — |
@@ -634,20 +658,20 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.17 | BLM-0020 | BLM-0025 | CA-00.27 | — |
 | 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28, CA-00.39 | — |
 | 00 | RF-00.19 | BLM-0026 | BLM-0027 | CA-00.30, CA-00.31, CA-00.32 | — |
-| 01 | RF-01.1 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.1, CA-01.2 | BLM-0136 |
+| 01 | RF-01.1 | BLM-0040, BLM-0041, BLM-0042, BLM-0050, BLM-0158 | BLM-0044, BLM-0051, BLM-0159 | CA-01.1, CA-01.2, CA-01.10 | BLM-0136 |
 | 01 | RF-01.2 | BLM-0040, BLM-0041, BLM-0042, BLM-0047, BLM-0048, BLM-0050 | BLM-0051, BLM-0058 | CA-01.3 | — |
-| 01 | RF-01.3 | BLM-0040, BLM-0041, BLM-0042, BLM-0050 | BLM-0044, BLM-0051 | CA-01.2, CA-01.4, CA-01.9 | — |
-| 01 | RF-01.4 | BLM-0039, BLM-0040, BLM-0043, BLM-0050 | BLM-0051 | CA-01.2, CA-01.5 | — |
-| 01 | RF-01.5 | BLM-0039, BLM-0040, BLM-0041, BLM-0043, BLM-0050 | BLM-0044, BLM-0051 | CA-01.6, CA-01.9 | — |
-| 01 | RF-01.6 | BLM-0040, BLM-0041, BLM-0047, BLM-0048, BLM-0049, BLM-0050 | BLM-0044, BLM-0051 | CA-01.7, CA-01.9 | — |
+| 01 | RF-01.3 | BLM-0040, BLM-0041, BLM-0042, BLM-0050, BLM-0158 | BLM-0044, BLM-0051, BLM-0159 | CA-01.2, CA-01.4, CA-01.9, CA-01.10 | — |
+| 01 | RF-01.4 | BLM-0039, BLM-0040, BLM-0043, BLM-0050, BLM-0158 | BLM-0051, BLM-0159 | CA-01.2, CA-01.5, CA-01.11 | — |
+| 01 | RF-01.5 | BLM-0039, BLM-0040, BLM-0041, BLM-0043, BLM-0050, BLM-0158 | BLM-0044, BLM-0051, BLM-0159 | CA-01.6, CA-01.9, CA-01.11 | — |
+| 01 | RF-01.6 | BLM-0040, BLM-0041, BLM-0047, BLM-0048, BLM-0049, BLM-0050, BLM-0158 | BLM-0044, BLM-0051, BLM-0159 | CA-01.7, CA-01.9, CA-01.11 | — |
 | 01 | RF-01.7 | BLM-0039 | BLM-0044 | CA-01.8 | — |
-| 02 | RF-02.1 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.1 | — |
+| 02 | RF-02.1 | BLM-0046, BLM-0047, BLM-0052, BLM-0056, BLM-0160 | BLM-0058, BLM-0161 | CA-02.1, CA-02.18 | — |
 | 02 | RF-02.2 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.2 | — |
-| 02 | RF-02.3 | BLM-0046, BLM-0052, BLM-0056, BLM-0154 | BLM-0057, BLM-0058, BLM-0155 | CA-02.3, CA-02.15, CA-02.17 | — |
-| 02 | RF-02.4 | BLM-0045, BLM-0046, BLM-0054, BLM-0056 | BLM-0057 | CA-02.4, CA-02.5, CA-02.14 | — |
-| 02 | RF-02.5 | BLM-0045, BLM-0046, BLM-0053, BLM-0054, BLM-0056 | BLM-0057, BLM-0058, BLM-0059 | CA-02.6, CA-02.7, CA-02.14 | — |
-| 02 | RF-02.6 | BLM-0046, BLM-0047, BLM-0054, BLM-0056 | BLM-0058 | CA-02.8 | — |
-| 02 | RF-02.7 | BLM-0046, BLM-0047, BLM-0054, BLM-0056 | BLM-0057 | CA-02.9, CA-02.14 | — |
+| 02 | RF-02.3 | BLM-0046, BLM-0052, BLM-0056, BLM-0154, BLM-0160 | BLM-0057, BLM-0058, BLM-0155, BLM-0161 | CA-02.3, CA-02.15, CA-02.17, CA-02.18 | — |
+| 02 | RF-02.4 | BLM-0045, BLM-0046, BLM-0054, BLM-0056, BLM-0160 | BLM-0057, BLM-0161 | CA-02.4, CA-02.5, CA-02.14, CA-02.19 | — |
+| 02 | RF-02.5 | BLM-0045, BLM-0046, BLM-0053, BLM-0054, BLM-0056, BLM-0160 | BLM-0057, BLM-0058, BLM-0059, BLM-0161 | CA-02.6, CA-02.7, CA-02.14, CA-02.19 | — |
+| 02 | RF-02.6 | BLM-0046, BLM-0047, BLM-0054, BLM-0056, BLM-0160 | BLM-0058, BLM-0161 | CA-02.8, CA-02.20 | — |
+| 02 | RF-02.7 | BLM-0046, BLM-0047, BLM-0054, BLM-0056, BLM-0160 | BLM-0057, BLM-0161 | CA-02.9, CA-02.14, CA-02.19 | — |
 | 02 | RF-02.8 | BLM-0046, BLM-0048, BLM-0055, BLM-0056 | BLM-0058 | CA-02.10 | — |
 | 02 | RF-02.9 | BLM-0046, BLM-0047, BLM-0055, BLM-0056, BLM-0154 | BLM-0058, BLM-0155 | CA-02.11, CA-02.15, CA-02.16, CA-02.17 | BLM-0133, BLM-0136 |
 | 02 | RF-02.10 | BLM-0046, BLM-0048, BLM-0055, BLM-0056 | BLM-0058 | CA-02.12 | — |
@@ -655,10 +679,10 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 03 | RF-03.1 | BLM-0028, BLM-0029 | BLM-0031, BLM-0125 | CA-03.1, CA-03.2, CA-03.3 | — |
 | 03 | RF-03.2 | BLM-0028, BLM-0030 | BLM-0031 | CA-03.4, CA-03.5 | — |
 | 03 | RF-03.3 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.6, CA-03.10 | — |
-| 03 | RF-03.4 | BLM-0060, BLM-0061 | BLM-0062 | CA-03.7, CA-03.9 | BLM-0136 |
-| 03 | RF-03.5 | BLM-0028, BLM-0030, BLM-0078, BLM-0085 | BLM-0086 | CA-03.8 | — |
+| 03 | RF-03.4 | BLM-0060, BLM-0061, BLM-0160 | BLM-0062, BLM-0161 | CA-03.7, CA-03.9, CA-03.17 | BLM-0136 |
+| 03 | RF-03.5 | BLM-0028, BLM-0030, BLM-0078, BLM-0085, BLM-0162 | BLM-0086, BLM-0163 | CA-03.8, CA-03.18 | — |
 | 03 | RF-03.6 | BLM-0143 | BLM-0125, BLM-0144 | CA-03.11, CA-03.12, CA-03.13, CA-03.14, CA-03.15 | — |
-| 03 | RF-03.7 | BLM-0145, BLM-0146 | BLM-0147 | CA-03.16 | BLM-0136, BLM-0152 |
+| 03 | RF-03.7 | BLM-0145, BLM-0146, BLM-0162 | BLM-0147, BLM-0163 | CA-03.16, CA-03.18 | BLM-0136, BLM-0152 |
 | 04 | RF-04.1 | BLM-0075, BLM-0076, BLM-0081, BLM-0084 | BLM-0087, BLM-0088, BLM-0126, BLM-0127 | CA-04.1, CA-04.2, CA-04.3, CA-04.4, CA-04.14 | BLM-0135, BLM-0136 |
 | 04 | RF-04.2 | BLM-0075, BLM-0076, BLM-0082, BLM-0084 | BLM-0087, BLM-0088, BLM-0126 | CA-04.3, CA-04.5, CA-04.6 | — |
 | 04 | RF-04.3 | BLM-0076, BLM-0079 | BLM-0088 | CA-04.7, CA-04.14 | BLM-0133, BLM-0135 |
@@ -667,7 +691,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 04 | RF-04.6 | BLM-0083 | BLM-0089 | CA-04.11 | — |
 | 04 | RF-04.7 | BLM-0083 | BLM-0089 | CA-04.12 | — |
 | 04 | RF-04.8 | BLM-0075, BLM-0076, BLM-0077 | BLM-0088 | CA-04.13 | — |
-| 05 | RF-05.1 | BLM-0092, BLM-0095 | BLM-0097 | CA-05.5, CA-05.6 | — |
+| 05 | RF-05.1 | BLM-0092, BLM-0095, BLM-0162 | BLM-0097, BLM-0163 | CA-05.5, CA-05.6, CA-05.18 | — |
 | 05 | RF-05.2 | BLM-0090, BLM-0150 | BLM-0096, BLM-0097, BLM-0125, BLM-0151 | CA-05.1, CA-05.2, CA-05.3, CA-05.4, CA-05.5, CA-05.17 | — |
 | 05 | RF-05.3 | BLM-0091, BLM-0093, BLM-0095 | BLM-0097, BLM-0098, BLM-0126, BLM-0127 | CA-05.7, CA-05.8, CA-05.9, CA-05.10, CA-05.11, CA-05.16 | BLM-0135 |
 | 05 | RF-05.4 | BLM-0093 | BLM-0097, BLM-0098 | CA-05.7, CA-05.12 | — |
@@ -679,10 +703,10 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 06 | RF-06.3 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.7 | — |
 | 06 | RF-06.4 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.8, CA-06.14 | BLM-0136 |
 | 06 | RF-06.5 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.9 | — |
-| 06 | RF-06.6 | BLM-0105, BLM-0106 | BLM-0108, BLM-0109, BLM-0127 | CA-06.10 | — |
+| 06 | RF-06.6 | BLM-0105, BLM-0106, BLM-0162 | BLM-0108, BLM-0109, BLM-0127, BLM-0163 | CA-06.10, CA-06.15 | — |
 | 06 | RF-06.7 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.10, CA-06.14 | — |
 | 06 | RF-06.8 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.11 | — |
-| 06 | RF-06.9 | BLM-0103, BLM-0105, BLM-0106 | BLM-0108, BLM-0109 | CA-06.12 | — |
+| 06 | RF-06.9 | BLM-0103, BLM-0105, BLM-0106, BLM-0162 | BLM-0108, BLM-0109, BLM-0163 | CA-06.12, CA-06.16 | — |
 | 06 | RF-06.10 | BLM-0103, BLM-0104, BLM-0106 | BLM-0108, BLM-0109 | CA-06.13 | — |
 | 06 | RF-06.11 | BLM-0101, BLM-0105 | BLM-0107, BLM-0125 | CA-06.4, CA-06.5 | — |
 | 06 | RF-06.12 | BLM-0101, BLM-0102 | BLM-0107, BLM-0108, BLM-0109 | CA-06.3 | — |
@@ -692,7 +716,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 07 | RF-07.4 | BLM-0112, BLM-0114 | BLM-0115, BLM-0116 | CA-07.1, CA-07.4 | — |
 | 08 | RF-08.1 | BLM-0032, BLM-0033, BLM-0034, BLM-0035 | BLM-0100 | CA-08.1, CA-08.2 | — |
 | 08 | RF-08.2 | BLM-0033, BLM-0034, BLM-0037, BLM-0063 | BLM-0100 | CA-08.3, CA-08.9 | — |
-| 08 | RF-08.3 | BLM-0033, BLM-0034, BLM-0037, BLM-0099 | BLM-0100 | CA-08.4, CA-08.9 | — |
+| 08 | RF-08.3 | BLM-0033, BLM-0034, BLM-0037, BLM-0099, BLM-0162 | BLM-0100, BLM-0163 | CA-08.4, CA-08.9, CA-08.10 | — |
 | 08 | RF-08.4 | BLM-0036, BLM-0037 | BLM-0038, BLM-0100 | CA-08.5, CA-08.6, CA-08.7, CA-08.8 | — |
 | 08 | RF-08.5 | BLM-0036 | BLM-0038 | CA-08.6 | — |
 | 08 | RF-08.6 | BLM-0032, BLM-0035 | BLM-0100 | CA-08.1 | — |
@@ -727,6 +751,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | T3 | [spec 01](specs/01-bond-type.spec.md) | Corregir | BLM-0042 | `get` no filtra `isRemove` y devuelve `undefined` si no existe. |
 | T4 | [spec 01](specs/01-bond-type.spec.md) | Corregir | BLM-0043 | `update` escribe `undefined` (`null`) en los campos que no llegan. |
 | O1 | [spec 01](specs/01-bond-type.spec.md) | Corregir | BLM-0039 | `agencyId` se filtra con `$all` en tipos y con `$in: [agencyId]` en objetos (arreglo dentro de arreglo). |
+| T5 | [spec 01](specs/01-bond-type.spec.md) | Corregir | BLM-0158 | El legado no valida la agencia en ningún método de administración de bondType, y la migración lo mantuvo: un admin de una agencia que no es la principal lista (`GET /bond-types` solo filtra por el `agencyId` del query), lee, edita y borra tipos de otras agencias, y crea o edita tipos para otras agencias. Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). |
 | O2 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0053 | El diff de `update` no detecta cambios en `earlyCashTerm` ni en fechas. |
 | O3 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0055 | Los privados se filtran en el método `getBondObjectsByBondTypeId`, pero no en la publicación ni en `getMostPurchased`/`getLatest`. |
 | O4 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0054 | `massiveUpdateOfKeys` nunca responde, y el cliente queda colgado. |
@@ -734,6 +759,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | O6 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0045 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. |
 | O9 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0052 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. |
 | O11 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Paridad: criterio de verdad de JS (§6) | BLM-0154 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). |
+| O12 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0160 | El legado no valida la agencia en ningún método de administración de bondObject, y la migración lo mantuvo: un admin de una agencia que no es la principal lista (`GET /bond-objects` solo filtra por el `agencyId` del query), lee, edita, borra y cambia la clave de bondObjects de otras agencias, los crea para otras agencias o con un tipo de otra agencia, y ve la proyección de cualquiera (`GET /bond-objects/{id}/chart`, spec 03). Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). |
 | O10 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0029, BLM-0143 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. Los feeds de ms-feed hacen lo mismo: `/bond/:id/feed` con el monto y los porcentajes, y `/bound/:id/feed` con los porcentajes y el punto de inflexión. |
 | O7 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0060 | `getDataChart` con `simulation` pero sin `preview` devuelve `data: []`. |
 | O8 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0030, BLM-0143 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. Los feeds de ms-feed también usan la zona del servidor, para las fechas y para los días transcurridos. |
@@ -764,6 +790,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | B25 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0103 | `getBondPurchasedForChart` formatea con `%G` (año ISO por semana): las fechas de fines de diciembre salen con el año siguiente. También usa UTC. |
 | B26 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0105 | `get`, `getDetails`, `getInvestorsById` y `getBondPurchasedForChart` no validan dueño ni permisos: cualquier sesión lee bonos ajenos. |
 | B27 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0105 | `getDetails` devuelve el `bondObject` completo, incluido `authorizedUserIds`. |
+| B38 | [spec 06](specs/06-bond-bound-consultas.spec.md) | Corregir | BLM-0162 | La corrección de B17, B26 y B35 valida dueño o admin, pero no el alcance de agencia: un admin de una agencia que no es la principal lee con el `_id` un bono de otra agencia en `GET /bond-bounds/{id}`, `/chart-guides`, `/chart`, `/pre-sale` y `/history`, y la línea de tiempo de un usuario de otra agencia con `GET /bond-bounds/timeline?userId=`. `/details` y la baja ya lo validaban. Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). |
 | B11 | [spec 07](specs/07-reportes-y-kpis.spec.md) | Corregir | BLM-0110 | `reportSummaryPurchasedBonds` lee `data.data.statusId` (crashea sin `data.data`) y `countByStatusId` exige `data.query`. |
 | B12 | [spec 07](specs/07-reportes-y-kpis.spec.md) | Corregir | BLM-0111 | El `betweenDates` del KPI compara año, mes y día por separado: del 25-ene al 5-feb no incluye el 30-ene. Además deriva `utcDiff` de la zona del servidor o del cliente. |
 | B34 | [spec 07](specs/07-reportes-y-kpis.spec.md) | Corregir | BLM-0111 | Búsqueda con `$regex` sin escapar en los reportes y el KPI (mismo problema que B24 del listado). |
@@ -800,4 +827,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 98 RF, 169 CA, 161 tareas, 67 bugs. Validación sin errores. Siguiente ID libre: `BLM-0156`.
+Última generación: 11 specs, 98 RF, 181 CA, 169 tareas, 70 bugs. Validación sin errores. Siguiente ID libre: `BLM-0164`.

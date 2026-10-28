@@ -33,7 +33,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 ## 3. Requisitos funcionales
 
 - **RF-05.1** — Cotización.
-  - Carga el bono; si no existe, `ERR_BOND_BOUND_NOT_FOUND`. Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`.
+  - Carga el bono; si no existe o está fuera del alcance de agencia de la sesión (`AgencyScope`), `ERR_BOND_BOUND_NOT_FOUND` (corrige B38). Si no es del usuario y el usuario no es admin, `ERR_FORBIDDEN`.
   - Si el bono no se puede vender por su estado (§5.3), devuelve el error correspondiente.
   - Si no, calcula `QuoteSale` (RF-05.2) con el `utcDiff` de la sesión, como el legado: cuando consulta el dueño es su zona, y un admin cotiza en la suya.
   - Responde la proyección.
@@ -42,7 +42,7 @@ Archivo: `backend/server/model/bond.bound.js`.
   - Usa los valores del snapshot del bono, en `float64`, sin truncar (corrige B14).
   - Un bono en estado `'2'` (madurado) se cotiza siempre como vencido: `daysPassed = M` y el monto completo, sin mirar la fecha (corrige B37).
 - **RF-05.3** — Venta o canje.
-  - Carga el bono, que **debe ser del usuario de la sesión**. Ni siquiera un admin vende bonos ajenos (corrige B16).
+  - Carga el bono, que **debe ser del usuario de la sesión**. Ni siquiera un admin vende bonos ajenos (corrige B16). No aplica el alcance de agencia: ya exige ser el dueño.
   - Determina la transición por estado (§5.3) y calcula `QuoteSale`. Si la cotización falla, **aborta** sin escribir nada (corrige B3).
   - Ejecuta la transacción de RF-05.5 y las notificaciones de RF-05.7.
   - Responde `200 {bondBoundId, statusId, amount, profit, accountId, available}`.
@@ -92,7 +92,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 | Sentinel | HTTP | Código legacy | Cuándo |
 |---|---|---|---|
 | `ERR_INVALID_ID` | 400 | — | Un id de path o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19) |
-| `ERR_BOND_BOUND_NOT_FOUND` | 404 | -11 | No existe o está borrado |
+| `ERR_BOND_BOUND_NOT_FOUND` | 404 | -11 | No existe o está borrado; en la cotización, también fuera del alcance de agencia |
 | `ERR_FORBIDDEN` | 403 | — | Cotización de un bono ajeno sin ser admin, o venta de un bono ajeno |
 | `ERR_BOND_ALREADY_SOLD` | 409 | — | Estado `'5'`, o perdió la carrera de RF-05.5 |
 | `ERR_BOND_ALREADY_TOOK` | 409 | — | Estado `'6'` |
@@ -245,6 +245,7 @@ type SaleProjection struct {
 - **CA-05.17** (RF-05.2) — Un bono de `amount 1000`, `M 365`, `R 15`, `P 30` y `Pf 75`, comprado el `2026-10-13T20:30Z` (`maturityDate 2027-10-13T20:30Z`), se cotiza el `2027-10-13T01:00Z` con `utcDiff -5`, que en la zona del usuario todavía es el 12 de octubre:
   - en `'2'`: `amount 1150`, `atMoment 1150`, `profit 150` y `totalDaysPassed 365`;
   - en `'1'`: `amount 1037.39`, `atMoment 1149.55`, `profit 37.39` y `totalDaysPassed 364`, igual que antes.
+- **CA-05.18** (RF-05.1) — `pre-sale` de un bono de la agencia B responde `404 ERR_BOND_BOUND_NOT_FOUND` a un admin de A que no es la principal, y `200` a un admin de la agencia principal.
 
 ## 10. Tareas
 
@@ -261,6 +262,8 @@ type SaleProjection struct {
 | BLM-0098 | Tests de integración: venta, canje, concurrencia, formato del historial para el gateway y notificaciones | test | F5 | CA-05.7, CA-05.8, CA-05.13, CA-05.14, CA-05.15, CA-05.16 | BLM-0095, BLM-0094 | `internal/core/bondBound/application/bondBound.sale_integration_test.go`, `bondBound.testdb_integration_test.go` (`bondUserSetting` y `UserSettings` con el adapter real) |
 | BLM-0150 | `QuoteSale` cotiza un bono `'2'` como vencido (`daysPassed = M` y monto completo), sin mirar la fecha | impl | F5 | RF-05.2 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
 | BLM-0151 | Tests de la cotización de un `'2'` antes de su día de vencimiento en la zona del usuario, y de que un `'1'` no cambia | test | F5 | CA-05.17 | BLM-0150 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
+
+El alcance de agencia de RF-05.1 (B38) va en BLM-0162 y BLM-0163 (spec 06).
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -39,7 +39,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
   - `params` vale `[]` por defecto.
   - Devuelve un error. Cada llamador decide: dentro de una transacción el error aborta (specs 04 y 05); fuera de ella se loguea (spec 02).
 - **RF-08.2** — Historial de un producto (admin). `GET /bond-objects/{id}/history` devuelve los registros con `{relatedId: id, typeId: '1', isRemove: false}` y la `agencyId` de la sesión (paridad), ordenados por `createdAt` desc, en el formato de RF-08.4.
-- **RF-08.3** — Historial de un bono comprado (dueño o admin). `GET /bond-bounds/{id}/history` primero valida que el bono exista y pertenezca al usuario o que sea admin (spec 06, RF-06.6). Después devuelve `{relatedId: id, typeId: '2', isRemove: false}` con la agencia de la sesión, ordenado por `createdAt` desc, en el formato de RF-08.4.
+- **RF-08.3** — Historial de un bono comprado (dueño o admin). `GET /bond-bounds/{id}/history` primero valida que el bono exista, esté en el alcance de agencia de la sesión y pertenezca al usuario o que sea admin (spec 06, RF-06.6; corrige B38). Después devuelve `{relatedId: id, typeId: '2', isRemove: false}` con la agencia de la sesión, ordenado por `createdAt` desc, en el formato de RF-08.4.
 - **RF-08.4** — Presentación de cada registro (paridad con `bondHistoryFunTemp`):
   - `type = {_id, name}` del enum;
   - `user = {first_name, last_name}` del perfil. Los perfiles se leen **en lote** con `ProfileReader.GetPublic` (corrige H3). Si no existe, `{name: "System"}`;
@@ -76,7 +76,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
 
 **Cambio de contrato respecto al legado:** `listByType` recibía `{type: 'BOND'|'BOND_BOUND', relatedId}`. Ahora el tipo lo define la ruta.
 
-**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda un `typeId` distinto de `'1'`/`'2'`, `text` o `relatedId` vacíos, o un `BOND_BOUND_STATUS_CHANGED` sin exactamente dos `params`, o si el `ctx` no tiene sesión ni modo sistema).
+**Errores:** `ERR_INVALID_ID` (400, id fuera de formato; spec 00, RF-00.19), `ERR_FORBIDDEN` (403), `ERR_BOND_BOUND_NOT_FOUND` (404, solo en RF-08.3, también fuera del alcance de agencia) y `ERR_BOND_HISTORY_INVALID_PARAMS` (500 interno, si un llamador manda un `typeId` distinto de `'1'`/`'2'`, `text` o `relatedId` vacíos, o un `BOND_BOUND_STATUS_CHANGED` sin exactamente dos `params`, o si el `ctx` no tiene sesión ni modo sistema).
 
 ## 5. Reglas de negocio
 
@@ -154,6 +154,7 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 - **CA-08.7** (RF-08.4) — `FromNow` con una diferencia de 30 s da `"a few seconds ago"`, con 2 días `"2 days ago"` y con 400 días `"a year ago"`.
 - **CA-08.8** (RF-08.4) — Un historial de 50 registros con 7 usuarios distintos hace una sola lectura de `profile`.
 - **CA-08.9** (RF-08.2, RF-08.3) — Los registros históricos con `relatedId` legacy (17 caracteres), escritos por Meteor, se listan junto a los escritos por el ms para el mismo `relatedId`, en orden de `createdAt`.
+- **CA-08.10** (RF-08.3) — `GET /bond-bounds/{id}/history` de un bono de otra agencia responde `404 ERR_BOND_BOUND_NOT_FOUND` a un admin de una agencia que no es la principal, sin consultar el historial; un admin de la agencia principal recibe `200`.
 
 ## 10. Tareas
 
@@ -171,6 +172,8 @@ type ChangeEntry struct { Old any `json:"old" bson:"old"`; New any `json:"new" b
 | BLM-0100 | Tests de integración: `Add` (con transacción), listados, permisos y lectura en lote, y control de dueño de `HistoryOf` | test | F5 | CA-08.1, CA-08.2, CA-08.3, CA-08.4, CA-08.8, CA-08.9 | BLM-0063, BLM-0099 | `internal/core/bondHistory/infrastructure/mongocc/*_integration_test.go`, `cmd/api/handlers/bondObjects/bondObjects.history.get_test.go`, `bondObjects.testServer_test.go` (historial en `newTestAPI`), `cmd/api/handlers/bondBounds/bondBounds.history.get_test.go`, `bondBounds.testServer_test.go` (`HistoryOf` en `fakeApp`), `internal/core/bondBound/application/bondBound.history_test.go`, `bondBound.fakes_test.go` (`ListByRelated` en `fakeHistory`) |
 
 BLM-0032 a BLM-0036 y BLM-0038 van en la fase F2, porque el catálogo (F3) ya escribe historial. BLM-0063 va en la F3, junto con los handlers de bondObject. BLM-0099 y BLM-0100 van en la F5, porque necesitan el repositorio de `bondBound`. Ver `tasks.md`.
+
+El alcance de agencia de RF-08.3 (B38) va en BLM-0162 y BLM-0163 (spec 06).
 
 ## 11. Fuera de alcance y preguntas abiertas
 

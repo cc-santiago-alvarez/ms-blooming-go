@@ -75,6 +75,9 @@ Ningún endpoint de negocio vive aquí.
   - `RequireBloomingAdmin(handler)` responde `403 ERR_FORBIDDEN` si `session.adminBlooming != true`.
   - `shared.IsOwnerOrAdmin(ctx, ownerUserID) bool` es el helper para los casos de uso que operan sobre recursos de un usuario.
   - `shared.AgencyScope(ctx) *string` devuelve `nil` si `session.agency.isMain` (sin filtro de agencia); si no, devuelve `&session.agencyId`.
+  - `shared.InAgencyScope(ctx, agencyIDs ...string) bool` es el alcance de lectura de un recurso con una o varias agencias: `true` si `AgencyScope(ctx)` es `nil` o si alguna de `agencyIDs` es la agencia de la sesión. Un recurso fuera del alcance se responde como inexistente (`404`).
+  - `shared.OnlyInAgencyScope(ctx, agencyIDs ...string) bool` es el alcance de escritura: `true` si `AgencyScope(ctx)` es `nil`, o si `agencyIDs` no está vacío y todas son la agencia de la sesión.
+  - Sin sesión, las dos devuelven `false`.
 - **RF-00.6** — CORS con `rs/cors`.
   - `AllowOriginFunc` acepta los orígenes de `CORS_ORIGINS`, separados por coma, y los patrones `*.dominio.com` compilados a regex.
   - Una entrada sin esquema acepta `http` y `https`; con esquema, solo ese esquema y ese puerto.
@@ -387,6 +390,11 @@ Contrato de los params:
 - **CA-00.41** (RF-00.14) — `ExporterPort.Excel` hace `POST {MS_EXPORTER_URL}/export/excel/report/{report}` con el payload como body JSON sin envoltorio, `x-secret` y el `x-token` de la sesión cuando existe.
 - **CA-00.42** (RF-00.7) — Un panic en un handler responde `500 ERR_INTERNAL`; el valor del panic y el stack aparecen solo en el log.
 - **CA-00.43** (RF-00.2) — Con `API_DEBUG=false`, `GET /_routes` y `/_routes/raw` responden 404; con `API_DEBUG=true`, `/_routes` devuelve las rutas registradas sin pedir `x-secret`.
+- **CA-00.44** (RF-00.5) — Con una sesión de la agencia principal, `InAgencyScope` y `OnlyInAgencyScope` devuelven `true` para cualquier lista, también vacía. Con una sesión de la agencia A, que no es la principal:
+  - `InAgencyScope(A)` e `InAgencyScope(B, A)` dan `true`; `InAgencyScope(B)` e `InAgencyScope()` dan `false`;
+  - `OnlyInAgencyScope(A)` y `OnlyInAgencyScope(A, A)` dan `true`; `OnlyInAgencyScope(A, B)`, `OnlyInAgencyScope(B)` y `OnlyInAgencyScope()` dan `false`.
+
+  Sin sesión las dos dan `false`, también con `""`.
 
 ## 11. Tareas
 
@@ -420,6 +428,8 @@ Contrato de los params:
 | BLM-0026 | `IDFormat`/`IsValidID` en `shared_domain` y helper de handlers `PathID` (valida y responde `400 ERR_INVALID_ID`) | impl | F1 | RF-00.19, RF-00.8 | BLM-0009, BLM-0002 | `internal/core/shared/domain/shared.id.go`, `cmd/api/handlers/shared/handlers.pathId.go` |
 | BLM-0027 | Tests de formatos de ID (tabla), del rechazo en el handler sin llegar al repositorio y de la lectura y actualización de documentos con los dos formatos | test | F1 | CA-00.30, CA-00.31, CA-00.32 | BLM-0026, BLM-0010 | `internal/core/shared/domain/shared.id_test.go`, `cmd/api/handlers/shared/handlers.pathId_test.go`, `internal/core/shared/infrastructure/mongocc/shared.ids_integration_test.go` |
 | BLM-0139 | Paridad con el legado: `Round2` como `toFixed(2)` y plantilla `BOND_BOUND_MESSAGE_PURCHASED` literal | impl | F1 | RF-00.8, RF-00.12 | BLM-0009, BLM-0018 | `internal/core/shared/domain/shared.money.go`, `shared.text.go` |
+| BLM-0156 | `InAgencyScope` y `OnlyInAgencyScope`: alcance de lectura y de escritura de un recurso con una o varias agencias | impl | F1 | RF-00.5 | BLM-0007 | `internal/core/shared/application/shared.authorization.go` |
+| BLM-0157 | Tests de `InAgencyScope` y `OnlyInAgencyScope` (agencia principal, otra agencia, varias agencias, lista vacía y sin sesión) | test | F1 | CA-00.44 | BLM-0156 | `internal/core/shared/application/shared.authorization_test.go` |
 
 ## 12. Fuera de alcance y preguntas abiertas
 

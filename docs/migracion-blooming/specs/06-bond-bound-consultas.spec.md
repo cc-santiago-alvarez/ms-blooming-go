@@ -57,7 +57,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-06.5** — Mis bonos recientes.
   - Los 5 bonos más recientes del usuario con `isRemove: false` y `statusId ∈ {1,2}`. Sin filtro de agencia, igual que el legado.
   - Campos: `{_id, amount, key, initialDate, maturityRewardsPercentage, maturityTimeInDays, earlyCashTerm, bondObjectId, statusId}`, más `bondObject: {name, earlyCashTerm}` (con `$lookup`, no una consulta por item) y los derivados de RF-06.11.
-- **RF-06.6** — Bono por id (dueño o admin). Devuelve el documento si `isRemove: false`. Si no existe, `ERR_BOND_BOUND_NOT_FOUND`; si es ajeno y el usuario no es admin, `ERR_FORBIDDEN`.
+- **RF-06.6** — Bono por id (dueño o admin). Devuelve el documento si `isRemove: false`. Si no existe o está fuera del alcance de agencia de la sesión (`AgencyScope`), `ERR_BOND_BOUND_NOT_FOUND`; si es ajeno y el usuario no es admin, `ERR_FORBIDDEN`. El alcance se valida antes que el dueño, como en RF-06.7 (corrige B38).
 - **RF-06.7** — Detalle (dueño o admin).
   - El bono, más `bondObject` con proyección pública (sin `authorizedUserIds`) y `bondType`, `status: {_id, name}`, `daysPassed` y `acumulateAmount`.
   - Se omiten `statusId`, `userId`, `bondObjectId` y `bondTypeId` (paridad).
@@ -65,7 +65,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-06.8** — Compradores de un producto (admin). Devuelve los bonos con `isRemove: false`, `bondObjectId` y `AgencyScope`, más `profile` con la proyección pública de `ProfileReader` (corrige B15).
 - **RF-06.9** — Línea de tiempo de compras.
   - Devuelve `[{_id, text: "<bondObject.name> (<key>)", start, end}]`, con `start == end == initialDate` en formato `%Y-%m-%d %H:%M`, en la zona `utcDiff`.
-  - Sin `userId`, devuelve los del usuario de la sesión. Con un `userId` distinto exige admin.
+  - Sin `userId`, o con el propio, devuelve los del usuario de la sesión, de todas sus agencias. Con un `userId` distinto exige admin, y solo devuelve los bonos del alcance de agencia de la sesión (`AgencyScope`): fuera de él la lista queda vacía (corrige B38).
 - **RF-06.10** — Baja lógica (admin) de un bono del alcance de agencia de la sesión (`AgencyScope`). Marca `isRemove: true`; si no existe o es de otra agencia, `ERR_BOND_BOUND_NOT_FOUND`.
 - **RF-06.11** — Derivados (funciones puras), con `today = StartOfDay(now, u)` y `start = StartOfDay(initialDate, u)`:
   - `daysPassed = DaysBetween(start, today)`.
@@ -91,7 +91,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 | GET | `/bond-bounds/statuses` | usuario | RF-06.2 |
 | GET | `/bond-bounds/me` | usuario | RF-06.4 |
 | GET | `/bond-bounds/me/recent` | usuario | RF-06.5 |
-| GET | `/bond-bounds/timeline` | usuario (admin con `userId` ajeno) | RF-06.9 |
+| GET | `/bond-bounds/timeline` | usuario (admin, en su alcance de agencia, con `userId` ajeno) | RF-06.9 |
 | GET | `/bond-bounds/{id}` | dueño o admin | RF-06.6 |
 | GET | `/bond-bounds/{id}/details` | dueño o admin | RF-06.7 |
 | DELETE | `/bond-bounds/{id}` | admin | RF-06.10 |
@@ -143,6 +143,7 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 
 - `BondBoundApplicationPorts`: `List`, `Statuses`, `ListByUserAndObject`, `ListMine`, `ListRecent`, `GetByID`, `GetDetails`, `ListByObject`, `Timeline`, `Remove`.
 - `BondBoundMongoccRepositoryPorts`: un adapter por consulta, más `DateRangeStage(filter, field, u)`, que arma el `$match` con el rango de `DateFilter.Range(u)` y reutiliza la spec 07.
+  - `Timeline(ctx, userID, agencyID *string, utcDiff)`: `agencyID` `nil` no filtra por agencia.
 - `ProfileReader` (spec 00), para la proyección pública en RF-06.8.
 
 ## 8. Bugs legacy
@@ -156,6 +157,7 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 | B25 | `getBondPurchasedForChart` formatea con `%G` (año ISO por semana): las fechas de fines de diciembre salen con el año siguiente. También usa UTC. | Corregir | Dato incorrecto. | BLM-0103 |
 | B26 | `get`, `getDetails`, `getInvestorsById` y `getBondPurchasedForChart` no validan dueño ni permisos: cualquier sesión lee bonos ajenos. | Corregir | Seguridad. | BLM-0105 |
 | B27 | `getDetails` devuelve el `bondObject` completo, incluido `authorizedUserIds`. | Corregir | Exposición de ids de usuarios. | BLM-0105 |
+| B38 | La corrección de B17, B26 y B35 valida dueño o admin, pero no el alcance de agencia: un admin de una agencia que no es la principal lee con el `_id` un bono de otra agencia en `GET /bond-bounds/{id}`, `/chart-guides`, `/chart`, `/pre-sale` y `/history`, y la línea de tiempo de un usuario de otra agencia con `GET /bond-bounds/timeline?userId=`. `/details` y la baja ya lo validaban. Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). | Corregir | Exposición de datos de otra agencia. | BLM-0162 |
 
 ## 9. Criterios de aceptación
 
@@ -176,6 +178,8 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 - **CA-06.12** (RF-06.9) — Un bono con `initialDate 2026-12-31T20:00Z` y `utcDiff -5` da `start "2026-12-31 15:00"`. Un no admin que pide `?userId=otro` recibe `403`.
 - **CA-06.13** (RF-06.10) — `DELETE /bond-bounds/{id}` deja `isRemove: true` y el bono desaparece de RF-06.1 y RF-06.4. Un admin de otra agencia, no principal, recibe `404`.
 - **CA-06.14** (RF-06.4, RF-06.7) — Con bonos propios legacy (17 caracteres) y nuevos (UUID), `GET /bond-bounds/me` los lista juntos, y `GET /bond-bounds/{idLegacy}/details` resuelve los lookups a un `bondObject` y un `bondType` legacy.
+- **CA-06.15** (RF-06.6) — Dado un bono de la agencia B, `GET /bond-bounds/{id}` responde `404 ERR_BOND_BOUND_NOT_FOUND` a un admin de A que no es la principal, y también a su dueño si la sesión es de A. Un admin de la agencia principal recibe `200`.
+- **CA-06.16** (RF-06.9) — Dado `u2` con un bono en A y otro en B, `GET /bond-bounds/timeline?userId=u2` de un admin de A que no es la principal devuelve solo el de A, y de un admin de B que no es la principal, solo el de B; de un admin de la agencia principal, los dos. `u2` sin `userId` recibe los dos.
 
 ## 10. Tareas
 
@@ -190,9 +194,12 @@ El repositorio devuelve filas con el bono completo y lo que traen los lookups (`
 | BLM-0107 | Tests de tabla de los derivados y de los rangos de fecha | test | F6 | CA-06.3, CA-06.4, CA-06.5 | BLM-0101, BLM-0102 | `internal/core/bondBound/domain/bondBound.derived_test.go`, `bondBound.filters_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.dateRange_test.go` |
 | BLM-0108 | Tests unitarios de casos de uso y handlers (permisos, dueño, 404) | test | F6 | CA-06.1, CA-06.2, CA-06.3, CA-06.6, CA-06.7, CA-06.8, CA-06.9, CA-06.10, CA-06.11, CA-06.12, CA-06.13 | BLM-0106 | `internal/core/bondBound/application/bondBound.list*_test.go`, `bondBound.get*_test.go`, `bondBound.statuses_test.go`, `bondBound.timeline_test.go`, `bondBound.remove_test.go`, `bondBound.fakes_test.go` (consultas del repositorio, `FindDetails`, `SoftDelete` y perfiles registrados), `cmd/api/handlers/bondBounds/bondBounds.list*.get_test.go`, `bondBounds.get*.get_test.go`, `bondBounds.statuses.get_test.go`, `bondBounds.timeline.get_test.go`, `bondBounds.remove.delete_test.go`, `bondBounds.testServer_test.go` (consultas en `fakeApp` y sesión admin) |
 | BLM-0109 | Tests de integración de las agregaciones (paginación, búsqueda escapada, scope de agencia, proyecciones, estados por producto y formato de la línea de tiempo) | test | F6 | CA-06.1, CA-06.2, CA-06.3, CA-06.7, CA-06.8, CA-06.9, CA-06.10, CA-06.11, CA-06.12, CA-06.13, CA-06.14 | BLM-0103 | `internal/core/bondBound/infrastructure/mongocc/bondBound.list*_integration_test.go`, `bondBound.timeline_integration_test.go`, `bondBound.findDetails_integration_test.go`, `bondBound.softDelete_integration_test.go`, `bondBound.testdb_integration_test.go` (colecciones de los lookups y fixtures de perfil, producto y tipo) |
+| BLM-0162 | Alcance de agencia en los bonos por id con control de dueño o admin (`findOwnedOrAdmin`: bono, guías, gráfica, cotización e historial) y en la línea de tiempo de otro usuario; `inAgencyScope` pasa a `shared` | impl | F6 | RF-06.6, RF-06.9, RF-03.5, RF-03.7, RF-05.1, RF-08.3 | BLM-0156, BLM-0078, BLM-0092, BLM-0099, BLM-0105, BLM-0145 | `internal/core/bondBound/application/bondBound.chartGuides.go` (`findOwnedOrAdmin`), `bondBound.timeline.go`, `bondBound.application.go`, `bondBound.getDetails.go`, `bondBound.remove.go`, `bondBound.fakes_test.go` (firma de `Timeline`), `internal/core/bondBound/ports/bondBound.ports.go` (`Timeline` con `agencyID` y comentarios), `internal/core/bondBound/infrastructure/mongocc/bondBound.timeline.adapter.go`, `bondBound.timeline_integration_test.go` (firma) |
+| BLM-0163 | Tests de alcance de agencia de los bonos por id y de la línea de tiempo, ajuste de los casos sin sesión (ahora `404`) y admin de la agencia principal en el arnés de paridad | test | F6 | CA-03.18, CA-05.18, CA-06.15, CA-06.16, CA-08.10 | BLM-0162 | `internal/core/bondBound/application/bondBound.getById_test.go`, `bondBound.chartGuides_test.go`, `bondBound.chart_test.go`, `bondBound.preSale_test.go`, `bondBound.history_test.go`, `bondBound.timeline_test.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.timeline_integration_test.go`, `cmd/tools/parity/dump.go` (`pickAdmin`) |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
 - **Pregunta:** ¿se debe impedir borrar (soft delete) un bono en estado `'1'`, que tiene dinero invertido? El legado lo permite.
 - **Pregunta:** RF-06.4 mantiene el filtro por la agencia de la sesión (paridad). Si un usuario cambia de agencia, deja de ver sus bonos anteriores. ¿Es intencional?
+- **Pregunta:** el alcance de RF-06.6 y RF-06.7 aplica también al dueño: si un usuario cambia de agencia, deja de ver por id sus bonos anteriores (como en RF-06.4), aunque los puede seguir vendiendo (RF-05.3 no aplica el alcance). ¿Es intencional?
 - La fórmula de `acumulateAmount` prorratea capital más interés; se mantiene tal cual porque el front la muestra así.

@@ -45,7 +45,7 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
 ## 3. Requisitos funcionales
 
 - **RF-02.1** — Listado de administración.
-  - Devuelve los bondObjects con `isRemove: false`, filtrados opcionalmente por `agencyId` (uno o más, con `$in`).
+  - Devuelve los bondObjects con `isRemove: false` más `AgencyScope(ctx)`. Si la agencia de la sesión es la principal, el admin **puede** filtrar por uno o más `agencyId` en el query (`$in`). Si no lo es, el query no amplía el filtro.
   - Orden: `name` ascendente.
   - Solo admin.
 - **RF-02.2** — Listado agrupado por tipo (admin).
@@ -72,10 +72,15 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
   - Recibe `{bonds: [id...], key}` y actualiza `key` en los bondObjects con `_id` en la lista e `isRemove: false`.
   - Responde `{matched, modified}`. Corrige O4: el legado nunca respondía.
   - Validaciones: `key` no vacía (`ERR_BOND_OBJECT_KEY_REQUIRED`) y `bonds` con 1–500 ids (`ERR_BOND_OBJECT_IDS_REQUIRED`).
+  - Para un admin de una agencia que no es la principal, solo cambia los bondObjects que son solo de su agencia; los demás no cuentan en `matched` ni en `modified`, y no son error.
 - **RF-02.7** — Baja lógica (admin).
   - Marca `isRemove: true` y registra `BondHistory.Add({relatedId, typeId: '1', text: 'BOND_REMOVE'})`.
   - Los bonos ya comprados no se ven afectados.
   - Si no existe, `ERR_BOND_OBJECT_NOT_FOUND`.
+- RF-02.1 y RF-02.3 a RF-02.7 aplican el alcance de agencia de la sesión con las reglas de la spec 01 para los tipos (corrige O12). Para un admin de una agencia que no es la principal:
+  - un bondObject cuyo `agencyId` no contiene su agencia no existe: no aparece en el listado, y el detalle, la edición y la baja responden `ERR_BOND_OBJECT_NOT_FOUND`;
+  - el alta y la edición exigen `agencyId` igual a `[agencia de la sesión]`, y la edición y la baja, un bondObject solo de su agencia; si no, `ERR_FORBIDDEN`. El `bondTypeId` debe estar en su alcance (§5.1);
+  - los errores se evalúan en este orden: validación (`400`), alcance (`404`), permiso (`403`) y tipo inválido (`422`).
 - **RF-02.8** — Inversionistas de un bono (admin).
   - Agrega `bondBound` con `{isRemove: false, bondObjectId, statusId ∈ {'1','2','3','6'}}` más `AgencyScope(ctx)`, agrupa por `userId` con `numOfBounds` y hace `$lookup` a `profile`.
   - Proyección: `investor {first_name, last_name, email, id, avatar, address, avatar_url}`.
@@ -108,6 +113,8 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
 | PATCH | `/bond-objects/keys` | admin | RF-02.6 |
 | DELETE | `/bond-objects/{id}` | admin | RF-02.7 |
 
+Un admin de una agencia que no es la principal opera solo dentro de su agencia (§3).
+
 **`POST /bond-objects`** (el mismo body sirve para `PUT`)
 
 ```json
@@ -136,14 +143,15 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
 **Cambio de contrato respecto al legado:**
 - `getBondObjectsByBondTypeId`, `getMostPurchased` y `getLatest` devolvían `{success, code, data}`; ahora devuelven el arreglo directo.
 - `get` devolvía `authorizedUser` con los perfiles completos; ahora devuelve solo la proyección pública.
+- Un admin de una agencia que no es la principal solo ve, edita, borra y cambia la clave de los bondObjects de su agencia, y solo los crea para ella (O12); el `agencyId` del listado solo filtra para la agencia principal.
 
 **Errores**
 
 | Sentinel | HTTP | Código legacy | Cuándo |
 |---|---|---|---|
 | `ERR_INVALID_ID` | 400 | — | Un id de path o body no es UUID v4 ni Meteor de 17 caracteres (spec 00, RF-00.19) |
-| `ERR_BOND_OBJECT_NOT_FOUND` | 404 | -11 | No existe o está borrado |
-| `ERR_BOND_OBJECT_INVALID_BOND_TYPE` | 422 | — | `bondTypeId` inexistente o borrado |
+| `ERR_BOND_OBJECT_NOT_FOUND` | 404 | -11 | No existe, está borrado o fuera del alcance de agencia de la sesión |
+| `ERR_BOND_OBJECT_INVALID_BOND_TYPE` | 422 | — | `bondTypeId` inexistente, borrado o fuera del alcance de agencia |
 | `ERR_BOND_OBJECT_NAME_REQUIRED` | 400 | — | Falta `name` |
 | `ERR_BOND_OBJECT_KEY_REQUIRED` | 400 | — | Falta `key` |
 | `ERR_BOND_OBJECT_AGENCY_REQUIRED` | 400 | — | `agencyId` vacío |
@@ -154,6 +162,7 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
 | `ERR_BOND_OBJECT_INVALID_PERCENTAGE` | 400 | — | Penalidades fuera de 0–100 |
 | `ERR_BOND_OBJECT_INVALID_SALE_WINDOW` | 400 | — | `saleEndDate < saleInitDate` |
 | `ERR_BOND_OBJECT_IDS_REQUIRED` | 400 | — | `bonds` vacío o con más de 500 ids |
+| `ERR_FORBIDDEN` | 403 | — | No es admin (spec 00), o un admin de una agencia que no es la principal escribe fuera de su agencia |
 
 ## 5. Reglas de negocio
 
@@ -161,7 +170,7 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
 
 Son nuevas: el legado no validaba nada.
 - `name`, `key` y `bondTypeId` no vacíos; `agencyId` con al menos un elemento.
-- `bondTypeId` debe existir con `isRemove: false` (`BondTypeApplicationPorts.GetByID`).
+- `bondTypeId` debe existir con `isRemove: false` y estar en el alcance de agencia de la sesión (`BondTypeApplicationPorts.GetByID`, spec 01); si no, `ERR_BOND_OBJECT_INVALID_BOND_TYPE`.
 - `amount > 0`, `maturityTimeInDays > 0` y `maturityRewardsPercentage >= 0`.
 - `0 <= inflectionPoint < maturityTimeInDays`. Si fueran iguales, las fórmulas de las specs 03 y 05 dividirían por cero (`maturityTimeInDays - inflectionPoint`).
 - `0 <= initialDayForWithdraw <= maturityTimeInDays`.
@@ -234,6 +243,7 @@ type BondObject struct {
   - `FindVisibleForPurchase(ctx, id)`, que usa la spec 04.
   - `GetByIDIncludingRemoved(ctx, id)`, que usan las specs 05 y 10 para el nombre del producto en los mensajes.
 - `BondObjectMongoccRepositoryPorts`, con un adapter por método, más `EnsureIndexes`. Incluye `CountActiveByType(ctx, bondTypeIDs, userID)` y `ExistsNotRemovedByType(ctx, bondTypeID)`, que cuentan sobre `bondObject` para `BondObjectCounterPort` de la spec 01.
+  - `UpdateKeys(ctx, ids, key, agencyID *string)`: `nil` no filtra por agencia; si no, solo cambia los bondObjects que son solo de esa agencia (`agencyId` string igual, o arreglo que la contiene y no tiene otra).
 - `BondBoundStatsPort`: adapter de **solo lectura** dentro de `bondObject/infrastructure/mongocc/`, que agrega sobre la colección `bondBound`:
   - `TopPurchasedObjectIDs(ctx, agencyID, limit)`
   - `InvestorsByObject(ctx, objectID, agencyScope)`
@@ -254,10 +264,11 @@ type BondObject struct {
 | O6 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. | Corregir | Cálculos de dinero inválidos. | BLM-0045 |
 | O9 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. | Corregir | Seguridad. | BLM-0052 |
 | O11 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). | Paridad: criterio de verdad de JS (§6) | Visibilidad de productos privados y endpoints que fallan. | BLM-0154 |
+| O12 | El legado no valida la agencia en ningún método de administración de bondObject, y la migración lo mantuvo: un admin de una agencia que no es la principal lista (`GET /bond-objects` solo filtra por el `agencyId` del query), lee, edita, borra y cambia la clave de bondObjects de otras agencias, los crea para otras agencias o con un tipo de otra agencia, y ve la proyección de cualquiera (`GET /bond-objects/{id}/chart`, spec 03). Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). | Corregir | Aislamiento entre agencias. | BLM-0160 |
 
 ## 9. Criterios de aceptación
 
-- **CA-02.1** (RF-02.1) — Dados los bondObjects `"Zeta"` y `"Alfa"` de la agencia A y uno de B, `GET /bond-objects?agencyId=A` devuelve `[Alfa, Zeta]`.
+- **CA-02.1** (RF-02.1) — Dados los bondObjects `"Zeta"` y `"Alfa"` de la agencia A y uno de B, `GET /bond-objects?agencyId=A` de un admin de la agencia principal devuelve `[Alfa, Zeta]`.
 - **CA-02.2** (RF-02.2) — Dados dos tipos con bonos, `GET /bond-objects/grouped-by-type` devuelve 2 grupos, cada uno con su `bondType` completo, y el repositorio ejecuta una sola agregación.
 - **CA-02.3** (RF-02.3) — Dado un bondObject con `authorizedUserIds: [u1]`, `GET /bond-objects/{id}` devuelve `authorizedUser[0]` con `first_name` y `email`, y sin `password`.
 - **CA-02.4** (RF-02.4) — Un `POST` sin `isPrivateBond` ni `earlyCashTerm.inflectionPenaltyPercentage` guarda `isPrivateBond: false` e `inflectionPenaltyPercentage: 100`, y crea un `bondHistory` (`typeId '1'`, `text 'BOND_ADDED'`) y una `activity` (`description 'BOND_CREATED'`).
@@ -281,6 +292,13 @@ type BondObject struct {
   - el detalle de P responde `200` con `isPrivateBond: true`;
   - para un usuario no autorizado, el listado del tipo responde `200` con Q y sin P;
   - si el usuario está en `authorizedUserIds` de P, P aparece.
+- **CA-02.18** (RF-02.1, RF-02.3) — Dados `X{agencyId:[A]}`, `Y{agencyId:[B]}` y `Z{agencyId:[A, B]}`, para un admin de A que no es la principal, `GET /bond-objects` y `GET /bond-objects?agencyId=B` devuelven `X` y `Z`, `GET /bond-objects/{Y}` responde `404 ERR_BOND_OBJECT_NOT_FOUND` y `GET /bond-objects/{Z}`, `200`. Un admin de la agencia principal ve los tres.
+- **CA-02.19** (RF-02.4, RF-02.5, RF-02.7) — Con los bondObjects de CA-02.18, para un admin de A que no es la principal:
+  - `POST` con `agencyId: [A, B]` responde `403 ERR_FORBIDDEN` sin consultar el tipo; con `[A]` y un `bondTypeId` de un tipo de `[B]`, `422 ERR_BOND_OBJECT_INVALID_BOND_TYPE`; con un tipo de `[A, B]`, `201`;
+  - `PUT` y `DELETE` sobre `Y` responden `404`, y sobre `Z`, `403`; `PUT` sobre `X` con `agencyId: [A, B]` responde `403`.
+
+  Ninguna de esas respuestas guarda nada ni registra historial o actividad.
+- **CA-02.20** (RF-02.6) — Dados `X{agencyId:[A]}`, `W{agencyId:"A"}` (legacy), `Z{agencyId:[A, B]}` e `Y{agencyId:[B]}`, `PATCH /bond-objects/keys` con los cuatro, de un admin de A que no es la principal, responde `200 {matched: 2, modified: 2}`: cambian `X` y `W`, y `Z` e `Y` conservan su `key`. De un admin de la agencia principal responde `{matched: 4, modified: 4}`.
 
 ## 10. Tareas
 
@@ -300,6 +318,8 @@ type BondObject struct {
 | BLM-0059 | Test de tabla de `BuildChanges` | test | F3 | CA-02.6 | BLM-0053 | `internal/core/bondObject/domain/bondObject.changes_test.go` |
 | BLM-0154 | `isPrivateBond` legacy con el criterio de verdad de JS: el decoder de `bondObject` acepta cualquier tipo y el filtro de privados de la consulta trata como público solo `[false, null, "", 0]` | impl | F3 | RF-02.3, RF-02.9 | BLM-0045, BLM-0047 | `internal/core/bondObject/domain/bondObject.bson.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.mongocc.repository.go` (`visibleTo`) |
 | BLM-0155 | Tests del decoder con cada valor de `isPrivateBond` y de integración del detalle y del listado del tipo con un `isPrivateBond` string | test | F3 | CA-02.16, CA-02.17 | BLM-0154 | `internal/core/bondObject/domain/bondObject.bson_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.findVisible_integration_test.go` |
+| BLM-0160 | Alcance de agencia en bondObject: listado con `AgencyScope`, detalle, edición, baja y gráfica del admin solo en su alcance, alta y edición solo con su agencia y un tipo de su alcance, y `UpdateKeys` solo sobre los productos de su agencia | impl | F3 | RF-02.1, RF-02.3, RF-02.4, RF-02.5, RF-02.6, RF-02.7, RF-03.4 | BLM-0156, BLM-0158, BLM-0052, BLM-0054, BLM-0060 | `internal/core/bondObject/application/bondObject.list.go`, `bondObject.listGroupedByType.go`, `bondObject.getById.go`, `bondObject.create.go`, `bondObject.update.go`, `bondObject.remove.go`, `bondObject.updateKeys.go`, `bondObject.chartById.go`, `bondObject.fakes_test.go` (firma de `UpdateKeys`), `internal/core/bondObject/ports/bondObject.ports.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.updateKeys.adapter.go`, `bondObject.mongocc.repository.go`, `bondObject.updateKeys_integration_test.go` (firma) |
+| BLM-0161 | Tests de alcance de agencia de bondObject y de su gráfica, ajuste de los tests que usaban un admin de otra agencia o un context sin sesión, e integración de `UpdateKeys` con `agencyId` string, solo de la agencia y compartido | test | F3 | CA-02.1, CA-02.18, CA-02.19, CA-02.20, CA-03.7, CA-03.17 | BLM-0160 | `internal/core/bondObject/application/*_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.updateKeys_integration_test.go`, `bondObject.chart_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
