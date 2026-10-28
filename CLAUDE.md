@@ -39,6 +39,7 @@ go build ./...
 go vet ./...
 go test ./...                     # unit tests, no infrastructure
 go test -tags=integration ./...   # integration tests against local Mongo (replica set)
+go test -tags=load -timeout 20m ./test/load/   # load test: concurrent purchases, admin list p95 with 100k bonds
 go test ./internal/core/<domain>/... -run TestName
 ```
 

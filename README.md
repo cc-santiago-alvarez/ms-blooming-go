@@ -34,6 +34,7 @@ go build ./...
 go vet ./...
 go test ./...                         # unitarios, sin infraestructura
 go test -tags=integration ./...       # integración contra Mongo (replica set)
+go test -tags=load -timeout 20m ./test/load/   # carga: compras concurrentes y p95 del listado con 100k bonos
 ```
 
 Antes de abrir un PR, `go vet ./...` y `go test ./...` tienen que pasar.
