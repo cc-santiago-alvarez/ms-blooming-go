@@ -24,10 +24,14 @@ type BondObjectMongoccRepository struct {
 
 var _ bondObject_ports.BondObjectMongoccRepositoryPorts = (*BondObjectMongoccRepository)(nil)
 
-// visibleTo es la condición $or de privados: los no privados y, si hay usuario, los privados donde está
+// publicValues son los valores de isPrivateBond con los que un producto es público: los falsos de JS. null
+// también encuentra el campo ausente.
+var publicValues = bson.A{false, nil, "", 0}
+
+// visibleTo es la condición $or de privados: los públicos y, si hay usuario, los privados donde está
 // autorizado.
 func visibleTo(userID string) bson.A {
-	conditions := bson.A{bson.M{"isPrivateBond": bson.M{"$ne": true}}}
+	conditions := bson.A{bson.M{"isPrivateBond": bson.M{"$in": publicValues}}}
 	if userID != "" {
 		conditions = append(conditions, bson.M{"authorizedUserIds": userID})
 	}

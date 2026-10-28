@@ -9,8 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// bondObjectBSON lee un documento legacy: los numéricos pueden venir como string y las fechas de venta
-// como string ISO.
+// bondObjectBSON lee un documento legacy: los numéricos pueden venir como string, las fechas de venta
+// como string ISO e isPrivateBond con cualquier tipo.
 type bondObjectBSON struct {
 	ID                        string                      `bson:"_id"`
 	Name                      string                      `bson:"name"`
@@ -19,7 +19,7 @@ type bondObjectBSON struct {
 	Key                       string                      `bson:"key"`
 	BondTypeID                string                      `bson:"bondTypeId"`
 	Amount                    shared_domain.FlexNumber    `bson:"amount"`
-	IsPrivateBond             bool                        `bson:"isPrivateBond"`
+	IsPrivateBond             truthy                      `bson:"isPrivateBond"`
 	AuthorizedUserIDs         []string                    `bson:"authorizedUserIds"`
 	MaturityTimeInDays        shared_domain.FlexNumber    `bson:"maturityTimeInDays"`
 	MaturityRewardsPercentage shared_domain.FlexNumber    `bson:"maturityRewardsPercentage"`
@@ -53,7 +53,7 @@ func (o *BondObject) UnmarshalBSON(data []byte) error {
 		Key:                       raw.Key,
 		BondTypeID:                raw.BondTypeID,
 		Amount:                    float64(raw.Amount),
-		IsPrivateBond:             raw.IsPrivateBond,
+		IsPrivateBond:             bool(raw.IsPrivateBond),
 		AuthorizedUserIDs:         authorized,
 		MaturityTimeInDays:        raw.MaturityTimeInDays.Int(),
 		MaturityRewardsPercentage: float64(raw.MaturityRewardsPercentage),
@@ -67,6 +67,56 @@ func (o *BondObject) UnmarshalBSON(data []byte) error {
 		IsRemove:                  raw.IsRemove,
 	}
 	return nil
+}
+
+// truthy es un valor legacy que se lee como booleano con el criterio de verdad de JS: false, null, undefined,
+// "" y 0 son falsos, y cualquier otro valor es verdadero.
+type truthy bool
+
+// UnmarshalBSONValue acepta cualquier tipo BSON. Un string solo es falso si está vacío, aunque sea "false"
+// o "0", y un documento o un array siempre es verdadero.
+func (b *truthy) UnmarshalBSONValue(t byte, data []byte) error {
+	rv := bson.RawValue{Type: bson.Type(t), Value: data}
+
+	switch rv.Type {
+	case bson.TypeBoolean:
+		if v, ok := rv.BooleanOK(); ok {
+			*b = truthy(v)
+			return nil
+		}
+	case bson.TypeNull, bson.TypeUndefined:
+		*b = false
+		return nil
+	case bson.TypeString:
+		if s, ok := rv.StringValueOK(); ok {
+			*b = s != ""
+			return nil
+		}
+	case bson.TypeInt32:
+		if v, ok := rv.Int32OK(); ok {
+			*b = v != 0
+			return nil
+		}
+	case bson.TypeInt64:
+		if v, ok := rv.Int64OK(); ok {
+			*b = v != 0
+			return nil
+		}
+	case bson.TypeDouble:
+		if v, ok := rv.DoubleOK(); ok {
+			*b = v != 0
+			return nil
+		}
+	case bson.TypeDecimal128:
+		if v, ok := rv.Decimal128OK(); ok {
+			*b = truthy(!v.IsZero())
+			return nil
+		}
+	default:
+		*b = true
+		return nil
+	}
+	return fmt.Errorf("booleano legacy: valor BSON %s malformado", rv.Type)
 }
 
 // legacyTime es una fecha opcional de un documento legacy, guardada como Date o como string.
