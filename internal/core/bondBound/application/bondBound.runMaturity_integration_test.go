@@ -72,7 +72,8 @@ func maturitySetup(t *testing.T) {
 }
 
 // maturityBoundDoc es el bono iniciado id de userID con la clave BP12-seq, comprado hace days días con el plazo
-// de 100 de saleBoundDoc: con 101 venció ayer y con 99 vence mañana.
+// de 100 de saleBoundDoc: con 101 venció ayer y con 98 vence pasado mañana, fuera del corte aunque la corrida
+// cruce la medianoche UTC.
 func maturityBoundDoc(id string, seq int, userID string, days int) bson.M {
 	doc := saleBoundDoc(id, bondBound_domain.StatusInitiated, days)
 	maps.Copy(doc, bson.M{"key": fmt.Sprintf("BP12-%d", seq), "keySeq": seq, "userId": userID})
@@ -101,7 +102,7 @@ type gatedMaturable struct {
 	calls   atomic.Int32
 }
 
-func (g *gatedMaturable) FindMaturable(ctx context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
+func (g *gatedMaturable) FindMaturable(ctx context.Context, cutoff time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
 	if g.calls.Add(1) == 1 {
 		select {
 		case <-g.release:
@@ -109,7 +110,7 @@ func (g *gatedMaturable) FindMaturable(ctx context.Context, now time.Time, limit
 			return nil, errors.New("la compuerta de la réplica no se abrió a tiempo")
 		}
 	}
-	return g.BondBoundMongoccRepositoryPorts.FindMaturable(ctx, now, limit, afterID)
+	return g.BondBoundMongoccRepositoryPorts.FindMaturable(ctx, cutoff, limit, afterID)
 }
 
 // maturityOutcome es lo que devolvió la corrida de una réplica.
@@ -363,6 +364,39 @@ func TestRunMaturityLockState(t *testing.T) {
 	}
 }
 
+// Con now 2026-10-13T00:03Z, en Mongo madura el bono que vence el 13 a las 23:59:59 UTC, con maturedAt now,
+// y el que vence a la medianoche siguiente queda iniciado. CA-10.10
+func TestRunMaturityCutoffInMongo(t *testing.T) {
+	maturitySetup(t)
+	today := maturityBoundDoc(maturityID(1), 1, ownerID, 101)
+	today["maturityDate"] = time.Date(2026, 10, 13, 23, 59, 59, 0, time.UTC)
+	tomorrow := maturityBoundDoc(maturityID(2), 2, ownerID, 101)
+	tomorrow["maturityDate"] = time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)
+	insert(t, boundCollection, today, tomorrow)
+	app, _ := maturityApp("replica-1")
+	now := time.Date(2026, 10, 13, 0, 3, 0, 0, time.UTC)
+
+	result, err := app.RunMaturity(context.Background(), now)
+
+	if err != nil {
+		t.Fatalf("RunMaturity: %v", err)
+	}
+	if want := (bondBound_domain.MaturityResult{Matured: 1, Users: 1, Failed: 0}); result != want {
+		t.Errorf("RunMaturity = %+v, se esperaba %+v", result, want)
+	}
+	raw := rawDoc(t, boundCollection, maturityID(1))
+	status, _ := raw.Lookup("statusId").StringValueOK()
+	matured, _ := raw.Lookup("matured").BooleanOK()
+	maturedAt, ok := raw.Lookup("maturedAt").TimeOK()
+	if status != "2" || !matured || !ok || !maturedAt.Equal(now) {
+		t.Errorf("el bono que vence hoy quedó en %q con matured %v y maturedAt %v, se esperaba madurado con maturedAt %s",
+			status, matured, raw.Lookup("maturedAt"), now)
+	}
+	if status := statusOf(t, maturityID(2)); status != "1" {
+		t.Errorf("el bono que vence a la medianoche quedó en %q, se esperaba iniciado", status)
+	}
+}
+
 // Dos corridas seguidas: la segunda da matured 0, sin historiales, avisos ni emails nuevos. CA-10.4
 func TestRunMaturityIdempotent(t *testing.T) {
 	maturitySetup(t)
@@ -370,7 +404,7 @@ func TestRunMaturityIdempotent(t *testing.T) {
 		maturityBoundDoc(maturityID(1), 1, ownerID, 101),
 		maturityBoundDoc(maturityID(2), 2, ownerID, 101),
 		maturityBoundDoc(maturityID(3), 3, otherUserID, 101),
-		maturityBoundDoc(maturityID(4), 4, ownerID, 99),
+		maturityBoundDoc(maturityID(4), 4, ownerID, 98),
 	)
 	app, notifications := maturityApp("replica-1")
 
@@ -398,7 +432,7 @@ func TestRunMaturityIdempotent(t *testing.T) {
 		t.Errorf("se enviaron %d emails, se esperaban los 2 de la primera corrida", len(sent))
 	}
 	if status := statusOf(t, maturityID(4)); status != "1" {
-		t.Errorf("el bono que vence mañana quedó en %q, se esperaba iniciado", status)
+		t.Errorf("el bono que vence pasado mañana quedó en %q, se esperaba iniciado", status)
 	}
 }
 

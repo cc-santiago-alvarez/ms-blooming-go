@@ -28,6 +28,9 @@ const (
 // maturityNow es el momento de las corridas de maduración.
 var maturityNow = time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
 
+// maturityCutoff es el corte de las corridas de maturityNow: el inicio del día siguiente en UTC.
+var maturityCutoff = time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
+
 // maturityID es el _id del bono n; los ids se ordenan como n.
 func maturityID(n int) string {
 	return fmt.Sprintf("00000000-0000-4000-8000-%012d", n)
@@ -95,7 +98,7 @@ func TestRunMaturityOnlyDueInitiatedBounds(t *testing.T) {
 	if want := (bondBound_domain.MaturityResult{Matured: 1, Users: 1, Failed: 0}); result != want {
 		t.Errorf("RunMaturity = %+v, se esperaba %+v", result, want)
 	}
-	wantQueries := []repoQuery{{method: "FindMaturable", now: maturityNow, limit: 500}}
+	wantQueries := []repoQuery{{method: "FindMaturable", cutoff: maturityCutoff, limit: 500}}
 	if !reflect.DeepEqual(f.repo.queries, wantQueries) {
 		t.Errorf("consultas %+v, se esperaba %+v", f.repo.queries, wantQueries)
 	}
@@ -149,14 +152,57 @@ func TestRunMaturityInBatches(t *testing.T) {
 		t.Errorf("RunMaturity = %+v, se esperaba %+v", result, want)
 	}
 	wantQueries := []repoQuery{
-		{method: "FindMaturable", now: maturityNow, limit: 500},
-		{method: "FindMaturable", now: maturityNow, limit: 500, afterID: maturityID(500)},
+		{method: "FindMaturable", cutoff: maturityCutoff, limit: 500},
+		{method: "FindMaturable", cutoff: maturityCutoff, limit: 500, afterID: maturityID(500)},
 	}
 	if !reflect.DeepEqual(f.repo.queries, wantQueries) {
 		t.Errorf("consultas %+v, se esperaba %+v", f.repo.queries, wantQueries)
 	}
 	if len(f.repo.changes) != 501 || len(f.history.added) != 501 {
 		t.Errorf("%d cambios de estado y %d historiales, se esperaban 501 de cada uno", len(f.repo.changes), len(f.history.added))
+	}
+}
+
+// Con now 2026-10-13T00:03Z el corte es el inicio del 14 en UTC, también si now viene en la zona de Bogotá,
+// donde todavía es el 12: el bono que vence el 13 a las 23:59:59 madura aunque sea más tarde que now, con
+// maturedAt now, y el que vence a la medianoche siguiente no. CA-10.10
+func TestRunMaturityCutoffIsEndOfUTCDay(t *testing.T) {
+	instant := time.Date(2026, 10, 13, 0, 3, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		now  time.Time
+	}{
+		{name: "now en UTC", now: instant},
+		{name: "now en Bogotá", now: instant.In(time.FixedZone("COT", -5*3600))},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			today := dueBound(1, ownerID, 0)
+			today.MaturityDate = time.Date(2026, 10, 13, 23, 59, 59, 0, time.UTC)
+			tomorrow := dueBound(2, ownerID, 0)
+			tomorrow.MaturityDate = time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC)
+			f := maturityFakes(today, tomorrow)
+
+			result, err := f.app().RunMaturity(context.Background(), tt.now)
+
+			if err != nil {
+				t.Fatalf("RunMaturity: %v", err)
+			}
+			if want := (bondBound_domain.MaturityResult{Matured: 1, Users: 1, Failed: 0}); result != want {
+				t.Errorf("RunMaturity = %+v, se esperaba %+v", result, want)
+			}
+			wantQueries := []repoQuery{{method: "FindMaturable", cutoff: time.Date(2026, 10, 14, 0, 0, 0, 0, time.UTC), limit: 500}}
+			if !reflect.DeepEqual(f.repo.queries, wantQueries) {
+				t.Errorf("consultas %+v, se esperaba %+v", f.repo.queries, wantQueries)
+			}
+			if len(f.repo.changes) != 1 || f.repo.changes[0].id != today.ID ||
+				f.repo.changes[0].change.MaturedAt == nil || !f.repo.changes[0].change.MaturedAt.Equal(tt.now) {
+				t.Errorf("cambios de estado %+v, se esperaba solo el del bono que vence hoy con maturedAt %s", f.repo.changes, tt.now)
+			}
+			if stored := f.repo.bounds[tomorrow.ID]; stored.StatusID != bondBound_domain.StatusInitiated || stored.Matured {
+				t.Errorf("el bono que vence a la medianoche quedó en %q con matured %v, se esperaba iniciado", stored.StatusID, stored.Matured)
+			}
+		})
 	}
 }
 

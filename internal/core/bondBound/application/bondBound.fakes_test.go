@@ -71,7 +71,7 @@ type repoQuery struct {
 	page          shared_domain.Pagination
 	utcDiff       int
 	limit         int
-	now           time.Time
+	cutoff        time.Time
 	afterID       string
 }
 
@@ -147,16 +147,17 @@ func (r *fakeRepository) UpdateStatusIf(_ context.Context, id string, c bondBoun
 }
 
 // FindMaturable filtra los bonos en memoria igual que el adapter: no borrados, iniciados, sin soldDate ni
-// tookDate y vencidos hasta now, con _id mayor que afterID, por _id ascendente y hasta limit; devuelve copias.
-func (r *fakeRepository) FindMaturable(_ context.Context, now time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
-	r.queries = append(r.queries, repoQuery{method: "FindMaturable", now: now, limit: limit, afterID: afterID})
+// tookDate y vencidos antes de cutoff, con _id mayor que afterID, por _id ascendente y hasta limit; devuelve
+// copias.
+func (r *fakeRepository) FindMaturable(_ context.Context, cutoff time.Time, limit int, afterID string) ([]*bondBound_domain.BondBound, error) {
+	r.queries = append(r.queries, repoQuery{method: "FindMaturable", cutoff: cutoff, limit: limit, afterID: afterID})
 	if r.err != nil {
 		return nil, r.err
 	}
 	var found []*bondBound_domain.BondBound
 	for _, b := range r.bounds {
 		if b.IsRemove || b.StatusID != bondBound_domain.StatusInitiated || b.SoldDate != nil || b.TookDate != nil ||
-			b.MaturityDate.After(now) || b.ID <= afterID {
+			!b.MaturityDate.Before(cutoff) || b.ID <= afterID {
 			continue
 		}
 		copied := *b
