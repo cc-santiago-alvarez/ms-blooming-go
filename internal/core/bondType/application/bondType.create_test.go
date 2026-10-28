@@ -22,7 +22,7 @@ func TestCreate(t *testing.T) {
 			AgencyID:    []string{agencyA, " " + agencyB, "", agencyA},
 		}
 
-		got, err := newApp(repo, &fakeCounter{}).Create(context.Background(), params)
+		got, err := newApp(repo, &fakeCounter{}).Create(withAdmin(agencyMain, true), params)
 
 		if err != nil {
 			t.Fatalf("Create: %v", err)
@@ -68,13 +68,58 @@ func TestCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := newRepository()
 
-			got, err := newApp(repo, &fakeCounter{}).Create(context.Background(), tt.params)
+			got, err := newApp(repo, &fakeCounter{}).Create(withAdmin(agencyMain, true), tt.params)
 
 			if !errors.Is(err, tt.wantErr) || got != nil {
 				t.Fatalf("Create = %v, %v; se esperaba nil, %v", got, err, tt.wantErr)
 			}
 			if len(repo.inserted) != 0 {
 				t.Fatalf("InsertOne se llamó %d veces con un alta inválida", len(repo.inserted))
+			}
+		})
+	}
+}
+
+// Un admin de una agencia no principal solo crea tipos únicamente de su agencia: con otra agencia, sola o
+// junto a la suya, es ErrForbidden, pero sin name sigue siendo ErrBondTypeNameRequired. La agencia
+// principal crea para cualquiera, y sin sesión no se crea nada. Ningún error guarda el tipo. CA-01.11
+func TestCreateAgencyScope(t *testing.T) {
+	tests := []struct {
+		name    string
+		ctx     context.Context
+		params  bondType_domain.CreateParams
+		wantErr error
+	}{
+		{name: "admin de A con A y B", ctx: withAdmin(agencyA, false), params: bondType_domain.CreateParams{Name: "Bono Plus", AgencyID: []string{agencyA, agencyB}}, wantErr: shared_domain.ErrForbidden},
+		{name: "admin de A con B", ctx: withAdmin(agencyA, false), params: bondType_domain.CreateParams{Name: "Bono Plus", AgencyID: []string{agencyB}}, wantErr: shared_domain.ErrForbidden},
+		{name: "admin de A sin name con B", ctx: withAdmin(agencyA, false), params: bondType_domain.CreateParams{AgencyID: []string{agencyB}}, wantErr: bondType_domain.ErrBondTypeNameRequired},
+		{name: "admin de A con A", ctx: withAdmin(agencyA, false), params: bondType_domain.CreateParams{Name: "Bono Plus", AgencyID: []string{agencyA}}},
+		{name: "principal con B", ctx: withAdmin(agencyMain, true), params: bondType_domain.CreateParams{Name: "Bono Plus", AgencyID: []string{agencyB}}},
+		{name: "sin sesión", ctx: context.Background(), params: bondType_domain.CreateParams{Name: "Bono Plus", AgencyID: []string{agencyA}}, wantErr: shared_domain.ErrForbidden},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := newRepository()
+
+			got, err := newApp(repo, &fakeCounter{}).Create(tt.ctx, tt.params)
+
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) || got != nil {
+					t.Fatalf("Create = %v, %v; se esperaba nil, %v", got, err, tt.wantErr)
+				}
+				if len(repo.inserted) != 0 {
+					t.Fatalf("InsertOne se llamó %d veces con un alta rechazada", len(repo.inserted))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Create: %v", err)
+			}
+			if !slices.Equal(got.AgencyID, tt.params.AgencyID) {
+				t.Errorf("agencyId %v, se esperaba %v", got.AgencyID, tt.params.AgencyID)
+			}
+			if len(repo.inserted) != 1 || repo.inserted[0].ID != got.ID {
+				t.Fatalf("InsertOne recibió %v, se esperaba el tipo %s", repo.inserted, got.ID)
 			}
 		})
 	}

@@ -12,11 +12,13 @@ import (
 )
 
 const (
-	agencyA     = "agencyAAAAAAAAAAA"
-	agencyB     = "agencyBBBBBBBBBBB"
-	typeID      = "3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f"
-	otherTypeID = "9a8b7c6d-5e4f-4a3b-9c2d-1e0f2a3b4c5d"
-	missingID   = "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"
+	agencyA      = "agencyAAAAAAAAAAA"
+	agencyB      = "agencyBBBBBBBBBBB"
+	agencyMain   = "agencyMAAAAAAAAAA"
+	typeID       = "3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f"
+	otherTypeID  = "9a8b7c6d-5e4f-4a3b-9c2d-1e0f2a3b4c5d"
+	sharedTypeID = "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f"
+	missingID    = "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"
 )
 
 // storedAt es la fecha de alta de los tipos que ya están guardados.
@@ -139,6 +141,17 @@ func withSession(userID, agencyID string) context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{UserID: userID, AgencyID: agencyID})
 }
 
+// withAdmin es un context con la sesión de un admin de Blooming en agencyID; isMain indica si es la agencia
+// principal.
+func withAdmin(agencyID string, isMain bool) context.Context {
+	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
+		UserID:        "adminAAAAAAAAAAAA",
+		AgencyID:      agencyID,
+		Agency:        session_domain.SessionAgency{ID: agencyID, IsMain: isMain},
+		AdminBlooming: true,
+	})
+}
+
 // storedType es un tipo activo de la agencia A guardado el 10 de enero.
 func storedType(id string) *bondType_domain.BondType {
 	return &bondType_domain.BondType{
@@ -150,4 +163,14 @@ func storedType(id string) *bondType_domain.BondType {
 		CreatedAt:   storedAt,
 		UpdatedAt:   storedAt,
 	}
+}
+
+// agencyTypes son los tipos de las pruebas de alcance: typeID de A, otherTypeID de B y sharedTypeID
+// compartido por A y B.
+func agencyTypes() []*bondType_domain.BondType {
+	onlyB := storedType(otherTypeID)
+	onlyB.AgencyID = []string{agencyB}
+	shared := storedType(sharedTypeID)
+	shared.AgencyID = []string{agencyA, agencyB}
+	return []*bondType_domain.BondType{storedType(typeID), onlyB, shared}
 }
