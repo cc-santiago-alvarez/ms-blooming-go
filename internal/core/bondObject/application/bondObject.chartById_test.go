@@ -11,8 +11,8 @@ import (
 )
 
 // El inversionista solo ve la gráfica de un producto activo de su agencia y, si es privado, donde está
-// autorizado; el admin ve la de cualquier producto no borrado. Lo que no ve es ErrBondObjectNotFound.
-// CA-03.7
+// autorizado; el admin ve la de cualquier producto no borrado de su alcance de agencia, y el de la agencia
+// principal, la de cualquiera. Lo que no ve es ErrBondObjectNotFound. CA-03.7, CA-03.17
 func TestChartByIDVisibility(t *testing.T) {
 	private := func(authorized ...string) func(o *bondObject_domain.BondObject) {
 		return func(o *bondObject_domain.BondObject) {
@@ -34,14 +34,16 @@ func TestChartByIDVisibility(t *testing.T) {
 		{name: "público de su agencia", ctx: investor, id: objectID, visible: true},
 		{name: "privado sin autorizar", ctx: investor, modify: private(user2ID), id: objectID},
 		{name: "privado autorizado", ctx: investor, modify: private(userID), id: objectID, visible: true},
-		{name: "privado sin autorizar, admin de otra agencia", ctx: withAdmin(agencyB), modify: private(user2ID), id: objectID, visible: true},
+		{name: "privado sin autorizar, admin de su agencia", ctx: withAdmin(agencyA, false), modify: private(user2ID), id: objectID, visible: true},
+		{name: "privado sin autorizar, admin de la principal", ctx: withAdmin(agencyMain, true), modify: private(user2ID), id: objectID, visible: true},
+		{name: "público, admin de otra agencia", ctx: withAdmin(agencyB, false), id: objectID},
 		{name: "de otra agencia", ctx: withSession(userID, agencyB), id: objectID},
 		{name: "inactivo", ctx: investor, modify: inactive, id: objectID},
-		{name: "inactivo, admin", ctx: withAdmin(agencyA), modify: inactive, id: objectID, visible: true},
+		{name: "inactivo, admin", ctx: withAdmin(agencyA, false), modify: inactive, id: objectID, visible: true},
 		{name: "borrado", ctx: investor, modify: removed, id: objectID},
-		{name: "borrado, admin", ctx: withAdmin(agencyA), modify: removed, id: objectID},
+		{name: "borrado, admin", ctx: withAdmin(agencyA, false), modify: removed, id: objectID},
 		{name: "inexistente", ctx: investor, id: missingID},
-		{name: "inexistente, admin", ctx: withAdmin(agencyA), id: missingID},
+		{name: "inexistente, admin", ctx: withAdmin(agencyA, false), id: missingID},
 		{name: "sin sesión", ctx: context.Background(), id: objectID},
 	}
 	for _, tt := range tests {
@@ -74,7 +76,7 @@ func TestChartByIDVisibility(t *testing.T) {
 }
 
 // El inversionista busca el producto con el filtro del catálogo, acotado al id, a los activos y a uno
-// solo; el admin lo lee por id sin ese filtro. CA-03.7
+// solo; el admin de la agencia principal lo lee por id sin ese filtro. CA-03.7
 func TestChartByIDUsesCatalogFilter(t *testing.T) {
 	t.Run("inversionista", func(t *testing.T) {
 		f := newFakes(storedObject(objectID))
@@ -101,7 +103,7 @@ func TestChartByIDUsesCatalogFilter(t *testing.T) {
 	t.Run("admin", func(t *testing.T) {
 		f := newFakes(storedObject(objectID))
 
-		if _, err := f.app().ChartByID(withAdmin(agencyB), objectID, false); err != nil {
+		if _, err := f.app().ChartByID(withAdmin(agencyMain, true), objectID, false); err != nil {
 			t.Fatalf("ChartByID: %v", err)
 		}
 
@@ -154,7 +156,7 @@ func TestChartByIDLegacyID(t *testing.T) {
 		ctx  context.Context
 	}{
 		{name: "inversionista", ctx: withSession(userID, agencyA)},
-		{name: "admin", ctx: withAdmin(agencyA)},
+		{name: "admin", ctx: withAdmin(agencyA, false)},
 	}
 	for _, s := range sessions {
 		t.Run("id fuera de formato, "+s.name, func(t *testing.T) {

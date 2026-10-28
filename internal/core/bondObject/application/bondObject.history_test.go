@@ -23,7 +23,7 @@ func TestHistoryIsBestEffort(t *testing.T) {
 			name: "alta",
 			text: shared_domain.TextBondAdded,
 			run: func(f *fakes) error {
-				_, err := f.app().Create(withSession(userID, agencyA), createParams())
+				_, err := f.app().Create(withAdmin(agencyMain, true), createParams())
 				return err
 			},
 			stored: func(f *fakes) bool { return len(f.repo.inserted) == 1 && len(f.activity.added) == 1 },
@@ -34,7 +34,7 @@ func TestHistoryIsBestEffort(t *testing.T) {
 			run: func(f *fakes) error {
 				params := paramsFrom(storedObject(objectID))
 				params.Amount = 2000
-				_, err := f.app().Update(withSession(userID, agencyA), objectID, params)
+				_, err := f.app().Update(withAdmin(agencyMain, true), objectID, params)
 				return err
 			},
 			stored: func(f *fakes) bool { return f.repo.objects[objectID].Amount == 2000 },
@@ -43,7 +43,7 @@ func TestHistoryIsBestEffort(t *testing.T) {
 			name: "baja",
 			text: shared_domain.TextBondRemove,
 			run: func(f *fakes) error {
-				return f.app().Remove(withSession(userID, agencyA), objectID)
+				return f.app().Remove(withAdmin(agencyMain, true), objectID)
 			},
 			stored: func(f *fakes) bool { return f.repo.objects[objectID].IsRemove },
 		},

@@ -17,19 +17,24 @@ import (
 	bondType_domain "github.com/futurapps/ms-blooming-go/internal/core/bondType/domain"
 	bondType_ports "github.com/futurapps/ms-blooming-go/internal/core/bondType/ports"
 	session_domain "github.com/futurapps/ms-blooming-go/internal/core/session/domain"
+	shared_application "github.com/futurapps/ms-blooming-go/internal/core/shared/application"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
 	shared_ports "github.com/futurapps/ms-blooming-go/internal/core/shared/ports"
 )
 
 const (
-	agencyA       = "agencyAAAAAAAAAAA"
-	agencyB       = "agencyBBBBBBBBBBB"
-	userID        = "user1AAAAAAAAAAAA"
-	user2ID       = "user2AAAAAAAAAAAA"
-	objectID      = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
-	otherObjectID = "1b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e"
-	missingID     = "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"
-	typeID        = "3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f"
+	agencyA        = "agencyAAAAAAAAAAA"
+	agencyB        = "agencyBBBBBBBBBBB"
+	agencyMain     = "agencyMAAAAAAAAAA"
+	userID         = "user1AAAAAAAAAAAA"
+	user2ID        = "user2AAAAAAAAAAAA"
+	adminID        = "adminAAAAAAAAAAAA"
+	objectID       = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+	otherObjectID  = "1b2c3d4e-5f6a-4b7c-9d8e-0f1a2b3c4d5e"
+	sharedObjectID = "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f"
+	missingID      = "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"
+	typeID         = "3f2b8c1e-9d4a-4f6b-8c2d-1a2b3c4d5e6f"
+	otherTypeID    = "9a8b7c6d-5e4f-4a3b-9c2d-1e0f2a3b4c5d"
 
 	// legacyObjectID es un _id Meteor de 17 caracteres.
 	legacyObjectID = "Bd9Xc4Vn7Mz2Lk5Jh"
@@ -38,17 +43,41 @@ const (
 // storedAt es la fecha de alta de los productos que ya están guardados.
 var storedAt = time.Date(2026, 1, 10, 15, 0, 0, 0, time.UTC)
 
+// keyUpdate son los argumentos de una llamada a UpdateKeys.
+type keyUpdate struct {
+	ids      []string
+	key      string
+	agencyID *string
+}
+
 // fakeRepository guarda los productos en memoria y registra las llamadas.
 type fakeRepository struct {
 	bondObject_ports.BondObjectMongoccRepositoryPorts
 
 	objects map[string]*bondObject_domain.BondObject
+	// keysResult es lo que devuelve UpdateKeys.
+	keysResult bondObject_domain.UpdateKeysResult
 
-	reads    []string
-	visible  []bondObject_domain.VisibleFilter
-	inserted []bondObject_domain.BondObject
-	updated  []bondObject_domain.BondObject
-	deleted  []string
+	reads        []string
+	finds        [][]string
+	groupedFinds [][]string
+	visible      []bondObject_domain.VisibleFilter
+	inserted     []bondObject_domain.BondObject
+	updated      []bondObject_domain.BondObject
+	keyUpdates   []keyUpdate
+	deleted      []string
+}
+
+// Find registra las agencias del filtro y no devuelve productos.
+func (r *fakeRepository) Find(_ context.Context, agencyIDs []string) ([]*bondObject_domain.BondObject, error) {
+	r.finds = append(r.finds, slices.Clone(agencyIDs))
+	return []*bondObject_domain.BondObject{}, nil
+}
+
+// FindGroupedByType registra las agencias del filtro y no devuelve grupos.
+func (r *fakeRepository) FindGroupedByType(_ context.Context, agencyIDs []string) ([]bondObject_ports.BondObjectGroup, error) {
+	r.groupedFinds = append(r.groupedFinds, slices.Clone(agencyIDs))
+	return []bondObject_ports.BondObjectGroup{}, nil
 }
 
 // FindVisible aplica el filtro en memoria como el adapter: no borrados, de la agencia, privados solo
@@ -110,6 +139,12 @@ func (r *fakeRepository) UpdateOne(_ context.Context, o *bondObject_domain.BondO
 	return true, nil
 }
 
+// UpdateKeys registra la llamada y devuelve keysResult.
+func (r *fakeRepository) UpdateKeys(_ context.Context, ids []string, key string, agencyID *string) (bondObject_domain.UpdateKeysResult, error) {
+	r.keyUpdates = append(r.keyUpdates, keyUpdate{ids: slices.Clone(ids), key: key, agencyID: agencyID})
+	return r.keysResult, nil
+}
+
 // SoftDelete marca el producto como borrado; devuelve false si no existe o ya estaba borrado.
 func (r *fakeRepository) SoftDelete(_ context.Context, id string) (bool, error) {
 	r.deleted = append(r.deleted, id)
@@ -121,21 +156,23 @@ func (r *fakeRepository) SoftDelete(_ context.Context, id string) (bool, error) 
 	return true, nil
 }
 
-// fakeBondTypes conoce los tipos de existing y registra las consultas.
+// fakeBondTypes conoce los tipos de existing, con sus agencias, y registra las consultas.
 type fakeBondTypes struct {
 	bondType_ports.BondTypeApplicationPorts
 
-	existing map[string]bool
+	existing map[string][]string
 	reads    []string
 }
 
-// GetByID devuelve el tipo si existe, o ErrBondTypeNotFound.
-func (b *fakeBondTypes) GetByID(_ context.Context, id string) (*bondType_domain.BondType, error) {
+// GetByID devuelve el tipo si existe y está en el alcance de agencia de la sesión, como el de bondType; si
+// no, ErrBondTypeNotFound.
+func (b *fakeBondTypes) GetByID(ctx context.Context, id string) (*bondType_domain.BondType, error) {
 	b.reads = append(b.reads, id)
-	if !b.existing[id] {
+	agencies, ok := b.existing[id]
+	if !ok || !shared_application.InAgencyScope(ctx, agencies...) {
 		return nil, bondType_domain.ErrBondTypeNotFound
 	}
-	return &bondType_domain.BondType{ID: id, Active: true}, nil
+	return &bondType_domain.BondType{ID: id, AgencyID: agencies, Active: true}, nil
 }
 
 // fakeHistory registra los eventos y devuelve err.
@@ -191,7 +228,7 @@ type fakes struct {
 	profiles *fakeProfiles
 }
 
-// newFakes arma las dependencias con los productos dados y el tipo typeID existente.
+// newFakes arma las dependencias con los productos dados y el tipo typeID de las agencias A y B.
 func newFakes(objects ...*bondObject_domain.BondObject) *fakes {
 	repo := &fakeRepository{objects: map[string]*bondObject_domain.BondObject{}}
 	for _, o := range objects {
@@ -200,7 +237,7 @@ func newFakes(objects ...*bondObject_domain.BondObject) *fakes {
 	}
 	return &fakes{
 		repo:     repo,
-		types:    &fakeBondTypes{existing: map[string]bool{typeID: true}},
+		types:    &fakeBondTypes{existing: map[string][]string{typeID: {agencyA, agencyB}}},
 		history:  &fakeHistory{},
 		activity: &fakeActivity{},
 		profiles: &fakeProfiles{profiles: map[string]shared_domain.PublicProfile{}},
@@ -223,11 +260,13 @@ func withSession(userID, agencyID string) context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{UserID: userID, AgencyID: agencyID})
 }
 
-// withAdmin es un context con la sesión de un admin de Blooming en agencyID.
-func withAdmin(agencyID string) context.Context {
+// withAdmin es un context con la sesión de un admin de Blooming en agencyID; isMain indica si es la agencia
+// principal.
+func withAdmin(agencyID string, isMain bool) context.Context {
 	return session_domain.SetUserSession(context.Background(), &session_domain.UserSession{
-		UserID:        "adminAAAAAAAAAAAA",
+		UserID:        adminID,
 		AgencyID:      agencyID,
+		Agency:        session_domain.SessionAgency{ID: agencyID, IsMain: isMain},
 		AdminBlooming: true,
 	})
 }
@@ -254,6 +293,16 @@ func storedObject(id string) *bondObject_domain.BondObject {
 		CreatedAt: storedAt,
 		UpdatedAt: storedAt,
 	}
+}
+
+// agencyObjects son los productos de las pruebas de alcance: objectID de A, otherObjectID de B y
+// sharedObjectID compartido por A y B.
+func agencyObjects() []*bondObject_domain.BondObject {
+	onlyB := storedObject(otherObjectID)
+	onlyB.AgencyID = shared_domain.AgencyIDs{agencyB}
+	shared := storedObject(sharedObjectID)
+	shared.AgencyID = shared_domain.AgencyIDs{agencyA, agencyB}
+	return []*bondObject_domain.BondObject{storedObject(objectID), onlyB, shared}
 }
 
 // paramsFrom es una edición con los mismos valores que el producto guardado.

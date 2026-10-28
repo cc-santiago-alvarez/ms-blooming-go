@@ -56,7 +56,7 @@ func TestChartPreviewRejectsInvalidTerms(t *testing.T) {
 			p := previewParams(true)
 			tt.modify(&p)
 
-			chart, err := newFakes().app().ChartPreview(withAdmin(agencyA), p)
+			chart, err := newFakes().app().ChartPreview(withAdmin(agencyA, false), p)
 
 			if !errors.Is(err, tt.want) {
 				t.Fatalf("ChartPreview = %v, se esperaba %v", err, tt.want)
@@ -74,7 +74,7 @@ func TestChartPreviewSimulation(t *testing.T) {
 	app := newFakes().app()
 
 	t.Run("sin simulation", func(t *testing.T) {
-		chart, err := app.ChartPreview(withAdmin(agencyA), previewParams(false))
+		chart, err := app.ChartPreview(withAdmin(agencyA, false), previewParams(false))
 
 		if err != nil {
 			t.Fatalf("ChartPreview: %v", err)
@@ -88,7 +88,7 @@ func TestChartPreviewSimulation(t *testing.T) {
 	})
 
 	t.Run("con simulation", func(t *testing.T) {
-		chart, err := app.ChartPreview(withAdmin(agencyA), previewParams(true))
+		chart, err := app.ChartPreview(withAdmin(agencyA, false), previewParams(true))
 
 		if err != nil {
 			t.Fatalf("ChartPreview: %v", err)
@@ -109,7 +109,7 @@ func TestChartPreviewDefaults(t *testing.T) {
 		Simulation:                true,
 	}
 
-	chart, err := newFakes().app().ChartPreview(withAdmin(agencyA), p)
+	chart, err := newFakes().app().ChartPreview(withAdmin(agencyA, false), p)
 
 	if err != nil {
 		t.Fatalf("ChartPreview: %v", err)
