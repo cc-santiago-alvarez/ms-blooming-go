@@ -71,3 +71,53 @@ func TestIsOwnerOrAdmin(t *testing.T) {
 		})
 	}
 }
+
+// Un recurso está en el alcance de lectura si la sesión es de la agencia principal o si alguna de sus
+// agencias es la de la sesión, y en el de escritura si la sesión es de la principal o si todas sus agencias,
+// al menos una, son la de la sesión. Sin sesión no está en ninguno. CA-00.44
+func TestResourceAgencyScope(t *testing.T) {
+	mainAgency := &session_domain.UserSession{
+		AgencyID: "agency-main",
+		Agency:   session_domain.SessionAgency{ID: "agency-main", IsMain: true},
+	}
+	agencyA := &session_domain.UserSession{
+		AgencyID: "agency-a",
+		Agency:   session_domain.SessionAgency{ID: "agency-a"},
+	}
+	withoutAgency := &session_domain.UserSession{UserID: "user-1"}
+
+	tests := []struct {
+		name     string
+		session  *session_domain.UserSession
+		agencies []string
+		// wantIn es lo que se espera de InAgencyScope y wantOnly, de OnlyInAgencyScope.
+		wantIn, wantOnly bool
+	}{
+		{name: "principal, otra agencia", session: mainAgency, agencies: []string{"agency-a"}, wantIn: true, wantOnly: true},
+		{name: "principal, varias agencias", session: mainAgency, agencies: []string{"agency-b", "agency-a"}, wantIn: true, wantOnly: true},
+		{name: "principal, sin agencias", session: mainAgency, agencies: nil, wantIn: true, wantOnly: true},
+
+		{name: "no principal, su agencia", session: agencyA, agencies: []string{"agency-a"}, wantIn: true, wantOnly: true},
+		{name: "no principal, su agencia repetida", session: agencyA, agencies: []string{"agency-a", "agency-a"}, wantIn: true, wantOnly: true},
+		{name: "no principal, compartido con la suya al final", session: agencyA, agencies: []string{"agency-b", "agency-a"}, wantIn: true, wantOnly: false},
+		{name: "no principal, compartido con la suya primero", session: agencyA, agencies: []string{"agency-a", "agency-b"}, wantIn: true, wantOnly: false},
+		{name: "no principal, otra agencia", session: agencyA, agencies: []string{"agency-b"}, wantIn: false, wantOnly: false},
+		{name: "no principal, sin agencias", session: agencyA, agencies: nil, wantIn: false, wantOnly: false},
+		{name: "no principal sin agencia propia", session: withoutAgency, agencies: []string{""}, wantIn: false, wantOnly: false},
+
+		{name: "sin sesión, agencia vacía", session: nil, agencies: []string{""}, wantIn: false, wantOnly: false},
+		{name: "sin sesión, una agencia", session: nil, agencies: []string{"agency-a"}, wantIn: false, wantOnly: false},
+		{name: "sin sesión, sin agencias", session: nil, agencies: nil, wantIn: false, wantOnly: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := contextWith(tt.session)
+			if got := shared_application.InAgencyScope(ctx, tt.agencies...); got != tt.wantIn {
+				t.Errorf("InAgencyScope(%q) = %v, se esperaba %v", tt.agencies, got, tt.wantIn)
+			}
+			if got := shared_application.OnlyInAgencyScope(ctx, tt.agencies...); got != tt.wantOnly {
+				t.Errorf("OnlyInAgencyScope(%q) = %v, se esperaba %v", tt.agencies, got, tt.wantOnly)
+			}
+		})
+	}
+}
