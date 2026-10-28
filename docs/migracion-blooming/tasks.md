@@ -528,7 +528,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/`, `internal/core/application/bond_maturity/`, `internal/core/port/`, `internal/core/domain/`, `cmd/api/main.go`, `cmd/api/config/enviroments.config.go`, `.env.example`, `README.md`, `CLAUDE.md`
 - [ ] **BLM-0142** `test` **(repo ms-cronjob-go)** Tests del adapter (`httptest`) y del job: URL vacía sin registrar el job, POST con `x-secret` a la URL con `/api/v1`, 409 como error centinela informativo y error
   - cubre: CA-10.1 · depende de: BLM-0141
-  - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/blooming_api_test.go`, `internal/core/application/bond_maturity/*_test.go`
+  - archivos: `ms-cronjob-go/internal/core/infrastructure/adapter/blooming_api/blooming_api_test.go`, `internal/core/application/bond_maturity/*_test.go`, `CLAUDE.md` (paquetes con tests)
 - [ ] **BLM-0148** `impl` Corte de maduración al fin del día en UTC: `RunMaturity` calcula `cutoff` y `FindMaturable` filtra `maturityDate < cutoff`
   - cubre: RF-10.3 · depende de: BLM-0118, BLM-0120
   - archivos: `internal/core/bondBound/application/bondBound.runMaturity.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (parámetro `cutoff`)
