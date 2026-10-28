@@ -54,7 +54,7 @@ for path in SPECS:
             c = cells(line)
             bugs.append({'bug': c[0], 'desc': c[1], 'decision': c[2], 'tasks': TASK_RE.findall(c[4]), 'spec': num})
 
-# Tareas que no salen de una spec funcional (preparación, calidad, infra, corte): (fase, ID, tipo, título, cubre, depende de, archivos)
+# Tareas que no salen de una spec funcional (preparación, calidad, corte): (fase, ID, tipo, título, cubre, depende de, archivos)
 EXTRA = [
     ('F0', 'T-PREP.1', 'ops', 'Inicializar el repositorio: `git init`, remoto `github.com/cc-santiago-alvarez/ms-blooming-go` y rama `master`. Los líderes de área lo llevan después a `futurapps`', [], [], '`.git/`'),
     ('F0', 'T-PREP.2', 'ops', '`.gitignore` (`.claude/`, `.env*` salvo `.env.example`, `tmp/`). `.github/workflows/branch-flow.yml` lo agrega DevOps al integrar el repositorio en `futurapps`', [], ['T-PREP.1'], '`.gitignore`'),
@@ -67,17 +67,13 @@ EXTRA = [
     ('F8', 'BLM-0126', 'test', 'Suite end-to-end de flujos completos: compra → venta; compra → maduración → canje; compra masiva → listado → reporte', ['RF-04.1', 'RF-04.2', 'RF-05.3', 'RF-10.3', 'RF-07.1'], ['BLM-0088', 'BLM-0098', 'BLM-0124', 'BLM-0116'], '`test/e2e/`'),
     ('F8', 'BLM-0127', 'test', 'Matriz de autorización rol × endpoint (usuario, dueño, admin, otra agencia) ejecutada sobre todas las rutas registradas', ['RF-00.5', 'RF-04.1', 'RF-05.3', 'RF-06.6', 'RF-09.3'], ['BLM-0106', 'BLM-0071', 'BLM-0095', 'BLM-0158', 'BLM-0160', 'BLM-0162'], '`test/authz/`'),
     ('F8', 'BLM-0128', 'test', 'Prueba de carga: 50 compras concurrentes sobre la misma cuenta y p95 del listado de administración con 100k bonos', ['RF-04.5', 'RF-06.1'], ['BLM-0088', 'BLM-0109'], '`test/load/`'),
-    ('F9', 'BLM-0129', 'ops', '`.deploy/Dockerfile` multi-stage (`golang:1.27-alpine` → `scratch`, binario de healthcheck, `USER 1001`, `EXPOSE ${API_PORT}`) y `.dockerignore` — **solo en `main`**', ['RF-00.16'], ['BLM-0019'], '`.deploy/Dockerfile`, `.dockerignore`'),
-    ('F9', 'BLM-0130', 'ops', '`.deploy/docker-compose.yml` (Swarm, 3 réplicas, healthcheck, `/opt/ms-blooming-go/.env`), `docker-stack-deploy.sh` y `.deploy-testing/` — **solo en `main`**', [], ['BLM-0129'], '`.deploy/`, `.deploy-testing/`'),
-    ('F9', 'BLM-0131', 'ops', '`.github/workflows/docker-build.yml` (release `X.Y.Z-live`/`-testing`, Jenkins, Discord), con `go vet` y `go test` antes del build — **solo en `main`**', [], ['BLM-0129'], '`.github/workflows/docker-build.yml`'),
-    ('F9', 'BLM-0132', 'ops', 'Entornos: `.env` en `/opt/ms-blooming-go/` (testing y live), replica set confirmado, exposición pública del servicio (proxy y DNS) para el front y `CORS_ORIGINS`', ['RF-00.1', 'RF-00.6'], ['BLM-0130'], 'servidores'),
-    ('F10', 'BLM-0133', 'ops', 'Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `\'2\'`/`\'6\'` con `soldDate` (B22), bonos `\'1\'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida, y bondObjects con `isPrivateBond` que no es booleano (O11), para normalizarlos antes del corte', ['RF-02.9', 'RF-04.3', 'RF-09.1', 'RF-10.3'], ['T-PREP.7', 'BLM-0079', 'BLM-0065'], 'informe en `docs/migracion-blooming/`'),
-    ('F10', 'BLM-0134', 'ops', 'Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento', ['RF-10.1', 'RF-10.3'], ['BLM-0124', 'BLM-0132', 'BLM-0140', 'BLM-0141', 'BLM-0142', 'BLM-0149', 'BLM-0153'], '`backend/server/lib/crons.js`, `.env` de ms-cronjob-go'),
-    ('F10', 'BLM-0135', 'ops', 'Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**', ['RF-04.3', 'RF-04.1', 'RF-05.3'], ['BLM-0079', 'BLM-0098', 'BLM-0133', 'BLM-0151'], '`backend/server/model/bond.bound.js`'),
-    ('F10', 'BLM-0136', 'ops', 'Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec. Las gráficas dejan de leer ms-feed desde el navegador: `/bond/:id/feed` pasa a `GET /bond-objects/{id}/chart?simulation=true` y `/bound/:id/feed` a `GET /bond-bounds/{id}/chart`', ['RF-01.1', 'RF-02.9', 'RF-03.4', 'RF-03.7', 'RF-09.1', 'RF-04.1', 'RF-06.4'], ['BLM-0132', 'BLM-0146'], 'repo del front'),
-    ('F10', 'BLM-0137', 'ops', 'Retirar `bond.*.js` de Meteor y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072', [], ['BLM-0134', 'BLM-0135', 'BLM-0136', 'BLM-0072'], '`backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`, `.env.example`'),
-    ('F10', 'BLM-0152', 'ops', 'Retirar ms-feed: con la maduración en ms-cronjob-go (BLM-0134) y el front sin llamar a los feeds (BLM-0136), bajar los stacks `ms-feed` y `testing-ms-feed` y archivar el repo', ['RF-03.7', 'RF-10.1'], ['BLM-0134', 'BLM-0136'], 'servidores de ms-feed, repo `futurapps/ms-feed`'),
-    ('F10', 'BLM-0138', 'ops', 'Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`', ['RF-05.5', 'RF-10.3'], ['BLM-0135'], 'dashboards y logs'),
+    ('F9', 'BLM-0133', 'ops', 'Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `\'2\'`/`\'6\'` con `soldDate` (B22), bonos `\'1\'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida, y bondObjects con `isPrivateBond` que no es booleano (O11), para normalizarlos antes del corte', ['RF-02.9', 'RF-04.3', 'RF-09.1', 'RF-10.3'], ['T-PREP.7', 'BLM-0079', 'BLM-0065'], 'informe en `docs/migracion-blooming/`'),
+    ('F9', 'BLM-0134', 'ops', 'Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento', ['RF-10.1', 'RF-10.3'], ['BLM-0124', 'BLM-0140', 'BLM-0141', 'BLM-0142', 'BLM-0149', 'BLM-0153'], '`backend/server/lib/crons.js`, `.env` de ms-cronjob-go'),
+    ('F9', 'BLM-0135', 'ops', 'Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**', ['RF-04.3', 'RF-04.1', 'RF-05.3'], ['BLM-0079', 'BLM-0098', 'BLM-0133', 'BLM-0151'], '`backend/server/model/bond.bound.js`'),
+    ('F9', 'BLM-0136', 'ops', 'Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec. Las gráficas dejan de leer ms-feed desde el navegador: `/bond/:id/feed` pasa a `GET /bond-objects/{id}/chart?simulation=true` y `/bound/:id/feed` a `GET /bond-bounds/{id}/chart`', ['RF-01.1', 'RF-02.9', 'RF-03.4', 'RF-03.7', 'RF-09.1', 'RF-04.1', 'RF-06.4'], ['BLM-0146'], 'repo del front'),
+    ('F9', 'BLM-0137', 'ops', 'Retirar `bond.*.js` de Meteor y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072', [], ['BLM-0134', 'BLM-0135', 'BLM-0136', 'BLM-0072'], '`backend/server/model/bond.*.js`, `backend/server/lib/_constants.js`, `.env.example`'),
+    ('F9', 'BLM-0152', 'ops', 'Retirar ms-feed: con la maduración en ms-cronjob-go (BLM-0134) y el front sin llamar a los feeds (BLM-0136), bajar los stacks `ms-feed` y `testing-ms-feed` y archivar el repo', ['RF-03.7', 'RF-10.1'], ['BLM-0134', 'BLM-0136'], 'servidores de ms-feed, repo `futurapps/ms-feed`'),
+    ('F9', 'BLM-0138', 'ops', 'Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`', ['RF-05.5', 'RF-10.3'], ['BLM-0135'], 'dashboards y logs'),
 ]
 
 PHASES = [
@@ -90,8 +86,7 @@ PHASES = [
     ('F6', 'Consultas, reportes y KPIs (specs 06 y 07)', 'Todas las lecturas de bonos, reportes Excel y KPI responden con permisos y filtros de fecha correctos.'),
     ('F7', 'Maduración (spec 10)', 'La maduración pasa solo bonos `\'1\'`, una sola réplica a la vez, con avisos agrupados.'),
     ('F8', 'Calidad transversal', 'Paridad numérica con el legado comprobada y matriz de autorización en verde.'),
-    ('F9', 'Infraestructura (solo en `main`)', 'La imagen se construye y despliega en testing con healthcheck en verde.'),
-    ('F10', 'Corte y retiro del legado', 'El front usa solo REST, Meteor no tiene código de bonos, ms-feed está apagado y el monitoreo no muestra incidencias.'),
+    ('F9', 'Corte y retiro del legado', 'El front usa solo REST, Meteor no tiene código de bonos, ms-feed está apagado y el monitoreo no muestra incidencias.'),
 ]
 
 for phase, tid, type_, title, covers, deps, files in EXTRA:
@@ -222,7 +217,7 @@ out = []
 w = out.append
 w('# Tareas — Migración de Blooming a ms-blooming-go')
 w('')
-w('> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad, infraestructura y corte no salen de una spec funcional y se definen en el script (`EXTRA`).')
+w('> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad y corte no salen de una spec funcional y se definen en el script (`EXTRA`).')
 w('')
 w('## 1. Cómo leer este documento')
 w('')
@@ -231,7 +226,7 @@ w('- **Fase:** la define la columna *Fase* de la tabla *Tareas* de cada spec; la
 w('- **Formato:** `- [ ] ID [P] tipo título`, seguido de una línea con lo que cubre y sus dependencias, y otra con los archivos.')
 w('- **`[P]`:** la tarea puede empezar al inicio de su fase, porque no depende de otra tarea de la misma fase. Las tareas `[P]` de una fase se pueden repartir en paralelo.')
 w('- **Cubre:** requisitos (`RF-NN.x`) que implementa, o criterios de aceptación (`CA-NN.x`) que verifica.')
-w('- **Tipo:** `impl` (código de producción), `test` u `ops` (repositorio, infraestructura, corte).')
+w('- **Tipo:** `impl` (código de producción), `test` u `ops` (repositorio, corte).')
 w('- **Reglas** (constitución §14):')
 w('  - toda tarea funcional cita al menos un RF o CA;')
 w('  - todo RF tiene al menos una tarea `impl` y una `test`;')
@@ -250,11 +245,10 @@ for code, name, _ in PHASES:
 w(f'| | **Total** | **{len(tasks)}** | **{sum(1 for t in tasks.values() if t["type"]=="impl")}** | **{sum(1 for t in tasks.values() if t["type"]=="test")}** | **{sum(1 for t in tasks.values() if t["type"]=="ops")}** |')
 w('')
 w('```')
-w('F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10')
-w('          └─▶ F9 (infra en main) ──────────────────────────┘')
+w('F0 ─▶ F1 ─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─▶ F9')
 w('```')
 w('')
-w('F9 (infra, en `main`) puede empezar cuando BLM-0019 está terminada y correr en paralelo con F2–F8.')
+w('F9 (corte) requiere ms-blooming-go desplegado en testing y live. El despliegue lo hace DevOps y no forma parte de este plan (ver el [README de la migración](README.md), §7).')
 w('')
 w('## 3. Tareas por fase')
 w('')
@@ -277,7 +271,7 @@ for code, name, exit_ in PHASES:
     w('')
     w(f'**Criterio de salida {code}:** {exit_}')
     w('')
-    if code not in ('F0', 'F9', 'F10'):
+    if code not in ('F0', 'F9'):
         w(f'- [ ] `go vet ./...` y `go test ./...` en verde; `go test -tags=integration ./...` en verde contra el replica set local.')
         w('')
 

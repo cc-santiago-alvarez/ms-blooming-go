@@ -192,6 +192,8 @@ Cada spec tiene la tabla completa (66 bugs). `tasks.md` §5 los mapea a sus tare
 
 ## 6. Convivencia y corte
 
+El corte empieza cuando DevOps ya desplegó ms-blooming-go en testing y live (§7).
+
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
 3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
@@ -208,6 +210,12 @@ Antes del corte se ejecuta la auditoría de datos **BLM-0133**: claves y setting
 - El resto del módulo de saldo: depósitos de nómina, anulaciones, retiros manuales.
 - Los resolvers `B_*` del gateway: siguen leyendo Mongo directo; solo se garantiza compatibilidad de formato.
 - Los cambios en el front: se hacen en su repositorio, guiados por los contratos de estas specs.
+- La infraestructura y el despliegue: Dockerfile, stack de Swarm, workflow de build, entornos de testing y live, proxy y DNS. Los hace DevOps y viven solo en `main` (constitución §13). El servicio necesita:
+  - una imagen con el binario del API y el de `cmd/healthcheck`; el healthcheck del stack es ese binario, que consulta `GET /_health` en `127.0.0.1:${API_PORT}`;
+  - `.env` y `.env.<ENV>` en el directorio de trabajo: sin los dos el proceso no arranca, y el entorno llega en esos archivos, no como variables del contenedor (variables en la [spec 00 §5](specs/00-plataforma-base.spec.md));
+  - `stop_grace_period` mayor a 20 s, para que el graceful shutdown termine (RF-00.16);
+  - Mongo con replica set, porque compra, venta y canje usan transacciones;
+  - exposición pública para el front, con su origen en `CORS_ORIGINS`.
 
 ## 8. Preguntas abiertas transversales
 

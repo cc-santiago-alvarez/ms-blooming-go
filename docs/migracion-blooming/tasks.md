@@ -1,6 +1,6 @@
 # Tareas — Migración de Blooming a ms-blooming-go
 
-> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad, infraestructura y corte no salen de una spec funcional y se definen en el script (`EXTRA`).
+> **Archivo generado.** La fuente de verdad de cada tarea es la tabla *Tareas* de su spec. Este archivo se regenera con el script de §6 y no se edita a mano. Las tareas de preparación, calidad y corte no salen de una spec funcional y se definen en el script (`EXTRA`).
 
 ## 1. Cómo leer este documento
 
@@ -9,7 +9,7 @@
 - **Formato:** `- [ ] ID [P] tipo título`, seguido de una línea con lo que cubre y sus dependencias, y otra con los archivos.
 - **`[P]`:** la tarea puede empezar al inicio de su fase, porque no depende de otra tarea de la misma fase. Las tareas `[P]` de una fase se pueden repartir en paralelo.
 - **Cubre:** requisitos (`RF-NN.x`) que implementa, o criterios de aceptación (`CA-NN.x`) que verifica.
-- **Tipo:** `impl` (código de producción), `test` u `ops` (repositorio, infraestructura, corte).
+- **Tipo:** `impl` (código de producción), `test` u `ops` (repositorio, corte).
 - **Reglas** (constitución §14):
   - toda tarea funcional cita al menos un RF o CA;
   - todo RF tiene al menos una tarea `impl` y una `test`;
@@ -30,16 +30,14 @@
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 18 | 12 | 6 | 0 |
 | F7 | Maduración (spec 10) | 13 | 8 | 5 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
-| F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
-| F10 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
-| | **Total** | **169** | **105** | **46** | **18** |
+| F9 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
+| | **Total** | **165** | **105** | **46** | **14** |
 
 ```
-F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
-          └─▶ F9 (infra en main) ──────────────────────────┘
+F0 ─▶ F1 ─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─▶ F9
 ```
 
-F9 (infra, en `main`) puede empezar cuando BLM-0019 está terminada y correr en paralelo con F2–F8.
+F9 (corte) requiere ms-blooming-go desplegado en testing y live. El despliegue lo hace DevOps y no forma parte de este plan (ver el [README de la migración](README.md), §7).
 
 ## 3. Tareas por fase
 
@@ -592,36 +590,19 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 
 - [ ] `go vet ./...` y `go test ./...` en verde; `go test -tags=integration ./...` en verde contra el replica set local.
 
-### F9 — Infraestructura (solo en `main`)
-
-- [ ] **BLM-0129** [P] `ops` `.deploy/Dockerfile` multi-stage (`golang:1.27-alpine` → `scratch`, binario de healthcheck, `USER 1001`, `EXPOSE ${API_PORT}`) y `.dockerignore` — **solo en `main`**
-  - cubre: RF-00.16 · depende de: BLM-0019
-  - archivos: `.deploy/Dockerfile`, `.dockerignore`
-- [ ] **BLM-0130** `ops` `.deploy/docker-compose.yml` (Swarm, 3 réplicas, healthcheck, `/opt/ms-blooming-go/.env`), `docker-stack-deploy.sh` y `.deploy-testing/` — **solo en `main`**
-  - cubre: — · depende de: BLM-0129
-  - archivos: `.deploy/`, `.deploy-testing/`
-- [ ] **BLM-0131** `ops` `.github/workflows/docker-build.yml` (release `X.Y.Z-live`/`-testing`, Jenkins, Discord), con `go vet` y `go test` antes del build — **solo en `main`**
-  - cubre: — · depende de: BLM-0129
-  - archivos: `.github/workflows/docker-build.yml`
-- [ ] **BLM-0132** `ops` Entornos: `.env` en `/opt/ms-blooming-go/` (testing y live), replica set confirmado, exposición pública del servicio (proxy y DNS) para el front y `CORS_ORIGINS`
-  - cubre: RF-00.1, RF-00.6 · depende de: BLM-0130
-  - archivos: servidores
-
-**Criterio de salida F9:** La imagen se construye y despliega en testing con healthcheck en verde.
-
-### F10 — Corte y retiro del legado
+### F9 — Corte y retiro del legado
 
 - [ ] **BLM-0133** [P] `ops` Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `'2'`/`'6'` con `soldDate` (B22), bonos `'1'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida, y bondObjects con `isPrivateBond` que no es booleano (O11), para normalizarlos antes del corte
   - cubre: RF-02.9, RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
   - archivos: informe en `docs/migracion-blooming/`
 - [ ] **BLM-0134** [P] `ops` Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento
-  - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141, BLM-0142, BLM-0149, BLM-0153
+  - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0140, BLM-0141, BLM-0142, BLM-0149, BLM-0153
   - archivos: `backend/server/lib/crons.js`, `.env` de ms-cronjob-go
 - [ ] **BLM-0135** `ops` Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**
   - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133, BLM-0151
   - archivos: `backend/server/model/bond.bound.js`
 - [ ] **BLM-0136** [P] `ops` Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec. Las gráficas dejan de leer ms-feed desde el navegador: `/bond/:id/feed` pasa a `GET /bond-objects/{id}/chart?simulation=true` y `/bound/:id/feed` a `GET /bond-bounds/{id}/chart`
-  - cubre: RF-01.1, RF-02.9, RF-03.4, RF-03.7, RF-09.1, RF-04.1, RF-06.4 · depende de: BLM-0132, BLM-0146
+  - cubre: RF-01.1, RF-02.9, RF-03.4, RF-03.7, RF-09.1, RF-04.1, RF-06.4 · depende de: BLM-0146
   - archivos: repo del front
 - [ ] **BLM-0137** `ops` Retirar `bond.*.js` de Meteor y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072
   - cubre: — · depende de: BLM-0134, BLM-0135, BLM-0136, BLM-0072
@@ -633,18 +614,18 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
   - cubre: RF-03.7, RF-10.1 · depende de: BLM-0134, BLM-0136
   - archivos: servidores de ms-feed, repo `futurapps/ms-feed`
 
-**Criterio de salida F10:** El front usa solo REST, Meteor no tiene código de bonos, ms-feed está apagado y el monitoreo no muestra incidencias.
+**Criterio de salida F9:** El front usa solo REST, Meteor no tiene código de bonos, ms-feed está apagado y el monitoreo no muestra incidencias.
 
 ## 4. Matriz de trazabilidad: requisito → tareas
 
 | Spec | RF | Implementan | Verifican (tests) | CA | Operación / corte |
 |---|---|---|---|---|---|
-| 00 | RF-00.1 | BLM-0001, BLM-0002 | BLM-0025 | CA-00.1 | BLM-0132 |
+| 00 | RF-00.1 | BLM-0001, BLM-0002 | BLM-0025 | CA-00.1 | — |
 | 00 | RF-00.2 | BLM-0004 | BLM-0021, BLM-0025 | CA-00.2, CA-00.43 | — |
 | 00 | RF-00.3 | BLM-0005 | BLM-0021 | CA-00.3, CA-00.4, CA-00.5 | — |
 | 00 | RF-00.4 | BLM-0006 | BLM-0021 | CA-00.6 | — |
 | 00 | RF-00.5 | BLM-0007, BLM-0156 | BLM-0021, BLM-0127, BLM-0157 | CA-00.7, CA-00.8, CA-00.34, CA-00.44 | — |
-| 00 | RF-00.6 | BLM-0008 | BLM-0025 | CA-00.9 | BLM-0132 |
+| 00 | RF-00.6 | BLM-0008 | BLM-0025 | CA-00.9 | — |
 | 00 | RF-00.7 | BLM-0002 | BLM-0025 | CA-00.10, CA-00.42 | — |
 | 00 | RF-00.8 | BLM-0009, BLM-0026, BLM-0139 | BLM-0023, BLM-0027 | CA-00.11, CA-00.12, CA-00.30, CA-00.37 | — |
 | 00 | RF-00.9 | BLM-0010 | BLM-0022 | CA-00.13 | — |
@@ -654,7 +635,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 00 | RF-00.13 | BLM-0003 | BLM-0021 | CA-00.22 | — |
 | 00 | RF-00.14 | BLM-0016 | BLM-0024 | CA-00.23, CA-00.41 | — |
 | 00 | RF-00.15 | BLM-0017 | BLM-0022 | CA-00.24, CA-00.36 | — |
-| 00 | RF-00.16 | BLM-0019 | BLM-0025 | CA-00.25, CA-00.26 | BLM-0129 |
+| 00 | RF-00.16 | BLM-0019 | BLM-0025 | CA-00.25, CA-00.26 | — |
 | 00 | RF-00.17 | BLM-0020 | BLM-0025 | CA-00.27 | — |
 | 00 | RF-00.18 | BLM-0009 | BLM-0023 | CA-00.28, CA-00.39 | — |
 | 00 | RF-00.19 | BLM-0026 | BLM-0027 | CA-00.30, CA-00.31, CA-00.32 | — |
@@ -827,4 +808,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 98 RF, 181 CA, 169 tareas, 70 bugs. Validación sin errores. Siguiente ID libre: `BLM-0164`.
+Última generación: 11 specs, 98 RF, 181 CA, 165 tareas, 70 bugs. Validación sin errores. Siguiente ID libre: `BLM-0164`.
