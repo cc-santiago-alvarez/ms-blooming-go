@@ -82,6 +82,7 @@ Archivo: `backend/server/model/bond.object.js` (628 líneas).
   - Respuesta: `[{_id: userId, numOfBounds, investor}]`.
 - **RF-02.9** — Bonos de un tipo, para el inversionista.
   - Devuelve los bondObjects con `isRemove: false`, `active: true`, `bondTypeId` y `agencyId` que contiene el `agencyId` de la sesión. Los privados solo aparecen si el usuario está en `authorizedUserIds`. El filtro va en la consulta.
+  - Es privado el bondObject cuyo `isPrivateBond` es verdadero con el criterio de los datos legacy de §6, también en la consulta.
   - Orden: `createdAt` descendente.
   - Cada item suma:
     - `maturityDateEstimated = StartOfDay(now, utcDiff) + maturityTimeInDays días`, en ISO;
@@ -219,6 +220,11 @@ type BondObject struct {
 ```
 
 - **Datos legacy:** los numéricos pueden venir como string (eran inputs de formulario sin validar). El decoder BSON acepta `string|int|double` en `amount`, `maturityTimeInDays`, `maturityRewardsPercentage` y en los campos de `earlyCashTerm` (tipo `shared_domain.FlexNumber`).
+- **`isPrivateBond` legacy:** hay bondObjects que guardan ahí un string, por ejemplo un id de Meteor (O11). Se lee con el criterio de verdad de JS, como lo evalúa el legado (`bond.object.js:574`, `isPrivateBond && …`):
+  - `false`, `null`, ausente, `""` y `0` son `false`;
+  - cualquier otro valor es `true`, también `"false"` y `"0"`, que en JS son strings no vacíos.
+
+  El filtro de privados de la consulta (RF-02.9) usa el mismo criterio: un bondObject es público solo si `isPrivateBond` está en `[false, null, "", 0]` (`null` también encuentra el campo ausente). Al editar el bondObject, el valor se guarda como booleano.
 - **Índices:** `{isRemove: 1, agencyId: 1, bondTypeId: 1, active: 1}`, `{isRemove: 1, agencyId: 1, createdAt: -1}`.
 
 ## 7. Ports y dependencias
@@ -247,6 +253,7 @@ type BondObject struct {
 | O5 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. | Corregir | Rendimiento y scoping. | BLM-0052 |
 | O6 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. | Corregir | Cálculos de dinero inválidos. | BLM-0045 |
 | O9 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. | Corregir | Seguridad. | BLM-0052 |
+| O11 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). | Paridad: criterio de verdad de JS (§6) | Visibilidad de productos privados y endpoints que fallan. | BLM-0154 |
 
 ## 9. Criterios de aceptación
 
@@ -265,6 +272,15 @@ type BondObject struct {
 - **CA-02.13** (RF-02.11) — `latest` devuelve como máximo 3 bonos, ordenados por `createdAt` desc, solo de la agencia de la sesión.
 - **CA-02.14** (RF-02.4, RF-02.5, RF-02.7) — Si `BondHistory.Add` falla, el alta, la edición o la baja responden con éxito igual, y el error queda en el log.
 - **CA-02.15** (RF-02.3, RF-02.9) — Dado un bondObject legacy (`_id` de 17 caracteres) cuyo `bondTypeId` también es legacy, `GET /bond-objects/{id}` lo devuelve y `GET /bond-types/{bondTypeId}/bond-objects` lo lista junto a los bondObjects nuevos (UUID) del mismo tipo.
+- **CA-02.16** (RF-02.9) — El decoder lee `isPrivateBond` así:
+  - `false`, `null`, ausente, `""` y `0` dan `false`;
+  - `true`, `"A8DjCnAETjXarQ2YA"`, `"false"` y `1` dan `true`.
+
+  Los demás campos del documento se leen igual que con un booleano.
+- **CA-02.17** (RF-02.3, RF-02.9) — Dados dos bondObjects del mismo tipo, P con `isPrivateBond: "A8DjCnAETjXarQ2YA"` y Q con `isPrivateBond: ""`:
+  - el detalle de P responde `200` con `isPrivateBond: true`;
+  - para un usuario no autorizado, el listado del tipo responde `200` con Q y sin P;
+  - si el usuario está en `authorizedUserIds` de P, P aparece.
 
 ## 10. Tareas
 
@@ -282,6 +298,8 @@ type BondObject struct {
 | BLM-0057 | Tests unitarios de casos de uso y handlers con fakes | test | F3 | CA-02.3, CA-02.4, CA-02.5, CA-02.6, CA-02.9, CA-02.14 | BLM-0056 | `internal/core/bondObject/application/*_test.go`, `cmd/api/handlers/bondObjects/*_test.go` |
 | BLM-0058 | Tests de integración del repositorio y de las agregaciones | test | F3 | CA-01.3, CA-02.1, CA-02.2, CA-02.7, CA-02.8, CA-02.10, CA-02.11, CA-02.12, CA-02.13, CA-02.15 | BLM-0047, BLM-0048 | `internal/core/bondObject/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0059 | Test de tabla de `BuildChanges` | test | F3 | CA-02.6 | BLM-0053 | `internal/core/bondObject/domain/bondObject.changes_test.go` |
+| BLM-0154 | `isPrivateBond` legacy con el criterio de verdad de JS: el decoder de `bondObject` acepta cualquier tipo y el filtro de privados de la consulta trata como público solo `[false, null, "", 0]` | impl | F3 | RF-02.3, RF-02.9 | BLM-0045, BLM-0047 | `internal/core/bondObject/domain/bondObject.bson.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.mongocc.repository.go` (`visibleTo`) |
+| BLM-0155 | Tests del decoder con cada valor de `isPrivateBond` y de integración del detalle y del listado del tipo con un `isPrivateBond` string | test | F3 | CA-02.16, CA-02.17 | BLM-0154 | `internal/core/bondObject/domain/bondObject.bson_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.findVisible_integration_test.go` |
 
 ## 11. Fuera de alcance y preguntas abiertas
 

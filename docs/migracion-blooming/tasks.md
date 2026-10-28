@@ -24,7 +24,7 @@
 | F0 | Preparación del repositorio | 7 | 0 | 0 | 7 |
 | F1 | Plataforma base (spec 00) | 28 | 22 | 6 | 0 |
 | F2 | Historial y tipos compartidos (specs 08 y 03) | 11 | 9 | 2 | 0 |
-| F3 | Catálogo (specs 01, 02 y 03) | 25 | 19 | 6 | 0 |
+| F3 | Catálogo (specs 01, 02 y 03) | 27 | 20 | 7 | 0 |
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
 | F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 33 | 22 | 11 | 0 |
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 16 | 11 | 5 | 0 |
@@ -32,7 +32,7 @@
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Infraestructura (solo en `main`) | 4 | 0 | 0 | 4 |
 | F10 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
-| | **Total** | **159** | **100** | **41** | **18** |
+| | **Total** | **161** | **101** | **42** | **18** |
 
 ```
 F0 ─▶ F1 ─┬─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─┬─▶ F10
@@ -283,6 +283,12 @@ Specs: [spec 01](specs/01-bond-type.spec.md), [spec 02](specs/02-bond-object-cat
 - [ ] **BLM-0063** `impl` Handler `GET /bond-objects/{id}/history` (admin)
   - cubre: RF-08.2 · depende de: BLM-0037, BLM-0056, BLM-0026
   - archivos: `cmd/api/handlers/bondObjects/bondObjects.history.get.go`, `bondObjects.handler.go` (ruta y dependencia `BondHistoryApplicationPorts`), `bondObjects.testServer_test.go` (firma del constructor), `cmd/api/server/server.bondObject.go` (pasa la aplicación del historial)
+- [ ] **BLM-0154** `impl` `isPrivateBond` legacy con el criterio de verdad de JS: el decoder de `bondObject` acepta cualquier tipo y el filtro de privados de la consulta trata como público solo `[false, null, "", 0]`
+  - cubre: RF-02.3, RF-02.9 · depende de: BLM-0045, BLM-0047
+  - archivos: `internal/core/bondObject/domain/bondObject.bson.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.mongocc.repository.go` (`visibleTo`)
+- [ ] **BLM-0155** `test` Tests del decoder con cada valor de `isPrivateBond` y de integración del detalle y del listado del tipo con un `isPrivateBond` string
+  - cubre: CA-02.16, CA-02.17 · depende de: BLM-0154
+  - archivos: `internal/core/bondObject/domain/bondObject.bson_test.go`, `internal/core/bondObject/infrastructure/mongocc/bondObject.findVisible_integration_test.go`
 
 **Criterio de salida F3:** Tipos y productos se administran y consultan por REST, con historial, proyección y permisos.
 
@@ -581,8 +587,8 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 
 ### F10 — Corte y retiro del legado
 
-- [ ] **BLM-0133** [P] `ops` Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `'2'`/`'6'` con `soldDate` (B22), bonos `'1'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida
-  - cubre: RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
+- [ ] **BLM-0133** [P] `ops` Auditoría de datos previa al corte: claves duplicadas (B8), settings duplicados (U3), numéricos guardados como string, bonos `'2'`/`'6'` con `soldDate` (B22), bonos `'1'` vencidos que ms-feed nunca maduró (B36) y que Go madura en su primera corrida, y bondObjects con `isPrivateBond` que no es booleano (O11), para normalizarlos antes del corte
+  - cubre: RF-02.9, RF-04.3, RF-09.1, RF-10.3 · depende de: T-PREP.7, BLM-0079, BLM-0065
   - archivos: informe en `docs/migracion-blooming/`
 - [ ] **BLM-0134** [P] `ops` Corte de la maduración en un mismo deploy: quitar el job `BondBoundCheckMaturity` de Meteor (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento
   - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0132, BLM-0140, BLM-0141, BLM-0142, BLM-0149, BLM-0153
@@ -637,13 +643,13 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 01 | RF-01.7 | BLM-0039 | BLM-0044 | CA-01.8 | — |
 | 02 | RF-02.1 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.1 | — |
 | 02 | RF-02.2 | BLM-0046, BLM-0047, BLM-0052, BLM-0056 | BLM-0058 | CA-02.2 | — |
-| 02 | RF-02.3 | BLM-0046, BLM-0052, BLM-0056 | BLM-0057, BLM-0058 | CA-02.3, CA-02.15 | — |
+| 02 | RF-02.3 | BLM-0046, BLM-0052, BLM-0056, BLM-0154 | BLM-0057, BLM-0058, BLM-0155 | CA-02.3, CA-02.15, CA-02.17 | — |
 | 02 | RF-02.4 | BLM-0045, BLM-0046, BLM-0054, BLM-0056 | BLM-0057 | CA-02.4, CA-02.5, CA-02.14 | — |
 | 02 | RF-02.5 | BLM-0045, BLM-0046, BLM-0053, BLM-0054, BLM-0056 | BLM-0057, BLM-0058, BLM-0059 | CA-02.6, CA-02.7, CA-02.14 | — |
 | 02 | RF-02.6 | BLM-0046, BLM-0047, BLM-0054, BLM-0056 | BLM-0058 | CA-02.8 | — |
 | 02 | RF-02.7 | BLM-0046, BLM-0047, BLM-0054, BLM-0056 | BLM-0057 | CA-02.9, CA-02.14 | — |
 | 02 | RF-02.8 | BLM-0046, BLM-0048, BLM-0055, BLM-0056 | BLM-0058 | CA-02.10 | — |
-| 02 | RF-02.9 | BLM-0046, BLM-0047, BLM-0055, BLM-0056 | BLM-0058 | CA-02.11, CA-02.15 | BLM-0136 |
+| 02 | RF-02.9 | BLM-0046, BLM-0047, BLM-0055, BLM-0056, BLM-0154 | BLM-0058, BLM-0155 | CA-02.11, CA-02.15, CA-02.16, CA-02.17 | BLM-0133, BLM-0136 |
 | 02 | RF-02.10 | BLM-0046, BLM-0048, BLM-0055, BLM-0056 | BLM-0058 | CA-02.12 | — |
 | 02 | RF-02.11 | BLM-0046, BLM-0047, BLM-0055, BLM-0056 | BLM-0058 | CA-02.13 | — |
 | 03 | RF-03.1 | BLM-0028, BLM-0029 | BLM-0031, BLM-0125 | CA-03.1, CA-03.2, CA-03.3 | — |
@@ -727,6 +733,7 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | O5 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0052 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. |
 | O6 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0045 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. |
 | O9 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Corregir | BLM-0052 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. |
+| O11 | [spec 02](specs/02-bond-object-catalogo.spec.md) | Paridad: criterio de verdad de JS (§6) | BLM-0154 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). |
 | O10 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0029, BLM-0143 | `getDataChart` y `getChartGuides` aplican `parseInt` sobre `amount` y porcentajes: un bono de 1000.50 con 7.5% se simula como 1000 con 7%. Los feeds de ms-feed hacen lo mismo: `/bond/:id/feed` con el monto y los porcentajes, y `/bound/:id/feed` con los porcentajes y el punto de inflexión. |
 | O7 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0060 | `getDataChart` con `simulation` pero sin `preview` devuelve `data: []`. |
 | O8 | [spec 03](specs/03-proyeccion-y-graficas.spec.md) | Corregir | BLM-0030, BLM-0143 | `getChartGuides` formatea las fechas con la zona del servidor; `getDataChart` usa `session.utcDiff`. Los feeds de ms-feed también usan la zona del servidor, para las fechas y para los días transcurridos. |
@@ -793,4 +800,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 98 RF, 167 CA, 159 tareas, 66 bugs. Validación sin errores. Siguiente ID libre: `BLM-0154`.
+Última generación: 11 specs, 98 RF, 169 CA, 161 tareas, 67 bugs. Validación sin errores. Siguiente ID libre: `BLM-0156`.
