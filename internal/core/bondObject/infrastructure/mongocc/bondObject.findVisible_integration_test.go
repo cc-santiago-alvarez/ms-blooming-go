@@ -3,6 +3,7 @@
 package bondObject_mongocc_repository_test
 
 import (
+	"context"
 	"regexp"
 	"slices"
 	"testing"
@@ -60,6 +61,61 @@ func TestListByType(t *testing.T) {
 				if o.ID == newer && !singleDigitDayLabel.MatchString(o.MaturityDateFormatted) {
 					t.Errorf("maturityDateFormatted de %s = %q, se esperaba el formato D MMM YYYY con el día en una cifra",
 						o.ID, o.MaturityDateFormatted)
+				}
+			}
+		})
+	}
+}
+
+// Dados P con isPrivateBond string y Q con isPrivateBond "" del mismo tipo, P se lee por id como privado; el
+// listado del tipo devuelve Q sin P a un usuario no autorizado, y P aparece si el usuario está en
+// authorizedUserIds de P. CA-02.17
+func TestStringIsPrivateBond(t *testing.T) {
+	repo := setup(t)
+	private, public := meteor1, uuid1
+	insert(t, objectCollection,
+		objectDoc(private, "Privado", typeID, bson.A{agencyA}, bson.M{
+			"createdAt":         fixtureAt.Add(time.Hour),
+			"isPrivateBond":     "A8DjCnAETjXarQ2YA",
+			"authorizedUserIds": bson.A{user2ID},
+		}),
+		objectDoc(public, "Público", typeID, bson.A{agencyA}, bson.M{"isPrivateBond": ""}),
+	)
+
+	t.Run("el detalle lo lee como privado", func(t *testing.T) {
+		got, err := repo.FindOneByID(context.Background(), private)
+		if err != nil || got == nil {
+			t.Fatalf("FindOneByID(%s) = %v, %v", private, got, err)
+		}
+		if !got.IsPrivateBond {
+			t.Errorf("isPrivateBond de %s = false, se esperaba true", private)
+		}
+	})
+
+	tests := []struct {
+		name   string
+		userID string
+		want   []string
+	}{
+		{name: "sin autorizar en P", userID: userID, want: []string{public}},
+		{name: "autorizado en P", userID: user2ID, want: []string{private, public}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := newApp().ListByType(investorSession(tt.userID, agencyA), typeID)
+			if err != nil {
+				t.Fatalf("ListByType() = %v", err)
+			}
+			gotIDs := make([]string, len(got))
+			for i, o := range got {
+				gotIDs[i] = o.ID
+			}
+			if !slices.Equal(gotIDs, tt.want) {
+				t.Fatalf("ListByType() = %v, se esperaba %v", gotIDs, tt.want)
+			}
+			for _, o := range got {
+				if want := o.ID == private; o.IsPrivateBond != want {
+					t.Errorf("isPrivateBond de %s = %v, se esperaba %v", o.ID, o.IsPrivateBond, want)
 				}
 			}
 		})
