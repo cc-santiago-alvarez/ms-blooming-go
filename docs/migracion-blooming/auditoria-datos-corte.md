@@ -262,10 +262,10 @@ La copia se borró al terminar. `futurapps` y `parity` no se modificaron: siguen
 4. **Settings (U3), antes del primer arranque de Go en cada entorno.**
    - `dedupusersettings` y, si hay duplicados, `-apply`.
    - Si Go ya arrancó, hay que reiniciarlo y verificar con `getIndexes()` que existe `userId_1`: `EnsureIndexes` solo deja un warning.
-5. **Antes de BLM-0134.** Auditoría con `-at` igual a la fecha del corte:
+5. **Antes de BLM-0134** ([procedimiento](corte-maduracion.md)). Auditoría con `-at` igual a la fecha del corte:
    - 0 bloqueantes entre los `'1'`;
    - revisar los B36 y el volumen de la primera corrida (bonos y dueños, con un aviso y un email por dueño).
-6. **Después de BLM-0134.** Otra vez `-apply -only vendidos`: el `updateMany` de ms-feed no repite la condición de estado y pudo dejar un `'2'` con `soldDate` antes de apagarse.
+6. **Después de BLM-0134,** cuando ya ninguna réplica de Meteor corre el job: otra vez `-apply -only vendidos`, porque el `updateMany` de ms-feed no repite la condición de estado y pudo dejar un `'2'` con `soldDate` antes de apagarse.
 7. **En la ventana de BLM-0135.**
    1. Auditoría.
    2. `seedkeycounters -apply`.
@@ -286,7 +286,7 @@ Fuera del alcance de la herramienta. Se dejan para decidir aparte.
 - **Zona horaria de ms-feed.**
   - Entre 2020-06 y 2022-09, los avisos "Bono Madurado" salen a las 04:00 y 05:00 UTC, siguiendo el horario de verano de EE. UU. ms-feed corría en hora de Nueva York, no en UTC como supone la spec 10.
   - Desde su despliegue en Docker (2024) probablemente corre en UTC. Hay que confirmarlo en live agrupando esos avisos por hora antes de BLM-0134.
-- **`FindMaturable` contradice RF-10.6.** Decodifica cada lote con `cursor.All`, y `RunMaturity` corta la corrida si no puede leer un lote. Un solo `'1'` que no decodifica deja sin madurar su lote y los siguientes en cada corrida, y con los volúmenes normales frena toda la maduración. Propuesta: tarea nueva (BLM-0164) para decodificar bono por bono, antes de BLM-0134. Mientras tanto, la auditoría lo detecta (§5.7), pero Meteor sigue creando bonos hasta BLM-0135.
+- **`FindMaturable` contradice RF-10.6.** Decodifica cada lote con `cursor.All`, y `RunMaturity` corta la corrida si no puede leer un lote. Un solo `'1'` que no decodifica deja sin madurar su lote y los siguientes en cada corrida, y con los volúmenes normales frena toda la maduración. Lo corrige BLM-0164 (spec 10, CA-10.11), que decodifica bono por bono, y BLM-0134 depende de su test (BLM-0165). Hasta que esté desplegada, la auditoría lo detecta (§5.7), pero Meteor sigue creando bonos hasta BLM-0135.
 - **Specs desactualizadas.**
   - El pseudocódigo de `numOfBonds` en la spec 01 usa `isPrivateBond: {$ne: true}`, pero el código usa el criterio de la spec 02 §6.
   - La spec 07 dice "Σ amount": el KPI y el resumen de reportes suman con `$convert`, y el resumen del usuario y el legado, con `$sum`, que ignora los strings.

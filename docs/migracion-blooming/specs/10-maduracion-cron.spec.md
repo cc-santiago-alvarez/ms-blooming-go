@@ -58,7 +58,7 @@ Las referencias a Meteor son de `origin/main`: el checkout local del backend pue
   - La tabla tiene una fila por bono: `Bono (key) | Tipo (bondType.name) | Nombre (bondObject.name)`, con el HTML del legado.
   - El email sale sin sesión, por `POST /notify/internal/{group}/{notification}`, la ruta interna de ms-notification que solo valida `x-secret` (BLM-0140). Si ms-notification todavía no tiene la ruta, responde 404 y el fallo solo se loguea; el `notice` se guarda igual.
 - **RF-10.6** — Robustez y observabilidad.
-  - Si falla un bono, se loguea con su `_id` y el lote sigue.
+  - Si falla un bono, al leerlo o al madurarlo, se loguea con su `_id`, cuenta como fallido y la corrida sigue con el resto del lote y los lotes siguientes.
   - Al terminar se loguea `{matured, users, failed, durationMs}`.
   - Una corrida nunca deja el lock tomado más allá de su TTL.
 - **RF-10.7** — Endpoint interno. `POST /internal/jobs/bond-maturity/run` (`x-secret`, `NoRequiresAuthentication`) ejecuta la corrida con el lock y responde `{matured, users, failed}`. Es la entrada de ms-cronjob-go y también sirve para operación y pruebas.
@@ -103,7 +103,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 ## 7. Ports y dependencias
 
 - `BondBoundApplicationPorts.RunMaturity(ctx, now) (MaturityResult, error)`.
-- `BondBoundMongoccRepositoryPorts`: `FindMaturable(ctx, cutoff, limit, afterID)` (`maturityDate < cutoff`) y `UpdateStatusIf` (BLM-0077).
+- `BondBoundMongoccRepositoryPorts`: `FindMaturable(ctx, cutoff, limit, afterID)` (`maturityDate < cutoff`) y `UpdateStatusIf` (BLM-0077). `FindMaturable` decodifica bono por bono: devuelve también los `_id` que no pudo decodificar y el `_id` del último documento del lote, se haya podido decodificar o no, para que la paginación siga después de él aunque descarte bonos de un lote completo.
 - `JobLockPort`: `Acquire(ctx, name, ttl) (bool, error)` y `Release(ctx, name)`, en `shared_ports`.
 - `BondHistoryPort.Add` en modo sistema (spec 08).
 - `NoticePort`, `NotificationPort`, `ProfileReader` (spec 00) y lectura de los nombres de `bondType` y `bondObject` (specs 01 y 02).
@@ -138,6 +138,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 - **CA-10.8** (RF-10.7) — `POST /internal/jobs/bond-maturity/run` sin `x-secret` responde `401`. Con `x-secret` responde `200 {matured, users, failed}`.
 - **CA-10.9** (RF-10.3, RF-10.4) — Un `bondBound` legacy (17 caracteres) en estado `'1'` y vencido madura igual que uno nuevo, y su historial de sistema tiene `relatedId` igual al `_id` legacy.
 - **CA-10.10** (RF-10.3) — El corte es el fin del día en UTC: con `now 2026-10-13T00:03Z`, un bono `'1'` con `maturityDate 2026-10-13T23:59:59Z` madura, con `maturedAt` igual a `now`, y uno con `2026-10-14T00:00:00Z` no.
+- **CA-10.11** (RF-10.6) — Un bono `'1'` vencido que Go no puede decodificar (por ejemplo, con un `amount` guardado como un string que no es un número) no corta la corrida: se loguea con su `_id`, cuenta en `failed` y maduran los demás bonos de su lote y de los lotes siguientes, también cuando está en un lote completo de 500. La corrida termina sin error: el endpoint responde `200`.
 
 ## 10. Tareas
 
@@ -156,6 +157,8 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 | BLM-0148 | Corte de maduración al fin del día en UTC: `RunMaturity` calcula `cutoff` y `FindMaturable` filtra `maturityDate < cutoff` | impl | F7 | RF-10.3 | BLM-0118, BLM-0120 | `internal/core/bondBound/application/bondBound.runMaturity.go`, `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (parámetro `cutoff`), `cmd/api/handlers/jobs/jobs.bondMaturity.post.go` (comentario) |
 | BLM-0149 | Tests del corte (lo que vence hoy en UTC madura aunque sea más tarde; lo de mañana no) y ajuste de los tests de maduración que asumían `maturityDate <= now` | test | F7 | CA-10.10 | BLM-0148 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable` con corte), `bondBound.runMaturity_integration_test.go` |
 | BLM-0153 | Tests del `NotificationClient`: sin sesión, o con una sesión sin token, va a `/notify/internal/{group}/{notification}` sin `x-token`; con sesión, a la ruta normal; el email de maduración va a la ruta interna | test | F7 | CA-00.40, CA-10.6 | BLM-0140 | `internal/core/shared/infrastructure/notification/notification.client_test.go`, `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` y `bondBound.purchase.notify_test.go` (token en las sesiones de prueba) |
+| BLM-0164 | Bonos que no se pueden leer en la maduración: `FindMaturable` decodifica bono por bono y `RunMaturity` loguea cada uno con su `_id`, lo cuenta como fallido y sigue con el resto del lote y los lotes siguientes | impl | F7 | RF-10.6 | BLM-0148 | `internal/core/bondBound/infrastructure/mongocc/bondBound.findMaturable.adapter.go`, `internal/core/bondBound/ports/bondBound.ports.go` (lote de `FindMaturable`), `internal/core/bondBound/application/bondBound.runMaturity.go`, `bondBound.fakes_test.go` y `bondBound.runMaturity_integration_test.go` (firma de `FindMaturable`), `cmd/tools/auditdata/maturity.go`, `report.go` y `auditdata_integration_test.go` (los que Go no decodifica ya no cortan la corrida), `docs/migracion-blooming/auditoria-datos-corte.md` (§5.7 y §9) |
+| BLM-0165 | Tests de un bono `'1'` vencido que no se puede leer: se loguea con su `_id`, cuenta en `failed` y maduran el resto de su lote y los lotes siguientes | test | F7 | CA-10.11 | BLM-0164 | `internal/core/bondBound/application/bondBound.runMaturity_test.go`, `bondBound.fakes_test.go` (`FindMaturable` con bonos ilegibles), `bondBound.runMaturity_integration_test.go` (bono con un numérico ilegible) |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
@@ -166,7 +169,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
   - Con `userId ""`, `B_BondBound_Audit_details` no lo cuenta (RF-10.4).
   - Los `'6'` con `soldDate` y `tookDate` ya se cobraron dos veces: solo se informan, para contabilidad y como línea base de BLM-0138.
   - Se corre en live cuanto antes, y otra vez después de BLM-0134, por la carrera del `updateMany` de ms-feed.
-- **Corte (primera corrida):** la primera corrida de Go madura todos los `'1'` vencidos, también los que ms-feed nunca maduró (B36), y avisa una vez a cada dueño con todos sus bonos. Antes de BLM-0134, la auditoría de datos informa cuántos son y de cuántos dueños, cuáles no tienen `profile`, `bondType` o `bondObject`, los que Go no decodifica, que cortan la corrida en su lote, y los `'1'` sin `agencyId`, que fallan solos en cada corrida y nunca maduran.
+- **Corte (primera corrida):** la primera corrida de Go madura todos los `'1'` vencidos, también los que ms-feed nunca maduró (B36), y avisa una vez a cada dueño con todos sus bonos. Antes de BLM-0134, la auditoría de datos informa cuántos son y de cuántos dueños, cuáles no tienen `profile`, `bondType` o `bondObject`, y los que Go no decodifica o no tienen `agencyId`, que fallan solos en cada corrida y nunca maduran.
 - **Decisión (Pregunta 4 de la spec 00):** el email de maduración sale sin sesión, y `POST /notify/:group/:notification` de ms-notification exige `x-token`. Se agrega a ms-notification una ruta interna que solo valida `x-secret`, y `NotificationClient` la usa cuando el ctx no tiene sesión (BLM-0140). El corte (BLM-0134) depende de esa tarea.
 - **Decisión (programación):** la maduración la programa ms-cronjob-go y no el ms, para no sumar una librería de cron (constitución §1 y §12). El scheduler interno con `robfig/cron/v3` (BLM-0121) se retiró: su código nunca se versionó, y el commit con ese ID solo quitó su configuración y su documentación. El ID no se reutiliza.
 - **Pregunta:** ¿la frecuencia de 5 minutos es suficiente? El legado corría cada 30 s, pero los avisos se pueden atrasar unos minutos sin impacto.

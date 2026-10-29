@@ -8,6 +8,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | [`specs/`](specs/) | Una spec por funcionalidad (`NN-<nombre>.spec.md`): requisitos (`RF`), contrato API, reglas, bugs legacy, criterios de aceptación (`CA`) y tareas |
 | [`tasks.md`](tasks.md) | Todas las tareas por fase, con la matriz de trazabilidad RF → tareas → tests. Lo genera [`tools/gen_tasks.py`](tools/gen_tasks.py) |
 | [`auditoria-datos-corte.md`](auditoria-datos-corte.md) | Auditoría de datos previa al corte (BLM-0133): resultados por entorno, normalizaciones y orden de ejecución |
+| [`corte-maduracion.md`](corte-maduracion.md) | Procedimiento del corte de la maduración (BLM-0134): prerrequisitos por entorno, orden, verificación, rollback y resultados |
 
 ## 1. Contexto
 
@@ -198,9 +199,9 @@ El corte empieza cuando DevOps ya desplegó ms-blooming-go en testing y live (§
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
 3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
-4. **Maduración en un solo corte (BLM-0134).** Se apaga el job `BondBoundCheckMaturity` de Meteor, que llama a ms-feed, y se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`, vacío hasta ese deploy).
+4. **Maduración en un solo corte (BLM-0134).** Se apaga el job `BondBoundCheckMaturity` de Meteor, que llama a ms-feed, con `MS_FEED_MATURITY=false` y un reinicio. Cuando ya no corre en ninguna réplica, se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`, vacío hasta entonces). Las dos maduraciones nunca conviven: el hueco entre los dos pasos solo atrasa la maduración. Los dos pasos son de configuración, así que testing y live se cortan sin esperar un release. Procedimiento: [corte de la maduración](corte-maduracion.md).
 5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec. Incluye las gráficas que hoy leen ms-feed.
-6. **Retiro (BLM-0137 y BLM-0152).** Se borran `bond.*.js` de Meteor y se apaga ms-feed.
+6. **Retiro (BLM-0137 y BLM-0152).** Se borran `bond.*.js`, el job `BondBoundCheckMaturity` y su variable de Meteor, y se apaga ms-feed.
 7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
 
 Antes del corte se ejecuta la auditoría de datos **BLM-0133** (`cmd/tools/auditdata`). Sin `-apply` solo informa:
