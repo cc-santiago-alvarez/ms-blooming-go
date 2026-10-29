@@ -7,6 +7,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | [`../constitution.md`](../constitution.md) | Pautas no negociables de código del servicio |
 | [`specs/`](specs/) | Una spec por funcionalidad (`NN-<nombre>.spec.md`): requisitos (`RF`), contrato API, reglas, bugs legacy, criterios de aceptación (`CA`) y tareas |
 | [`tasks.md`](tasks.md) | Todas las tareas por fase, con la matriz de trazabilidad RF → tareas → tests. Lo genera [`tools/gen_tasks.py`](tools/gen_tasks.py) |
+| [`auditoria-datos-corte.md`](auditoria-datos-corte.md) | Auditoría de datos previa al corte (BLM-0133): resultados por entorno, normalizaciones y orden de ejecución |
 
 ## 1. Contexto
 
@@ -202,7 +203,13 @@ El corte empieza cuando DevOps ya desplegó ms-blooming-go en testing y live (§
 6. **Retiro (BLM-0137 y BLM-0152).** Se borran `bond.*.js` de Meteor y se apaga ms-feed.
 7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
 
-Antes del corte se ejecuta la auditoría de datos **BLM-0133**: claves y settings duplicados, numéricos guardados como string y bonos vendidos que maduraron (B22).
+Antes del corte se ejecuta la auditoría de datos **BLM-0133** (`cmd/tools/auditdata`). Sin `-apply` solo informa:
+- claves y settings duplicados (B8, U3);
+- bonos `'6'` cobrados dos veces;
+- bonos `'1'` vencidos que madura la primera corrida de Go, incluidos los que ms-feed nunca maduró (B36);
+- documentos que Go no puede leer u operar.
+
+Con `-apply`, y con un respaldo que permite revertir, normaliza los numéricos guardados como string, el `isPrivateBond` que no es booleano (O11) y los bonos `'2'` con `soldDate`, que pasan a `'5'` (B22). Los `'2'` se normalizan en live cuanto antes, porque Meteor todavía los paga al canjearlos. Resultados y orden de ejecución: [informe](auditoria-datos-corte.md).
 
 ## 7. Fuera de alcance
 

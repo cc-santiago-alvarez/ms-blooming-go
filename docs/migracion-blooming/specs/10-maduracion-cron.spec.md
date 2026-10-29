@@ -19,7 +19,7 @@ Hoy esto lo hace ms-feed (`PUT /bound/check-maturity`, `ms-feed/src/components/b
 |---|---|---|
 | `boundController.checkMaturity` de ms-feed (`PUT /bound/check-maturity`): la regla que corre hoy | `ms-feed/src/components/bound/index.js:124-246` | RF-10.3, RF-10.5 |
 | Job `BondBoundCheckMaturity` (cada 30 s, `PUT …/bound/check-maturity` + email + notice) | `backend/server/lib/crons.js:8-64` (`origin/main`) | RF-10.1, RF-10.5 |
-| `bondBound.checkMaturity` (comentado desde 2018; la regla anterior a ms-feed) | `backend/server/model/bond.bound.js:1389-1420` (`origin/main`) | RF-10.3 |
+| `bondBound.checkMaturity` (se agregó ya comentado en `37fedea`, 2018, y nunca corrió: el job siempre llamó a ms-feed) | `backend/server/model/bond.bound.js:1389-1420` (`origin/main`) | RF-10.3 |
 | `Text.BOND_BOUND_MESSAGE_MATURITY` / `_SUCESS` | `backend/server/lib/text.js:100-105` | RF-10.5 |
 | Arranque de `SyncedCron`: `Cron.init()` | `backend/server/main.js:10` (`origin/main`) | Reemplazado por RF-10.1 |
 
@@ -41,12 +41,12 @@ Las referencias a Meteor son de `origin/main`: el checkout local del backend pue
   - Procesa en lotes de 500 los bonos con `{isRemove: false, statusId: '1', maturityDate: {$lt: cutoff}, soldDate: null, tookDate: null}`, con `cutoff = StartOfDay(now, 0) + 1 día` (el inicio de mañana en UTC). Madura todo lo que vence hoy en UTC, aunque sea más tarde que `now`, igual que ms-feed (`maturityDate <= hoy 23:59:59`, con el servidor en UTC).
   - El corte usa UTC y no un `utcDiff`: el job no tiene sesión y se eligió la paridad con ms-feed (constitución §8). En América el bono madura antes de que empiece su día de vencimiento en la zona del usuario; en Colombia, a las 19:00 del día anterior. Por eso la cotización trata un bono `'2'` como vencido (spec 05, B37).
   - Cada bono pasa a `finalized` con `UpdateStatusIf({_id, statusId: '1', soldDate: null, tookDate: null}, {statusId: '2', matured: true, maturedAt: now})`.
-  - **Solo** se maduran bonos en estado `'1'`. Corrige B22: la regla de Meteor y una versión anterior de ms-feed incluían los estados vendido `'5'` y desligado `'4'`.
+  - **Solo** se maduran bonos en estado `'1'`. Corrige B22: entre enero de 2018 y mayo de 2021, ms-feed maduraba también los estados vendido `'5'` y desligado `'4'`.
   - Si `UpdateStatusIf` no modifica el bono (otro proceso lo vendió entre medio), el bono se omite.
   - Otras diferencias con ms-feed:
     - filtra `isRemove`, `soldDate` y `tookDate`, que ms-feed no mira;
     - madura el bono aunque falten su `profile`, su `bondType` o su `bondObject` (corrige B36);
-    - escribe el historial (RF-10.4), `maturedAt` y `updatedAt`; ms-feed solo escribe `statusId` y `matured`.
+    - escribe el historial (RF-10.4), `maturedAt` y `updatedAt`; ms-feed solo guarda `statusId`: su esquema de Mongoose no declara `matured`, y ese `$set` se pierde.
 - **RF-10.4** — Historial. Por cada bono madurado: `BondHistory.Add` en modo sistema con `{relatedId, typeId: '2', text: 'BOND_BOUND_STATUS_CHANGED', params: ['1','2'], userId: "", agencyId: bound.agencyId}`.
   - Con `userId ""`, la auditoría del gateway (`B_BondBound_Audit_details`, que agrupa por `(userId, relatedId)`) no mezcla la maduración con las ventas y los canjes del usuario, y no genera falsos positivos de doble cobro.
   - La transición y el historial de cada bono van en la misma transacción: si el historial falla, el bono queda en `'1'`, cuenta como fallido y se reintenta en la próxima corrida.
@@ -113,7 +113,7 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 
 | Bug | Descripción | Decisión | Motivo | Tarea |
 |---|---|---|---|---|
-| B22 | La regla de Meteor (`bondBound.checkMaturity`, comentada) y una versión anterior de ms-feed (`bound/index.js:220-239`, comentada) maduraban también bonos **vendidos** (`'5'`) y desligados (`'4'`). Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. La versión actual de ms-feed solo toma `'1'`, pero no mira `soldDate`/`tookDate`, y su `updateMany` no repite la condición de estado: un bono vendido entre la consulta y la actualización también pasa a `'2'`. | Corregir (solo `'1'` y sin `soldDate`/`tookDate`) | Dinero (crítico). | BLM-0118 |
+| B22 | ms-feed maduraba también bonos **vendidos** (`'5'`) y desligados (`'4'`) desde `87b4593` (enero de 2018) hasta `a33478e` (mayo de 2021); queda el comentario en `bound/index.js:133`. La regla de Meteor (`bondBound.checkMaturity`) se agregó ya comentada y nunca corrió. Un bono vendido volvía a `'2'` y se podía canjear de nuevo: es el doble cobro que audita `B_BondBound_Audit_doubleProcess`. La versión actual de ms-feed solo toma `'1'`, pero no mira `soldDate`/`tookDate`, y su `updateMany` no repite la condición de estado: un bono vendido entre la consulta y la actualización también pasa a `'2'`. | Corregir (solo `'1'` y sin `soldDate`/`tookDate`); los `'2'` con `soldDate` pasan a `'5'` (§11) | Dinero (crítico). | BLM-0118, BLM-0133 |
 | B32 | En una rama vieja del backend, `Cron.init()` está comentado en `main.js` y la maduración solo arranca después de editar un cronjob. En `origin/main` está activo desde `029e73c` (2022), así que en producción la maduración corre cada 30 s vía ms-feed. | No aplica en `main` | Se revisó contra `origin/main`. | — |
 | B36 | `checkMaturity` de ms-feed nunca madura un bono cuyo `profile`, `bondType` o `bondObject` no existe: los `$unwind` (`bound/index.js:149,158,167`) lo sacan de la agregación, y el `updateMany` solo usa los ids que salen de ella. | Corregir | Bonos que nunca se pueden canjear. | BLM-0118 |
 | B33 | Con 3 réplicas sin lock, la maduración y los avisos se ejecutarían tres veces. | Corregir (prevención) | Avisos duplicados. | BLM-0119 |
@@ -161,6 +161,12 @@ Una corrida que se repite es idempotente: la condición `statusId: '1'` impide m
 
 - **Resuelta:** el servicio `:8090` es ms-feed (`bound/index.js:124-246`). Hoy solo madura `'1'`, con corte al fin del día del servidor (UTC), sin historial ni `maturedAt`, y deja sin madurar los bonos sin `profile`, `bondType` o `bondObject` (B36). Una versión anterior maduraba también `'5'`/`'4'`, así que la auditoría de datos (BLM-0133) sigue buscando bonos vendidos que pasaron a `'2'`.
 - **Decisión (corte):** paridad con ms-feed: madura todo lo que vence en el día UTC (RF-10.3). La hora exacta (`maturityDate <= now`), que se implementó primero (BLM-0118 y BLM-0120), movía hasta ~24 h el momento de la maduración respecto a producción. El corte en UTC exige que la cotización trate un `'2'` como vencido (spec 05, B37).
+- **Decisión (datos de B22):** con `-apply`, la auditoría de datos (BLM-0133) pasa a `'5'` cada bono `'2'` con `soldDate` y sin `tookDate`, en una transacción por bono y con esa misma condición en el update. Solo lo hace si el historial del bono registra la venta (`BOND_BOUND_STATUS_CHANGED` hacia `'5'`); sin esa evidencia el bono se informa para revisión manual, porque pudo quedar sin cobrar. Registra un historial de sistema `{typeId '2', text 'BOND_BOUND_STATUS_CHANGED', params ['2','5'], userId ""}` con la `agencyId` del bono, y antes guarda un respaldo que permite revertirlo. No mueve saldo: el bono ya se cobró con la venta.
+  - Así Meteor deja de pagarlo como canje. Go ya lo rechaza (`409 ERR_BOND_ALREADY_SOLD`, spec 05).
+  - Con `userId ""`, `B_BondBound_Audit_details` no lo cuenta (RF-10.4).
+  - Los `'6'` con `soldDate` y `tookDate` ya se cobraron dos veces: solo se informan, para contabilidad y como línea base de BLM-0138.
+  - Se corre en live cuanto antes, y otra vez después de BLM-0134, por la carrera del `updateMany` de ms-feed.
+- **Corte (primera corrida):** la primera corrida de Go madura todos los `'1'` vencidos, también los que ms-feed nunca maduró (B36), y avisa una vez a cada dueño con todos sus bonos. Antes de BLM-0134, la auditoría de datos informa cuántos son y de cuántos dueños, cuáles no tienen `profile`, `bondType` o `bondObject`, los que Go no decodifica, que cortan la corrida en su lote, y los `'1'` sin `agencyId`, que fallan solos en cada corrida y nunca maduran.
 - **Decisión (Pregunta 4 de la spec 00):** el email de maduración sale sin sesión, y `POST /notify/:group/:notification` de ms-notification exige `x-token`. Se agrega a ms-notification una ruta interna que solo valida `x-secret`, y `NotificationClient` la usa cuando el ctx no tiene sesión (BLM-0140). El corte (BLM-0134) depende de esa tarea.
 - **Decisión (programación):** la maduración la programa ms-cronjob-go y no el ms, para no sumar una librería de cron (constitución §1 y §12). El scheduler interno con `robfig/cron/v3` (BLM-0121) se retiró: su código nunca se versionó, y el commit con ese ID solo quitó su configuración y su documentación. El ID no se reutiliza.
 - **Pregunta:** ¿la frecuencia de 5 minutos es suficiente? El legado corría cada 30 s, pero los avisos se pueden atrasar unos minutos sin impacto.

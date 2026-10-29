@@ -36,6 +36,7 @@ Archivo: `backend/server/model/bond.history.js` (125 líneas).
 - **RF-08.1** — Registro (`BondHistoryPort.Add(ctx, AddParams)`).
   - Inserta `{_id, relatedId, userId, typeId, agencyId, text, params, changes, editedProperties, createdAt, updatedAt, isRemove: false}`.
   - `userId` y `agencyId` salen de la sesión del `ctx`. En procesos sin sesión (cron, spec 10) se guarda `userId: ""` y el `agencyId` del bono, y la presentación muestra "System". El llamador marca ese modo sistema con `session_domain.WithSystemAgency(ctx, agencyId)`; si hay sesión, manda la sesión. Sin sesión ni esa marca, `Add` responde `ERR_BOND_HISTORY_INVALID_PARAMS`.
+  - La normalización de la auditoría de datos (BLM-0133) también escribe registros de sistema (`userId: ""`, con el `agencyId` del bono o del producto), pero no llama a `Add`: arma el registro con las mismas reglas (`AddParams.Normalize` y `Validation`, y `NewBondHistory`) antes de escribir, para guardar su `_id` en el respaldo que usa `-revert`, y lo inserta con el repositorio en la transacción del cambio.
   - `params` vale `[]` por defecto.
   - Devuelve un error. Cada llamador decide: dentro de una transacción el error aborta (specs 04 y 05); fuera de ella se loguea (spec 02).
 - **RF-08.2** — Historial de un producto (admin). `GET /bond-objects/{id}/history` devuelve los registros con `{relatedId: id, typeId: '1', isRemove: false}` y la `agencyId` de la sesión (paridad), ordenados por `createdAt` desc, en el formato de RF-08.4.

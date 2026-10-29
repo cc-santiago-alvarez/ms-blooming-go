@@ -201,7 +201,9 @@ type BondKeyCounter struct { // colección bondKeyCounter
 - `{statusId: 1, maturityDate: 1}` (spec 10)
 - único parcial `{bondTypeId: 1, keySeq: 1}` con `partialFilterExpression: {keySeq: {$exists: true}}`
 
-`key` **no** lleva índice único global: el legado ya pudo generar duplicados por B8. Ver la tarea de auditoría BLM-0079.
+`key` **no** lleva índice único global: el legado ya generó claves repetidas (B8; en el dump local, una, por bajas físicas que hicieron repetir el `count + 1`). No se renumeran, porque el usuario las ve y los avisos y el historial las citan. Las informan la siembra (BLM-0079) y la auditoría de datos (BLM-0133).
+
+**Datos legacy:** los numéricos copiados del producto (`amount`, `maturityTimeInDays`, `maturityRewardsPercentage` y `earlyCashTerm`) pueden venir como string; el decoder los lee con `FlexNumber` (RF-04.8). Con `-apply`, la auditoría de datos los guarda como número después de normalizar los productos (spec 02 §6), y los no canónicos se informan. Mientras Meteor compre (hasta BLM-0135) pueden aparecer nuevos, y la auditoría se repite en ese corte.
 
 ## 7. Ports y dependencias
 

@@ -229,11 +229,17 @@ type BondObject struct {
 ```
 
 - **Datos legacy:** los numéricos pueden venir como string (eran inputs de formulario sin validar). El decoder BSON acepta `string|int|double` en `amount`, `maturityTimeInDays`, `maturityRewardsPercentage` y en los campos de `earlyCashTerm` (tipo `shared_domain.FlexNumber`).
+  - Con `-apply`, la auditoría de datos (BLM-0133) guarda como número los strings canónicos (`"365"` → `365`; int32 si es entero y entra en int32; si no, double), antes que los de `bondBound`, porque la compra de Meteor copia estos valores en el bono. No registra historial: el valor no cambia y el rastro queda en su respaldo.
+  - Un string no canónico (`""`, `" 365"`, `"365.0"`, `"1e3"`) no se corrige: se informa para revisión manual, porque Go y el legado pueden leerlo distinto (`""` es `0` para Go y `NaN` para `parseInt`).
+  - Mientras Meteor administre el catálogo puede guardar strings nuevos, y la auditoría se repite.
 - **`isPrivateBond` legacy:** hay bondObjects que guardan ahí un string, por ejemplo un id de Meteor (O11). Se lee con el criterio de verdad de JS, como lo evalúa el legado (`bond.object.js:574`, `isPrivateBond && …`):
   - `false`, `null`, ausente, `""` y `0` son `false`;
   - cualquier otro valor es `true`, también `"false"` y `"0"`, que en JS son strings no vacíos.
 
   El filtro de privados de la consulta (RF-02.9) usa el mismo criterio: un bondObject es público solo si `isPrivateBond` está en `[false, null, "", 0]` (`null` también encuentra el campo ausente). Al editar el bondObject, el valor se guarda como booleano.
+
+  Con `-apply`, la auditoría de datos (BLM-0133) también lo guarda como booleano con este criterio cuando es un string, `null`, un entero o un double finito, y registra un `BOND_UPDATED` de sistema con el cambio. Ni Meteor ni Go cambian de comportamiento. El campo ausente no se toca. Otros valores (`NaN`, Decimal128, documentos, arrays) se informan para revisión manual: son inesperados, y en `NaN` y en el Decimal128 cero Go y JS no coinciden.
+- **Fechas de venta legacy:** `saleInitDate` y `saleEndDate` pueden estar guardadas como string ISO de JavaScript (`2021-03-01T05:00:00.000Z`) o solo fecha (`2021-03-01`). El decoder las lee como fecha UTC; `null`, ausente o `""` son `null`, y otro string u otro tipo hace fallar la decodificación (la auditoría de datos lo informa como bloqueante). No se normalizan: al editar el bondObject se guardan como fecha.
 - **Índices:** `{isRemove: 1, agencyId: 1, bondTypeId: 1, active: 1}`, `{isRemove: 1, agencyId: 1, createdAt: -1}`.
 
 ## 7. Ports y dependencias
@@ -263,7 +269,7 @@ type BondObject struct {
 | O5 | `listGroupedByType` hace N+1 consultas a `bondType` y filtra por `data.agencyId` en lugar de la sesión. | Corregir | Rendimiento y scoping. | BLM-0052 |
 | O6 | Sin validaciones en alta y edición: `inflectionPoint == maturityTimeInDays` produce división por cero en las fórmulas. | Corregir | Cálculos de dinero inválidos. | BLM-0045 |
 | O9 | `get` devuelve los perfiles completos de `authorizedUser`, incluido el hash del password. | Corregir | Seguridad. | BLM-0052 |
-| O11 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). | Paridad: criterio de verdad de JS (§6) | Visibilidad de productos privados y endpoints que fallan. | BLM-0154 |
+| O11 | Algunos bondObjects legacy guardan un string en `isPrivateBond` (en la base local, ids de Meteor como `"A8DjCnAETjXarQ2YA"`). El legado los trata como privados, porque un string no vacío es verdadero. Go fallaba al decodificarlos: cualquier endpoint que los lee respondía 500, incluido el listado de su tipo. Además, su filtro `isPrivateBond: {$ne: true}` los dejaba pasar como públicos. Lo encontró el arnés de paridad (BLM-0125). | Paridad: criterio de verdad de JS (§6); los datos se normalizan a booleano | Visibilidad de productos privados y endpoints que fallan. | BLM-0154, BLM-0133 |
 | O12 | El legado no valida la agencia en ningún método de administración de bondObject, y la migración lo mantuvo: un admin de una agencia que no es la principal lista (`GET /bond-objects` solo filtra por el `agencyId` del query), lee, edita, borra y cambia la clave de bondObjects de otras agencias, los crea para otras agencias o con un tipo de otra agencia, y ve la proyección de cualquiera (`GET /bond-objects/{id}/chart`, spec 03). Contradice la constitución §6. Lo encontró la revisión de rutas de la matriz de autorización (BLM-0127). | Corregir | Aislamiento entre agencias. | BLM-0160 |
 
 ## 9. Criterios de aceptación
