@@ -31,4 +31,6 @@ var (
 	ErrInvalidWithdrawDate        = errors.New("ERR_INVALID_WITHDRAW_DATE")
 	ErrBondInvalidTerms           = errors.New("ERR_BOND_INVALID_TERMS")
 	ErrUserSettingAccountRequired = errors.New("ERR_USER_SETTING_ACCOUNT_REQUIRED")
+	// 503
+	ErrTradingDisabled = errors.New("ERR_TRADING_DISABLED")
 )

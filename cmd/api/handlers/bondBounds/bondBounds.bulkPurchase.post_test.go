@@ -36,7 +36,8 @@ func TestBulkPurchase(t *testing.T) {
 }
 
 // Una cantidad fuera del rango responde 400 ERR_INVALID_QUANTITY, el saldo insuficiente para el total 422
-// ERR_INSUFFICIENT_AMOUNT y la cuenta ajena 404 ERR_ACCOUNT_NOT_FOUND. CA-04.3, CA-04.6
+// ERR_INSUFFICIENT_AMOUNT, la cuenta ajena 404 ERR_ACCOUNT_NOT_FOUND y la compra apagada 503
+// ERR_TRADING_DISABLED. CA-04.3, CA-04.6, CA-04.15
 func TestBulkPurchaseRejected(t *testing.T) {
 	tests := []struct {
 		err    error
@@ -45,6 +46,7 @@ func TestBulkPurchaseRejected(t *testing.T) {
 		{err: bondBound_domain.ErrInvalidQuantity, status: http.StatusBadRequest},
 		{err: bondBound_domain.ErrInsufficientAmount, status: http.StatusUnprocessableEntity},
 		{err: shared_domain.ErrAccountNotFound, status: http.StatusNotFound},
+		{err: bondBound_domain.ErrTradingDisabled, status: http.StatusServiceUnavailable},
 	}
 	for _, tt := range tests {
 		t.Run(tt.err.Error(), func(t *testing.T) {

@@ -41,6 +41,8 @@ func MapToHTTPStatus(err error) int {
 		errors.Is(err, ErrBondInvalidTerms),
 		errors.Is(err, ErrUserSettingAccountRequired):
 		return http.StatusUnprocessableEntity
+	case errors.Is(err, ErrTradingDisabled):
+		return http.StatusServiceUnavailable
 	}
 	return shared_domain.MapToHTTPStatus(err)
 }

@@ -266,9 +266,9 @@ La copia se borró al terminar. `futurapps` y `parity` no se modificaron: siguen
    - 0 bloqueantes entre los `'1'`;
    - revisar los B36 y el volumen de la primera corrida (bonos y dueños, con un aviso y un email por dueño).
 6. **Después de BLM-0134,** cuando ya ninguna réplica de Meteor corre el job: otra vez `-apply -only vendidos`, porque el `updateMany` de ms-feed no repite la condición de estado y pudo dejar un `'2'` con `soldDate` antes de apagarse.
-7. **En la ventana de BLM-0135.**
-   1. Auditoría.
-   2. `seedkeycounters -apply`.
+7. **En la ventana de BLM-0135** ([procedimiento](corte-compra-venta.md)).
+   1. Auditoría, antes de apagar Meteor: es la línea base del doble cobro.
+   2. `seedkeycounters -apply`, recién cuando ninguna réplica de Meteor compra. Una compra de Meteor después de la siembra deja el contador atrás.
    3. Con la compra de Meteor ya apagada, `-apply -only numericos -pausa 10ms`.
 8. **Después de BLM-0136 y BLM-0137,** con el catálogo fuera de Meteor: `-apply` completo y auditoría final. Tiene que salir con 0, o solo con bloqueantes ya revisados.
 9. **BLM-0138.** `B_BondBound_Audit_doubleProcess` se compara contra la línea base de §6, es decir, contra lo que contaba el resolver antes de BLM-0135.
@@ -279,7 +279,7 @@ Fuera del alcance de la herramienta. Se dejan para decidir aparte.
 
 - **Choque de claves futuras.**
   - La siembra (BLM-0079) usa el `count` de cada tipo. Si en live el mayor sufijo numérico de un tipo supera su `count` (bajas físicas como las de §5.1), las claves nuevas de Go repetirían claves existentes. Lo mismo pasa si dos tipos tienen productos con la misma `key`.
-  - En el dump no pasa. En live conviene medirlo antes de BLM-0135.
+  - En el dump no pasa. En cada entorno lo mide la consulta K del [corte de compra y venta](corte-compra-venta.md), que también dice cómo se corrige.
 - **Settings en Meteor.**
   - Meteor lee y escribe el setting con `findOne({userId})`, sin `isRemove` ni orden (`bond.userSetting.js:38`). Si `dedupusersettings -apply` conserva un documento distinto del que lee Meteor, los dos sistemas usan settings distintos hasta BLM-0137.
   - Además, 341 de los 522 settings del dump no tienen `selectedAccountId`: en Go, su venta o canje pide elegir una cuenta.

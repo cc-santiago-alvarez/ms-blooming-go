@@ -9,6 +9,7 @@ Documentación SDD (Spec-Driven Development) para migrar el módulo de bonos del
 | [`tasks.md`](tasks.md) | Todas las tareas por fase, con la matriz de trazabilidad RF → tareas → tests. Lo genera [`tools/gen_tasks.py`](tools/gen_tasks.py) |
 | [`auditoria-datos-corte.md`](auditoria-datos-corte.md) | Auditoría de datos previa al corte (BLM-0133): resultados por entorno, normalizaciones y orden de ejecución |
 | [`corte-maduracion.md`](corte-maduracion.md) | Procedimiento del corte de la maduración (BLM-0134): prerrequisitos por entorno, orden, verificación, rollback y resultados |
+| [`corte-compra-venta.md`](corte-compra-venta.md) | Procedimiento del corte de compra y venta (BLM-0135): prerrequisitos por entorno, orden, siembra de contadores, verificación, rollback y resultados |
 
 ## 1. Contexto
 
@@ -198,10 +199,16 @@ El corte empieza cuando DevOps ya desplegó ms-blooming-go en testing y live (§
 
 1. **Misma base de datos.** Meteor y Go leen y escriben las mismas colecciones; Go no renombra campos.
 2. **Lecturas primero.** Catálogo, preferencias, historial y consultas se pueden habilitar en Go mientras Meteor sigue operando, porque son lecturas o escrituras sin carreras.
-3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor. Por eso se habilita Go y se deshabilitan los métodos de Meteor en el mismo deploy, después de sembrar los contadores.
+3. **Compra, venta y canje en un solo corte (BLM-0135).** Las claves de los bonos se generan con un contador nuevo (spec 04) que no es compatible con el `count + 1` de Meteor, y la venta de Meteor no tiene condición de estado. Por eso la compra y la venta de Go quedan apagadas hasta el corte (`BLOOMING_TRADING`, RF-04.9) y nunca conviven con las de Meteor. El orden del corte es:
+   1. se apagan los métodos de Meteor con `BOND_BOUND_TRADING=false` y un reinicio;
+   2. se siembran los contadores;
+   3. se encienden los de Go con `BLOOMING_TRADING=true`;
+   4. se despliega el front que compra y vende por REST.
+
+   Procedimiento: [corte de compra y venta](corte-compra-venta.md).
 4. **Maduración en un solo corte (BLM-0134).** Se apaga el job `BondBoundCheckMaturity` de Meteor, que llama a ms-feed, con `MS_FEED_MATURITY=false` y un reinicio. Cuando ya no corre en ninguna réplica, se activa el job de maduración de ms-cronjob-go (`MS_BLOOMING_URL`, vacío hasta entonces). Las dos maduraciones nunca conviven: el hueco entre los dos pasos solo atrasa la maduración. Los dos pasos son de configuración, así que testing y live se cortan sin esperar un release. Procedimiento: [corte de la maduración](corte-maduracion.md).
 5. **Front por funcionalidad (BLM-0136).** DDP → REST, siguiendo los "cambios de contrato" de cada spec. Incluye las gráficas que hoy leen ms-feed.
-6. **Retiro (BLM-0137 y BLM-0152).** Se borran `bond.*.js`, el job `BondBoundCheckMaturity` y su variable de Meteor, y se apaga ms-feed.
+6. **Retiro (BLM-0137 y BLM-0152).** Se borran de Meteor `bond.*.js`, el job `BondBoundCheckMaturity` y sus variables `MS_FEED_MATURITY` y `BOND_BOUND_TRADING`, y se apaga ms-feed. `BLOOMING_TRADING` queda en Go como interruptor para un incidente.
 7. **Monitoreo (BLM-0138).** Durante dos semanas: errores, auditoría de doble cobro del gateway y conciliación de saldos.
 
 Antes del corte se ejecuta la auditoría de datos **BLM-0133** (`cmd/tools/auditdata`). Sin `-apply` solo informa:

@@ -21,22 +21,24 @@ const childMarker = "BLM_CONFIG_CHILD"
 
 // loaded es lo que imprime el subproceso cuando la configuración es válida.
 type loaded struct {
-	Env            string
-	ApiName        string
-	ApiPort        string
-	DefaultUtcDiff int
-	CorsOrigins    []string
+	Env             string
+	ApiName         string
+	ApiPort         string
+	DefaultUtcDiff  int
+	CorsOrigins     []string
+	BloomingTrading bool
 }
 
 func TestMain(m *testing.M) {
 	if os.Getenv(childMarker) == "1" {
 		env := api_config.InitConfig().Env
 		_ = json.NewEncoder(os.Stdout).Encode(loaded{
-			Env:            env.Env,
-			ApiName:        env.ApiName,
-			ApiPort:        env.ApiPort,
-			DefaultUtcDiff: env.DefaultUtcDiff,
-			CorsOrigins:    env.CorsOrigins,
+			Env:             env.Env,
+			ApiName:         env.ApiName,
+			ApiPort:         env.ApiPort,
+			DefaultUtcDiff:  env.DefaultUtcDiff,
+			CorsOrigins:     env.CorsOrigins,
+			BloomingTrading: env.BloomingTrading,
 		})
 		os.Exit(0)
 	}
@@ -222,6 +224,46 @@ func TestInitConfig(t *testing.T) {
 			}
 			if tt.noEnvFiles && strings.Contains(r.stderr, "error al cargar") {
 				t.Errorf("se intentó cargar un .env.<ENV>:\n%s", r.stderr)
+			}
+		})
+	}
+}
+
+// Solo BLOOMING_TRADING=true enciende la compra y la venta; ausente, vacía, false o cualquier otro valor las
+// deja apagadas. .env.testing pisa al .env. CA-04.15
+func TestBloomingTrading(t *testing.T) {
+	trading := func(v string) func(env map[string]string) {
+		return func(env map[string]string) { env["BLOOMING_TRADING"] = v }
+	}
+	tests := []struct {
+		name  string
+		files map[string]string
+		want  bool
+	}{
+		{name: "ausente", files: testingFiles(nil)},
+		{name: "vacía", files: testingFiles(trading(""))},
+		{name: "false", files: testingFiles(trading("false"))},
+		{name: "TRUE", files: testingFiles(trading("TRUE"))},
+		{name: "1", files: testingFiles(trading("1"))},
+		{name: "true", files: testingFiles(trading("true")), want: true},
+		{name: "true con espacios", files: testingFiles(trading(" true ")), want: true},
+		{name: "true en .env.testing", files: map[string]string{
+			".env":         testingFiles(trading("false"))[".env"],
+			".env.testing": envFile(map[string]string{"BLOOMING_TRADING": "true"}),
+		}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := runConfig(t, tt.files)
+			if res.code != 0 {
+				t.Fatalf("código %d, stderr %q", res.code, res.stderr)
+			}
+			var got loaded
+			if err := json.Unmarshal([]byte(res.stdout), &got); err != nil {
+				t.Fatalf("salida %q: %v", res.stdout, err)
+			}
+			if got.BloomingTrading != tt.want {
+				t.Errorf("BloomingTrading = %v, se esperaba %v", got.BloomingTrading, tt.want)
 			}
 		})
 	}

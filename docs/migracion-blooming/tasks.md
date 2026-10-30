@@ -26,12 +26,12 @@
 | F2 | Historial y tipos compartidos (specs 08 y 03) | 11 | 9 | 2 | 0 |
 | F3 | Catálogo (specs 01, 02 y 03) | 31 | 22 | 9 | 0 |
 | F4 | Preferencias del inversionista (spec 09) | 11 | 9 | 2 | 0 |
-| F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 33 | 22 | 11 | 0 |
+| F5 | Compra, venta y canje (specs 04 y 05, más 03 y 08 sobre bondBound) | 35 | 23 | 12 | 0 |
 | F6 | Consultas, reportes y KPIs (specs 06 y 07) | 18 | 12 | 6 | 0 |
 | F7 | Maduración (spec 10) | 15 | 9 | 6 | 0 |
 | F8 | Calidad transversal | 4 | 0 | 4 | 0 |
 | F9 | Corte y retiro del legado | 7 | 0 | 0 | 7 |
-| | **Total** | **167** | **106** | **47** | **14** |
+| | **Total** | **169** | **107** | **48** | **14** |
 
 ```
 F0 ─▶ F1 ─▶ F2 ─▶ F3 ─▶ F4 ─▶ F5 ─▶ F6 ─▶ F7 ─▶ F8 ─▶ F9
@@ -455,6 +455,12 @@ Specs: [spec 03](specs/03-proyeccion-y-graficas.spec.md), [spec 04](specs/04-bon
 - [ ] **BLM-0151** `test` Tests de la cotización de un `'2'` antes de su día de vencimiento en la zona del usuario, y de que un `'1'` no cambia
   - cubre: CA-05.17 · depende de: BLM-0150
   - archivos: `internal/core/bondBound/domain/bondBound.quoteSale_test.go`
+- [ ] **BLM-0166** `impl` Compra, compra masiva y venta apagadas hasta el corte: variable `BLOOMING_TRADING` (default `false`) y `ERR_TRADING_DISABLED` (503) antes de validar, con un log al arrancar si está apagada
+  - cubre: RF-04.9, RF-05.3 · depende de: BLM-0082, BLM-0084, BLM-0093, BLM-0095
+  - archivos: `cmd/api/config/environments.go` y `config.go` (`BLOOMING_TRADING`), `.env.example`, `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_TRADING_DISABLED`), `internal/core/bondBound/application/bondBound.application.go` (`TradingEnabled`), `bondBound.purchase.go`, `bondBound.bulkPurchase.go`, `bondBound.sale.go`, `cmd/api/server/server.bondBound.go` (flag y log de arranque)
+- [ ] **BLM-0167** `test` Tests de la compra, la compra masiva y la venta apagadas: 503 sin escribir nada ni avanzar el contador, y lectura de la variable
+  - cubre: CA-04.15, CA-05.19 · depende de: BLM-0166
+  - archivos: `internal/core/bondBound/application/bondBound.purchase_test.go`, `bondBound.sale_test.go`, `bondBound.fakes_test.go` y `bondBound.testdb_integration_test.go` (`TradingEnabled`), `cmd/api/handlers/bondBounds/bondBounds.purchase.post_test.go`, `bondBounds.bulkPurchase.post_test.go`, `bondBounds.sale.post_test.go`, `cmd/api/config/config_test.go`, `test/authz/`, `test/e2e/` y `test/load/` (`BLOOMING_TRADING=true` en el servicio)
 
 **Criterio de salida F5:** Compra individual y masiva, cotización, venta y canje son transaccionales y no hay doble cobro.
 
@@ -604,15 +610,15 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 - [ ] **BLM-0134** `ops` Corte de la maduración: apagar el job `BondBoundCheckMaturity` de Meteor con `MS_FEED_MATURITY=false` (deja de llamar a `PUT /bound/check-maturity` de ms-feed) y, cuando ya no corre en ninguna réplica, configurar `MS_BLOOMING_URL` en ms-cronjob-go, vacío hasta ese momento
   - cubre: RF-10.1, RF-10.3 · depende de: BLM-0124, BLM-0140, BLM-0141, BLM-0142, BLM-0149, BLM-0153, BLM-0165, BLM-0133
   - archivos: `backend/server/lib/crons.js`, `backend/server/lib/_constants.js`, `backend/.env.example`, `backend/README.md` y `backend/CLAUDE.md` (`MS_FEED_MATURITY`), `/opt/backend-meteor/.env` y `/opt/ms-cronjob-go/.env` de testing y live, `/opt/ms-notification/.env` de testing (`DEBUG_MODE` y `DEBUG_EMAILS`), proxy de ms-feed (bloqueo de `PUT /bound/check-maturity`), `ms-cronjob-go/README.md` y `ms-cronjob-go/CLAUDE.md` (activación del job), `docs/migracion-blooming/corte-maduracion.md` (procedimiento), `docs/migracion-blooming/README.md`, `docs/migracion-blooming/auditoria-datos-corte.md`
-- [ ] **BLM-0135** `ops` Corte de compra y venta: correr la siembra de contadores (BLM-0079), habilitar los endpoints Go y deshabilitar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` en Meteor **en el mismo deploy**
-  - cubre: RF-04.3, RF-04.1, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133, BLM-0151
-  - archivos: `backend/server/model/bond.bound.js`
+- [ ] **BLM-0135** `ops` Corte de compra y venta: apagar `bondBound.purchase`, `bulkPurchase`, `preSale` y `sale` (y los internos `insert` y `setStatus`) de Meteor con `BOND_BOUND_TRADING=false`, correr la siembra de contadores (BLM-0079) y encender la compra y venta de Go con `BLOOMING_TRADING=true`, sin que convivan
+  - cubre: RF-04.3, RF-04.1, RF-04.9, RF-05.3 · depende de: BLM-0079, BLM-0098, BLM-0133, BLM-0151, BLM-0166, BLM-0167
+  - archivos: `backend/server/model/bond.bound.js`, `backend/server/lib/_constants.js`, `_variables.js` y `text.js` (`BOND_BOUND_TRADING` y `BOUND_TRADING_DISABLED`), `backend/.env.example`, `backend/README.md` y `backend/CLAUDE.md`, `/opt/backend-meteor/.env` y el `.env.<ENV>` de ms-blooming-go de testing y live, `/opt/ms-notification/.env` de testing (`DEBUG_MODE` y `DEBUG_EMAILS`), release del front con compra y venta por REST (BLM-0136), `docs/migracion-blooming/corte-compra-venta.md` (procedimiento), `docs/migracion-blooming/README.md`, `docs/migracion-blooming/auditoria-datos-corte.md`
 - [ ] **BLM-0136** [P] `ops` Migrar el front de DDP a REST por funcionalidad (catálogo → preferencias e historial → compra y venta → consultas y reportes), con la guía de cambios de contrato de cada spec. Las gráficas dejan de leer ms-feed desde el navegador: `/bond/:id/feed` pasa a `GET /bond-objects/{id}/chart?simulation=true` y `/bound/:id/feed` a `GET /bond-bounds/{id}/chart`
   - cubre: RF-01.1, RF-02.9, RF-03.4, RF-03.7, RF-09.1, RF-04.1, RF-06.4 · depende de: BLM-0146
   - archivos: repo del front
-- [ ] **BLM-0137** `ops` Retirar `bond.*.js` de Meteor, el job `BondBoundCheckMaturity` con su variable `MS_FEED_MATURITY` y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072
+- [ ] **BLM-0137** `ops` Retirar `bond.*.js` de Meteor con su variable `BOND_BOUND_TRADING`, el job `BondBoundCheckMaturity` con su variable `MS_FEED_MATURITY` y la constante `MS_FINOBONDS_FEED_URL` (variable `MS_FEED_URL`), una vez desplegado BLM-0072
   - cubre: — · depende de: BLM-0134, BLM-0135, BLM-0136, BLM-0072
-  - archivos: `backend/server/model/bond.*.js`, `backend/server/lib/crons.js` (el job y su variable), `backend/server/lib/_constants.js`, `backend/server/lib/text.js` (`BOND_BOUND_MESSAGE_MATURITY` y `_SUCESS`), `backend/.env.example`, `backend/README.md` y `backend/CLAUDE.md` (`MS_FEED_URL` y `MS_FEED_MATURITY`)
+  - archivos: `backend/server/model/bond.*.js`, `backend/server/lib/crons.js` (el job y su variable), `backend/server/lib/_constants.js`, `backend/server/lib/_variables.js` (`BOUND_TRADING_DISABLED`), `backend/server/lib/text.js` (`BOND_BOUND_MESSAGE_MATURITY`, `_SUCESS` y `BOUND_TRADING_DISABLED`), `backend/.env.example`, `backend/README.md` y `backend/CLAUDE.md` (`MS_FEED_URL`, `MS_FEED_MATURITY` y `BOND_BOUND_TRADING`)
 - [ ] **BLM-0138** `ops` Monitoreo durante dos semanas: errores 5xx, `B_BondBound_Audit_doubleProcess` en el gateway y conciliación de `balanceAccount.available` contra la suma de `balanceDetail`
   - cubre: RF-05.5, RF-10.3 · depende de: BLM-0135
   - archivos: dashboards y logs
@@ -678,9 +684,10 @@ Specs: [spec 10](specs/10-maduracion-cron.spec.md).
 | 04 | RF-04.6 | BLM-0083 | BLM-0089 | CA-04.11 | — |
 | 04 | RF-04.7 | BLM-0083 | BLM-0089 | CA-04.12 | — |
 | 04 | RF-04.8 | BLM-0075, BLM-0076, BLM-0077 | BLM-0088 | CA-04.13 | — |
+| 04 | RF-04.9 | BLM-0166 | BLM-0167 | CA-04.15 | BLM-0135 |
 | 05 | RF-05.1 | BLM-0092, BLM-0095, BLM-0162 | BLM-0097, BLM-0163 | CA-05.5, CA-05.6, CA-05.18 | — |
 | 05 | RF-05.2 | BLM-0090, BLM-0150 | BLM-0096, BLM-0097, BLM-0125, BLM-0151 | CA-05.1, CA-05.2, CA-05.3, CA-05.4, CA-05.5, CA-05.17 | — |
-| 05 | RF-05.3 | BLM-0091, BLM-0093, BLM-0095 | BLM-0097, BLM-0098, BLM-0126, BLM-0127 | CA-05.7, CA-05.8, CA-05.9, CA-05.10, CA-05.11, CA-05.16 | BLM-0135 |
+| 05 | RF-05.3 | BLM-0091, BLM-0093, BLM-0095, BLM-0166 | BLM-0097, BLM-0098, BLM-0126, BLM-0127, BLM-0167 | CA-05.7, CA-05.8, CA-05.9, CA-05.10, CA-05.11, CA-05.16, CA-05.19 | BLM-0135 |
 | 05 | RF-05.4 | BLM-0093 | BLM-0097, BLM-0098 | CA-05.7, CA-05.12 | — |
 | 05 | RF-05.5 | BLM-0093 | BLM-0098 | CA-05.7, CA-05.8, CA-05.13, CA-05.16 | BLM-0138 |
 | 05 | RF-05.6 | BLM-0093 | BLM-0098 | CA-05.14, CA-05.16 | — |
@@ -814,4 +821,4 @@ El script lee las tablas *Tareas*, *Bugs legacy*, los `RF` y los `CA` de cada sp
 python3 docs/migracion-blooming/tools/gen_tasks.py docs/migracion-blooming
 ```
 
-Última generación: 11 specs, 98 RF, 182 CA, 167 tareas, 70 bugs. Validación sin errores. Siguiente ID libre: `BLM-0166`.
+Última generación: 11 specs, 99 RF, 184 CA, 169 tareas, 70 bugs. Validación sin errores. Siguiente ID libre: `BLM-0168`.

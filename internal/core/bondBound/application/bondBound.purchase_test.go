@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	bondBound_application "github.com/futurapps/ms-blooming-go/internal/core/bondBound/application"
 	bondBound_domain "github.com/futurapps/ms-blooming-go/internal/core/bondBound/domain"
 	bondObject_domain "github.com/futurapps/ms-blooming-go/internal/core/bondObject/domain"
 	shared_domain "github.com/futurapps/ms-blooming-go/internal/core/shared/domain"
@@ -258,4 +259,60 @@ func TestBulkPurchaseMaxQuantity(t *testing.T) {
 	if result.Total != 5000 || result.AccountAvailable != 0 {
 		t.Errorf("total %v y disponible %v, se esperaban 5000 y 0", result.Total, result.AccountAvailable)
 	}
+}
+
+// Con la compra apagada, la individual y la masiva responden ErrTradingDisabled antes de validar el body o
+// leer la cuenta, y no escriben nada ni avanzan el contador; encendida, la misma compra se hace. CA-04.15
+func TestPurchaseTradingDisabled(t *testing.T) {
+	ctx := withSession(ownerID, -5)
+	valid := bondBound_domain.PurchaseParams{AccountID: accountID, BondObjectID: objectID}
+	tests := []struct {
+		name string
+		buy  func(app *bondBound_application.BondBoundApplication) error
+	}{
+		{name: "compra", buy: func(app *bondBound_application.BondBoundApplication) error {
+			_, err := app.Purchase(ctx, valid)
+			return err
+		}},
+		{name: "compra sin accountId", buy: func(app *bondBound_application.BondBoundApplication) error {
+			_, err := app.Purchase(ctx, bondBound_domain.PurchaseParams{BondObjectID: objectID})
+			return err
+		}},
+		{name: "compra masiva", buy: func(app *bondBound_application.BondBoundApplication) error {
+			_, err := app.BulkPurchase(ctx, bondBound_domain.BulkPurchaseParams{PurchaseParams: valid, Quantity: 3})
+			return err
+		}},
+		{name: "compra masiva con quantity 0", buy: func(app *bondBound_application.BondBoundApplication) error {
+			_, err := app.BulkPurchase(ctx, bondBound_domain.BulkPurchaseParams{PurchaseParams: valid})
+			return err
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := purchaseFakes(ownAccount(), purchasableObject())
+			app := f.app()
+			app.TradingEnabled = false
+
+			err := tt.buy(app)
+
+			if !errors.Is(err, bondBound_domain.ErrTradingDisabled) {
+				t.Fatalf("la compra = %v, se esperaba ErrTradingDisabled", err)
+			}
+			assertNothingWritten(t, f)
+			if len(f.balance.reads) != 0 {
+				t.Errorf("GetAccount se llamó con %+v con la compra apagada", f.balance.reads)
+			}
+		})
+	}
+
+	t.Run("encendida", func(t *testing.T) {
+		f := purchaseFakes(ownAccount(), purchasableObject())
+
+		if _, err := f.app().Purchase(ctx, valid); err != nil {
+			t.Fatalf("Purchase: %v", err)
+		}
+		if len(f.repo.inserted) != 1 || len(f.keys.reserved) != 1 {
+			t.Errorf("%d bonos y reservas %v, se esperaba un bono y una reserva", len(f.repo.inserted), f.keys.reserved)
+		}
+	})
 }

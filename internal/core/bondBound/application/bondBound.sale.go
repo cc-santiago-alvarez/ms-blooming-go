@@ -15,6 +15,9 @@ import (
 // nada y, en una transacción, cambia su estado, acredita la cotización en la cuenta destino y registra el
 // historial; después avisa al dueño. Devuelve lo acreditado y el saldo que queda en la cuenta.
 func (app *BondBoundApplication) Sale(ctx context.Context, id string) (bondBound_domain.SaleResult, error) {
+	if !app.TradingEnabled {
+		return bondBound_domain.SaleResult{}, bondBound_domain.ErrTradingDisabled
+	}
 	if !shared_domain.IsValidID(id) {
 		return bondBound_domain.SaleResult{}, shared_domain.ErrInvalidID
 	}

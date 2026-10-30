@@ -27,7 +27,8 @@ func TestPurchase(t *testing.T) {
 }
 
 // Los errores de la compra responden su status y su código: la cuenta ajena 404, el privado sin autorizar
-// 403 y las validaciones de cuenta, producto, saldo y ventana de venta 422. CA-04.2, CA-04.3, CA-04.4
+// 403, las validaciones de cuenta, producto, saldo y ventana de venta 422 y la compra apagada 503. CA-04.2,
+// CA-04.3, CA-04.4, CA-04.15
 func TestPurchaseRejected(t *testing.T) {
 	tests := []struct {
 		err    error
@@ -43,6 +44,7 @@ func TestPurchaseRejected(t *testing.T) {
 		{err: bondBound_domain.ErrInsufficientAmount, status: http.StatusUnprocessableEntity},
 		{err: bondBound_domain.ErrBondNotAvailableByDate, status: http.StatusUnprocessableEntity},
 		{err: bondBound_domain.ErrBondSaleEnded, status: http.StatusUnprocessableEntity},
+		{err: bondBound_domain.ErrTradingDisabled, status: http.StatusServiceUnavailable},
 	}
 	for _, tt := range tests {
 		t.Run(tt.err.Error(), func(t *testing.T) {

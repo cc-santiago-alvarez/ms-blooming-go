@@ -48,8 +48,8 @@ func TestSale(t *testing.T) {
 }
 
 // Los errores de la venta responden su status y su código: el bono ajeno 403, el que no se puede vender por
-// su estado 409, sin cuenta seleccionada 422 y la cuenta seleccionada inexistente o ajena 404. CA-05.9,
-// CA-05.10, CA-05.12
+// su estado 409, sin cuenta seleccionada 422, la cuenta seleccionada inexistente o ajena 404 y la venta
+// apagada 503. CA-05.9, CA-05.10, CA-05.12, CA-05.19
 func TestSaleRejected(t *testing.T) {
 	tests := []struct {
 		err    error
@@ -62,6 +62,7 @@ func TestSaleRejected(t *testing.T) {
 		{err: bondBound_domain.ErrBondAlreadyTook, status: http.StatusConflict},
 		{err: bondBound_domain.ErrUserSettingAccountRequired, status: http.StatusUnprocessableEntity},
 		{err: shared_domain.ErrAccountNotFound, status: http.StatusNotFound},
+		{err: bondBound_domain.ErrTradingDisabled, status: http.StatusServiceUnavailable},
 	}
 	for _, tt := range tests {
 		t.Run(tt.err.Error(), func(t *testing.T) {

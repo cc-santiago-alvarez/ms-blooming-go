@@ -680,6 +680,7 @@ func (f *fakes) app() *bondBound_application.BondBoundApplication {
 		Exporter:                f.exporter,
 		JobLock:                 f.lock,
 		BulkPurchaseMaxQuantity: maxQuantity,
+		TradingEnabled:          true,
 	}
 }
 

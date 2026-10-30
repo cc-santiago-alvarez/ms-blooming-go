@@ -1,6 +1,8 @@
 package server
 
 import (
+	"log"
+
 	"github.com/codecraftkit/nexus"
 	bondBounds_handlers "github.com/futurapps/ms-blooming-go/cmd/api/handlers/bondBounds"
 	bondBound_application "github.com/futurapps/ms-blooming-go/internal/core/bondBound/application"
@@ -9,7 +11,8 @@ import (
 
 // initBondBoundDomain crea los índices de los bonos comprados y arma su aplicación. Usa el mismo
 // transactionRunner que el saldo, para que el cobro y el depósito se sumen a la transacción de la compra y
-// de la venta. Va después de bondUserSetting, que da la cuenta destino de las ventas.
+// de la venta. Va después de bondUserSetting, que da la cuenta destino de las ventas. Avisa al arrancar si la
+// compra y la venta están apagadas.
 func initBondBoundDomain(deps *serverDeps) {
 	repository := &bondBound_mongocc_repository.BondBoundMongoccRepository{DB: deps.mongoDB}
 	ensureIndexes("bondBound", repository)
@@ -32,6 +35,10 @@ func initBondBoundDomain(deps *serverDeps) {
 		JobLock:                 deps.jobLockPort,
 		BulkPurchaseMaxQuantity: deps.env.BulkPurchaseMaxQuantity,
 		AdminEmails:             deps.env.BloomingAdminEmails,
+		TradingEnabled:          deps.env.BloomingTrading,
+	}
+	if !deps.env.BloomingTrading {
+		log.Printf("[bondBound] compra y venta deshabilitadas: BLOOMING_TRADING no es true")
 	}
 }
 

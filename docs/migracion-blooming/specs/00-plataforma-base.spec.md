@@ -243,6 +243,7 @@ Esta spec no define endpoints de negocio. Expone:
 | `BLOOMING_ADMIN_EMAILS` | no | vacío | Destinatarios del aviso de retiro al admin (legacy `Constant.ADMIN_BALANCE_EMAILS`) |
 | `DEFAULT_UTC_DIFF` | no | `-5` | Fallback de zona horaria (RF-00.4) |
 | `BULK_PURCHASE_MAX_QUANTITY` | no | `100` | Tope de la compra masiva (spec 04) |
+| `BLOOMING_TRADING` | no | `false` | Solo `true` habilita la compra, la compra masiva y la venta (spec 04, RF-04.9). Se enciende en el corte (BLM-0135) |
 
 ## 6. Modelo de datos
 

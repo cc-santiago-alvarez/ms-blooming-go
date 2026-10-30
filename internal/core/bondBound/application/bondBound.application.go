@@ -23,7 +23,8 @@ var errNoSession = errors.New("bondBound: el contexto no tiene sesión de usuari
 // destino de las ventas. Agencies da la moneda de los reportes y Exporter los genera. BondTypes da los nombres
 // de tipo del aviso de maduración y JobLock evita que la maduración corra a la vez en varias réplicas.
 // BulkPurchaseMaxQuantity es el tope de bonos de una compra masiva y AdminEmails, los destinatarios del aviso
-// de retiro al área administrativa.
+// de retiro al área administrativa. Sin TradingEnabled, la compra, la compra masiva y la venta responden
+// ErrTradingDisabled.
 type BondBoundApplication struct {
 	Repository              bondBound_ports.BondBoundMongoccRepositoryPorts
 	KeyCounter              bondBound_ports.KeyCounterPort
@@ -42,6 +43,7 @@ type BondBoundApplication struct {
 	JobLock                 shared_ports.JobLockPort
 	BulkPurchaseMaxQuantity int
 	AdminEmails             []string
+	TradingEnabled          bool
 }
 
 var _ bondBound_ports.BondBoundApplicationPorts = (*BondBoundApplication)(nil)

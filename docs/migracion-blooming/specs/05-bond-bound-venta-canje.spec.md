@@ -42,6 +42,7 @@ Archivo: `backend/server/model/bond.bound.js`.
   - Usa los valores del snapshot del bono, en `float64`, sin truncar (corrige B14).
   - Un bono en estado `'2'` (madurado) se cotiza siempre como vencido: `daysPassed = M` y el monto completo, sin mirar la fecha (corrige B37).
 - **RF-05.3** — Venta o canje.
+  - Mientras `BLOOMING_TRADING` no sea `true`, responde `ERR_TRADING_DISABLED` antes de cargar el bono y sin escribir nada (spec 04, RF-04.9). La cotización no se apaga.
   - Carga el bono, que **debe ser del usuario de la sesión**. Ni siquiera un admin vende bonos ajenos (corrige B16). No aplica el alcance de agencia: ya exige ser el dueño.
   - Determina la transición por estado (§5.3) y calcula `QuoteSale`. Si la cotización falla, **aborta** sin escribir nada (corrige B3).
   - Ejecuta la transacción de RF-05.5 y las notificaciones de RF-05.7.
@@ -101,6 +102,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 | `ERR_BOND_INVALID_TERMS` | 422 | — | `maturityTimeInDays - inflectionPoint <= 0` en el snapshot legacy |
 | `ERR_USER_SETTING_ACCOUNT_REQUIRED` | 422 | — | Sin cuenta seleccionada |
 | `ERR_ACCOUNT_NOT_FOUND` | 404 | -700 | La cuenta seleccionada no existe o no es del usuario |
+| `ERR_TRADING_DISABLED` | 503 | -2040 | Venta o canje con `BLOOMING_TRADING` distinto de `true` (spec 04, RF-04.9) |
 
 El mensaje de `ERR_INVALID_WITHDRAW_DATE` se arma con `BOUND_INVALID_WITHDRAW_DATE[hoy DD/MM/YYYY, en el utcDiff de la sesión]` y va en `errors.detail` (`handlers_shared.ResponseWithErrorDetail`), así el front puede mostrarlo.
 
@@ -246,6 +248,7 @@ type SaleProjection struct {
   - en `'2'`: `amount 1150`, `atMoment 1150`, `profit 150` y `totalDaysPassed 365`;
   - en `'1'`: `amount 1037.39`, `atMoment 1149.55`, `profit 37.39` y `totalDaysPassed 364`, igual que antes.
 - **CA-05.18** (RF-05.1) — `pre-sale` de un bono de la agencia B responde `404 ERR_BOND_BOUND_NOT_FOUND` a un admin de A que no es la principal, y `200` a un admin de la agencia principal.
+- **CA-05.19** (RF-05.3) — Con `BLOOMING_TRADING` distinto de `true`, `POST /sale` sobre un bono propio vendible responde `503 ERR_TRADING_DISABLED`. El estado, el saldo y el historial no cambian, y `pre-sale` del mismo bono sigue respondiendo `200`.
 
 ## 10. Tareas
 
@@ -263,7 +266,7 @@ type SaleProjection struct {
 | BLM-0150 | `QuoteSale` cotiza un bono `'2'` como vencido (`daysPassed = M` y monto completo), sin mirar la fecha | impl | F5 | RF-05.2 | BLM-0090 | `internal/core/bondBound/domain/bondBound.quoteSale.go` |
 | BLM-0151 | Tests de la cotización de un `'2'` antes de su día de vencimiento en la zona del usuario, y de que un `'1'` no cambia | test | F5 | CA-05.17 | BLM-0150 | `internal/core/bondBound/domain/bondBound.quoteSale_test.go` |
 
-El alcance de agencia de RF-05.1 (B38) va en BLM-0162 y BLM-0163 (spec 06).
+El alcance de agencia de RF-05.1 (B38) va en BLM-0162 y BLM-0163 (spec 06). El apagado de la venta hasta el corte (RF-05.3) va en BLM-0166 y BLM-0167 (spec 04).
 
 ## 11. Fuera de alcance y preguntas abiertas
 

@@ -264,6 +264,7 @@ func integrationApp(balance shared_ports.BalancePort, keys bondBound_ports.KeyCo
 		Notifications:           &fakeNotifications{},
 		Profiles:                profiles,
 		BulkPurchaseMaxQuantity: maxQuantity,
+		TradingEnabled:          true,
 	}
 }
 

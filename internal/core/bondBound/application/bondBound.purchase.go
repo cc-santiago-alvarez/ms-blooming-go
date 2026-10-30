@@ -17,6 +17,9 @@ const tokenLength = 6
 // en una transacción, crea el bono, cobra y registra el historial. Devuelve el bono creado y el saldo que le
 // queda a la cuenta.
 func (app *BondBoundApplication) Purchase(ctx context.Context, p bondBound_domain.PurchaseParams) (bondBound_domain.PurchaseResult, error) {
+	if !app.TradingEnabled {
+		return bondBound_domain.PurchaseResult{}, bondBound_domain.ErrTradingDisabled
+	}
 	p.Normalize()
 	if err := p.Validation(); err != nil {
 		return bondBound_domain.PurchaseResult{}, err

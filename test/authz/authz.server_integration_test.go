@@ -292,6 +292,7 @@ func serviceEnv(port, mongoURL string) []string {
 		"MS_EXPORTER_URL":        exporter.URL,
 		"MS_EXPORTER_SECRET":     exporterSecret,
 		"BLOOMING_ADMIN_EMAILS":  "admin@futurapps.test",
+		"BLOOMING_TRADING":       "true",
 	}
 	env := make([]string, 0, len(vars))
 	for k, v := range vars {

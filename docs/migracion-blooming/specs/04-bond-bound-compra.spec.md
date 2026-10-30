@@ -73,6 +73,12 @@ Archivo: `backend/server/model/bond.bound.js`.
 - **RF-04.8** — Persistencia de `bondBound`.
   - Entidad, enum de estados (§6) y repositorio base: `InsertMany`, `FindOneByID`, `UpdateOne` condicional por estado y `EnsureIndexes`. Las specs 03, 05, 06, 07 y 10 lo reutilizan.
   - El decoder acepta documentos legacy: `_id` Meteor, numéricos como string (`FlexNumber`) y sin `keySeq`.
+- **RF-04.9** — Compra y venta apagadas hasta el corte.
+  - Mientras `BLOOMING_TRADING` no sea `true` (spec 00 §5), `Purchase`, `BulkPurchase` y `Sale` (spec 05) responden `ERR_TRADING_DISABLED` antes de validar nada. No escriben nada y no avanzan el contador.
+  - La cotización (`GET /bond-bounds/{id}/pre-sale`) y las consultas no cambian.
+  - Evita que la compra y la venta de Go convivan con las de Meteor. Con las dos activas, las claves se repiten (RF-04.3) y un bono se puede cobrar dos veces (spec 05, RF-05.5). El corte (BLM-0135) apaga Meteor, siembra los contadores y recién entonces enciende Go ([procedimiento](../corte-compra-venta.md)).
+  - Después del corte la variable queda como interruptor para un incidente: apagarla deja la compra y la venta sin servicio, sin tocar los datos.
+  - Al arrancar con la variable apagada, el servicio lo loguea.
 
 ## 4. Contrato API
 
@@ -116,6 +122,7 @@ Archivo: `backend/server/model/bond.bound.js`.
 | `ERR_BOND_NOT_AVAILABLE_BY_DATE` | 422 | -2021 | `saleInitDate > now` |
 | `ERR_BOND_SALE_ENDED` | 422 | — | `saleEndDate != null && saleEndDate < now` |
 | Errores de `BalancePort.Withdraw` | 422 | -7xx | El saldo cambió entre la validación y el retiro (spec 00) |
+| `ERR_TRADING_DISABLED` | 503 | -2040 | `BLOOMING_TRADING` no es `true` (RF-04.9). En Meteor, `-2040` es el código con que responden sus métodos apagados en el corte |
 
 ## 5. Reglas de negocio
 
@@ -251,6 +258,7 @@ type BondKeyCounter struct { // colección bondKeyCounter
 - **CA-04.12** (RF-04.7) — Una compra masiva de 3 genera un solo `notice` de bono con una tabla de 3 filas que contienen las `reference` de los `balanceDetail`, un `notice` de balance con las 3 claves y un email de admin.
 - **CA-04.13** (RF-04.8) — `EnsureIndexes` crea los índices de §6 y es idempotente. Un documento legacy con `_id` de 17 caracteres y `amount: "1000"` (string) se decodifica sin error.
 - **CA-04.14** (RF-04.1, RF-04.3, RF-04.4) — Compra de un bondObject legacy (`_id` y `bondTypeId` de 17 caracteres) con una cuenta legacy: el `bondBound` creado tiene `_id` UUID y guarda `bondObjectId` y `bondTypeId` de 17 caracteres tal cual, y el contador `bondKeyCounter` usa el `bondTypeId` legacy como `_id`.
+- **CA-04.15** (RF-04.9) — Con `BLOOMING_TRADING` vacía, `false` o cualquier otro valor distinto de `true`, `POST /bond-bounds/purchase` y `/bulk-purchase` responden `503 ERR_TRADING_DISABLED`, también sin `accountId` o con `quantity 0`. No se escribe nada en `bondBound`, `balanceDetail` ni `bondHistory`, y el contador no avanza. Con `true`, la misma compra responde `201`.
 
 ## 10. Tareas
 
@@ -268,10 +276,12 @@ type BondKeyCounter struct { // colección bondKeyCounter
 | BLM-0087 | Tests unitarios de validaciones (tabla y orden), de `NewBoundFromObject` y de los handlers | test | F5 | CA-04.2, CA-04.3, CA-04.4, CA-04.6, CA-04.8 | BLM-0084 | `internal/core/bondBound/application/bondBound.purchase_test.go`, `bondBound.fakes_test.go` (dependencias de la compra), `internal/core/bondBound/domain/bondBound.new_test.go`, `cmd/api/handlers/bondBounds/bondBounds.purchase.post_test.go`, `bondBounds.bulkPurchase.post_test.go`, `bondBounds.testServer_test.go` (`Purchase` y `BulkPurchase` en `fakeApp`) |
 | BLM-0088 | Tests de integración: compra completa, rollback, concurrencia, contador e índices | test | F5 | CA-04.1, CA-04.5, CA-04.7, CA-04.9, CA-04.10, CA-04.13, CA-04.14 | BLM-0084 | `internal/core/bondBound/application/bondBound.purchase_integration_test.go`, `bondBound.testdb_integration_test.go` (conexión, fixtures y adapters reales), `internal/core/bondBound/infrastructure/mongocc/*_integration_test.go` |
 | BLM-0089 | Tests de las notificaciones (textos, tabla y tolerancia a fallos) | test | F5 | CA-04.11, CA-04.12 | BLM-0083 | `internal/core/bondBound/application/bondBound.purchase.notify_test.go`, `bondBound.fakes_test.go` (notificaciones y perfiles registrados) |
+| BLM-0166 | Compra, compra masiva y venta apagadas hasta el corte: variable `BLOOMING_TRADING` (default `false`) y `ERR_TRADING_DISABLED` (503) antes de validar, con un log al arrancar si está apagada | impl | F5 | RF-04.9, RF-05.3 | BLM-0082, BLM-0084, BLM-0093, BLM-0095 | `cmd/api/config/environments.go` y `config.go` (`BLOOMING_TRADING`), `.env.example`, `internal/core/bondBound/domain/bondBound.errors.go` y `bondBound.httpStatus.go` (`ERR_TRADING_DISABLED`), `internal/core/bondBound/application/bondBound.application.go` (`TradingEnabled`), `bondBound.purchase.go`, `bondBound.bulkPurchase.go`, `bondBound.sale.go`, `cmd/api/server/server.bondBound.go` (flag y log de arranque) |
+| BLM-0167 | Tests de la compra, la compra masiva y la venta apagadas: 503 sin escribir nada ni avanzar el contador, y lectura de la variable | test | F5 | CA-04.15, CA-05.19 | BLM-0166 | `internal/core/bondBound/application/bondBound.purchase_test.go`, `bondBound.sale_test.go`, `bondBound.fakes_test.go` y `bondBound.testdb_integration_test.go` (`TradingEnabled`), `cmd/api/handlers/bondBounds/bondBounds.purchase.post_test.go`, `bondBounds.bulkPurchase.post_test.go`, `bondBounds.sale.post_test.go`, `cmd/api/config/config_test.go`, `test/authz/`, `test/e2e/` y `test/load/` (`BLOOMING_TRADING=true` en el servicio) |
 
 ## 11. Fuera de alcance y preguntas abiertas
 
-- **Convivencia:** mientras Meteor siga vendiendo, generará claves con `count + 1` y puede chocar con el contador de Go. La compra se habilita en Go y se deshabilita en Meteor **en el mismo corte** (ver `tasks.md`, BLM-0135).
+- **Convivencia:** mientras Meteor siga vendiendo, genera claves con `count + 1`, que chocan con el contador de Go. Por eso la compra de Go queda apagada hasta el corte (RF-04.9). En el corte (BLM-0135), primero se apaga Meteor, después se siembran los contadores y por último se enciende Go ([procedimiento](../corte-compra-venta.md)).
 - **Pregunta:** ¿se quiere un header `Idempotency-Key` para evitar compras dobles por doble clic? El legado no lo tiene.
 - **Pregunta:** ¿el tope por defecto de la compra masiva (100) es razonable?
 - **Pregunta:** ¿se mantiene la compra de bonos de otra agencia, como dice el comentario del legado?

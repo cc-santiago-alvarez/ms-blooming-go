@@ -12,6 +12,9 @@ import (
 // sola transacción. Devuelve cada bono con la referencia de su cobro, el total y el saldo que le queda a la
 // cuenta.
 func (app *BondBoundApplication) BulkPurchase(ctx context.Context, p bondBound_domain.BulkPurchaseParams) (bondBound_domain.BulkPurchaseResult, error) {
+	if !app.TradingEnabled {
+		return bondBound_domain.BulkPurchaseResult{}, bondBound_domain.ErrTradingDisabled
+	}
 	p.Normalize()
 	if err := p.Validation(app.BulkPurchaseMaxQuantity); err != nil {
 		return bondBound_domain.BulkPurchaseResult{}, err

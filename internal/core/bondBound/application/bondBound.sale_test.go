@@ -257,3 +257,25 @@ func TestSaleDestinationAccount(t *testing.T) {
 		})
 	}
 }
+
+// Con la venta apagada, la de un bono propio vendible responde ErrTradingDisabled sin leer el bono ni la
+// cuenta destino y sin escribir nada; su cotización sigue respondiendo. CA-05.19
+func TestSaleTradingDisabled(t *testing.T) {
+	b := boundOnDay(50)
+	f := saleFakes(b)
+	app := f.app()
+	app.TradingEnabled = false
+
+	_, err := app.Sale(withSession(ownerID, -5), boundID)
+
+	if !errors.Is(err, bondBound_domain.ErrTradingDisabled) {
+		t.Fatalf("Sale = %v, se esperaba ErrTradingDisabled", err)
+	}
+	assertNotSold(t, f, b)
+	if len(f.repo.reads) != 0 || len(f.userSettings.reads) != 0 || len(f.balance.reads) != 0 {
+		t.Errorf("se leyó: bonos %v, settings de %v y cuentas %+v", f.repo.reads, f.userSettings.reads, f.balance.reads)
+	}
+	if _, err := app.PreSale(withSession(ownerID, -5), boundID); err != nil {
+		t.Errorf("PreSale con la venta apagada: %v", err)
+	}
+}

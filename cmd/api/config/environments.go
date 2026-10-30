@@ -31,8 +31,9 @@ type ApiEnv struct {
 	ExporterServiceURL string
 	ExporterSecret     string
 
-	// Blooming
+	// Blooming. BloomingTrading habilita la compra y la venta, apagadas hasta el corte
 	BloomingAdminEmails     []string
 	DefaultUtcDiff          int
 	BulkPurchaseMaxQuantity int
+	BloomingTrading         bool
 }
